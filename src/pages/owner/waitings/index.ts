@@ -1,0 +1,1 @@
+export { OwnerWaitingsPage } from './OwnerWaitingsPage'
