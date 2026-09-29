@@ -9,6 +9,7 @@ import { Badge, Banner, Button, Dialog, Divider, Page, Section, toast, TopBar } 
 import styles from './WaitingPage.module.css'
 
 const ARRIVAL_LIMIT_SECONDS = 10 * 60
+const LATE_EXTENSION_SECONDS = 5 * 60
 const MINUTES_PER_TEAM = 3
 
 /**
@@ -25,7 +26,8 @@ export function WaitingPage() {
   const [status, setStatus] = useState<WaitingStatus>(waiting.status)
   const [arrivalLeft, setArrivalLeft] = useState(ARRIVAL_LIMIT_SECONDS)
   const [cancelOpen, setCancelOpen] = useState(false)
-  const [responded, setResponded] = useState(false)
+  /** 호출 응답 — arrived=도착했어요, late=조금 늦어요(1회 5분 연장) */
+  const [response, setResponse] = useState<'arrived' | 'late' | null>(null)
 
   // 실시간 갱신 시뮬레이션 — 5초마다 앞 팀이 줄고, 내 차례가 되면 입장 호출
   useEffect(() => {
@@ -44,7 +46,14 @@ export function WaitingPage() {
     return () => window.clearInterval(timer)
   }, [status])
 
-  const isActive = status === 'WAITING' || status === 'CALLED'
+  /*
+   * 기능명세「호출 미응답·미착석 순번 만료」
+   * 제한시간 안에 응답하지 않았거나, 응답했지만 착석 처리되지 않으면 순번 만료(NO_SHOW)
+   * TODO(API 연동): 만료는 서버가 판단해 SSE 로 알려주므로, 연동 후에는 서버 상태를 그대로 사용
+   */
+  const current: WaitingStatus = status === 'CALLED' && arrivalLeft === 0 ? 'NO_SHOW' : status
+
+  const isActive = current === 'WAITING' || current === 'CALLED'
   const mm = String(Math.floor(arrivalLeft / 60)).padStart(2, '0')
   const ss = String(arrivalLeft % 60).padStart(2, '0')
 
@@ -64,24 +73,26 @@ export function WaitingPage() {
     >
       <TopBar title={waiting.storeName} />
 
-      {status === 'CALLED' && (
+      {current === 'CALLED' && (
         <section className={styles.called} aria-live="assertive">
           <div className={styles.calledHead}>
             <BellRing aria-hidden />
             <div>
               <p className="t-headline-16">입장 가능합니다!</p>
               <p className="t-caption-13 text-secondary">
-                {responded ? '매장에 도착 의사를 전달했어요' : `${mm}:${ss} 안에 도착 의사를 알려주세요`}
+                {response === 'arrived' && `매장에 도착을 알렸어요 · ${mm}:${ss} 안에 착석해주세요`}
+                {response === 'late' && `늦는다고 알렸어요 · ${mm}:${ss} 안에 도착해주세요`}
+                {response === null && `${mm}:${ss} 안에 도착 의사를 알려주세요`}
               </p>
             </div>
           </div>
-          {!responded && (
+          {response === null && (
             <div className={styles.calledActions}>
               <Button
                 size="M"
                 className={styles.flex}
                 onClick={() => {
-                  setResponded(true)
+                  setResponse('arrived')
                   toast('매장에 도착했다고 알렸어요')
                 }}
               >
@@ -92,8 +103,9 @@ export function WaitingPage() {
                 variant="soft"
                 className={styles.flex}
                 onClick={() => {
-                  setResponded(true)
-                  toast('조금 늦는다고 알렸어요')
+                  setResponse('late')
+                  setArrivalLeft((sec) => sec + LATE_EXTENSION_SECONDS)
+                  toast('조금 늦는다고 알렸어요. 도착 시간이 5분 늘어났어요')
                 }}
               >
                 조금 늦어요
@@ -104,10 +116,10 @@ export function WaitingPage() {
       )}
 
       <section className={styles.ticket}>
-        <Badge tone={WAITING_STATUS_TONE[status]} solid={status === 'CALLED'}>
-          {WAITING_STATUS_LABEL[status]}
+        <Badge tone={WAITING_STATUS_TONE[current]} solid={current === 'CALLED'}>
+          {current === 'NO_SHOW' ? '순번 만료' : WAITING_STATUS_LABEL[current]}
         </Badge>
-        {status === 'WAITING' && (
+        {current === 'WAITING' && (
           <>
             <p className="t-caption-13 text-secondary">내 대기순번 · 실시간 갱신 중</p>
             <p className={styles.position}>
@@ -118,7 +130,7 @@ export function WaitingPage() {
             </p>
           </>
         )}
-        {status === 'CALLED' && (
+        {current === 'CALLED' && (
           <>
             <p className="t-caption-13 text-secondary">대기번호</p>
             <p className={styles.position}>
@@ -127,7 +139,15 @@ export function WaitingPage() {
             <p className="t-body-14 text-secondary">매장 입구에서 대기번호를 말씀해주세요</p>
           </>
         )}
-        {!isActive && <p className="t-body-14 text-secondary">웨이팅이 종료됐어요</p>}
+        {current === 'NO_SHOW' && (
+          <p className="t-body-14 text-secondary">
+            {response ? '제한시간 안에 착석하지 않아' : '호출에 응답하지 않아'} 순번이 만료됐어요.
+            <br />
+            다시 방문하시려면 웨이팅을 새로 신청해주세요.
+          </p>
+        )}
+        {current === 'CANCELED' && <p className="t-body-14 text-secondary">웨이팅을 취소했어요</p>}
+        {current === 'SEATED' && <p className="t-body-14 text-secondary">착석이 완료됐어요. 맛있게 드세요!</p>}
       </section>
 
       <Divider thick />
