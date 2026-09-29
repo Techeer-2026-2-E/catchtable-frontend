@@ -1,7 +1,7 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { useEscape } from '@/shared/hooks/useEscape'
+import { useModal } from '@/shared/hooks/useModal'
 import { IconButton } from './IconButton'
 import styles from './Overlay.module.css'
 
@@ -19,12 +19,15 @@ interface BottomSheetProps {
 /** 날짜·인원·옵션 선택. 상단 라운드 20, 하단 CTA */
 export function BottomSheet({ isOpen, onClose, title, headerAction, children, footer }: BottomSheetProps) {
   const titleId = useId()
-  useEscape(isOpen, onClose)
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(isOpen, onClose, ref)
   if (!isOpen) return null
 
   return createPortal(
     <div className={`${styles.overlay} ${styles.bottom}`} onClick={onClose}>
       <div
+        ref={ref}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

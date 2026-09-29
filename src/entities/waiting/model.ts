@@ -1,3 +1,5 @@
+import type { BadgeTone } from '@/shared/ui'
+
 /** 웨이팅 상태 — 기능 명세(호출 / 착석 / 취소 / 미응답·노쇼 만료) 기준 */
 export type WaitingStatus = 'WAITING' | 'CALLED' | 'SEATED' | 'CANCELED' | 'NO_SHOW'
 
@@ -28,7 +30,7 @@ export const WAITING_STATUS_LABEL: Record<WaitingStatus, string> = {
 }
 
 /** 입장 호출은 즉시 행동이 필요한 특수 상황이라 primary(노랑) 강조 */
-export const WAITING_STATUS_TONE: Record<WaitingStatus, 'neutral' | 'brand' | 'primary' | 'danger'> = {
+export const WAITING_STATUS_TONE: Record<WaitingStatus, BadgeTone> = {
   WAITING: 'brand',
   CALLED: 'primary',
   SEATED: 'neutral',

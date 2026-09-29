@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react'
 import { createBrowserRouter } from 'react-router'
 import { RequireAuth } from '@/features/auth'
-import { HomePage } from '@/pages/home'
-import { LoginPage } from '@/pages/login'
-import { MyDiningPage } from '@/pages/my-dining'
-import { MyPage } from '@/pages/mypage'
 import { NotFoundPage } from '@/pages/not-found'
-import { NotificationsPage } from '@/pages/notifications'
+import { ROUTES } from '@/shared/config'
+import { OwnerLayout } from './layouts/OwnerLayout'
+import { RootLayout } from './layouts/RootLayout'
 import {
+  HomePage,
+  LoginPage,
+  MyDiningPage,
+  MyPage,
+  NotificationsPage,
   OwnerDashboardPage,
   OwnerHoursPage,
   OwnerPolicyPage,
@@ -15,18 +18,15 @@ import {
   OwnerStorePage,
   OwnerTablesPage,
   OwnerWaitingsPage,
-} from '@/pages/owner'
-import { ProfileEditPage } from '@/pages/profile-edit'
-import { ReservationPage } from '@/pages/reservation'
-import { ReservationDetailPage } from '@/pages/reservation-detail'
-import { SearchPage } from '@/pages/search'
-import { SignupPage } from '@/pages/signup'
-import { StoreDetailPage } from '@/pages/store-detail'
-import { WaitingPage } from '@/pages/waiting'
-import { WaitingApplyPage } from '@/pages/waiting-apply'
-import { ROUTES } from '@/shared/config'
-import { OwnerLayout } from './layouts/OwnerLayout'
-import { RootLayout } from './layouts/RootLayout'
+  ProfileEditPage,
+  ReservationDetailPage,
+  ReservationPage,
+  SearchPage,
+  SignupPage,
+  StoreDetailPage,
+  WaitingApplyPage,
+  WaitingPage,
+} from './lazyPages'
 
 const auth = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>
 

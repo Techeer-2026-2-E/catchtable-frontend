@@ -1,3 +1,5 @@
+import type { BadgeTone } from '@/shared/ui'
+
 /** 예약 상태 — 기능 명세(자동 확정 / 취소 / 방문 확인 / 자동 이용 완료 / 노쇼) 기준 */
 export type ReservationStatus = 'CONFIRMED' | 'CANCELED' | 'VISITED' | 'COMPLETED' | 'NO_SHOW'
 
@@ -31,7 +33,7 @@ export const RESERVATION_STATUS_LABEL: Record<ReservationStatus, string> = {
  * 상태 배지 톤 — 포인트 컬러 사용을 줄이기 위해
  * 진행 중인 상태만 brand, 예외(노쇼)만 danger, 나머지는 neutral
  */
-export const RESERVATION_STATUS_TONE: Record<ReservationStatus, 'neutral' | 'brand' | 'primary' | 'danger'> = {
+export const RESERVATION_STATUS_TONE: Record<ReservationStatus, BadgeTone> = {
   CONFIRMED: 'brand',
   VISITED: 'brand',
   COMPLETED: 'neutral',

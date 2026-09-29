@@ -1,6 +1,6 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useEscape } from '@/shared/hooks/useEscape'
+import { useModal } from '@/shared/hooks/useModal'
 import { Button } from './Button'
 import styles from './Overlay.module.css'
 
@@ -25,12 +25,15 @@ export function Dialog({
   onConfirm,
 }: DialogProps) {
   const titleId = useId()
-  useEscape(isOpen, onClose)
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(isOpen, onClose, ref)
   if (!isOpen) return null
 
   return createPortal(
     <div className={`${styles.overlay} ${styles.center}`} onClick={onClose}>
       <div
+        ref={ref}
+        tabIndex={-1}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}

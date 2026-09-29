@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { ROUTES } from '@/shared/config'
 import { ToastViewport } from '@/shared/ui'
 import { BottomNav } from './BottomNav'
 import styles from './Layout.module.css'
+import { PageFallback } from './PageFallback'
 
 /** 하단 탭바를 보여줄 탭 메인 화면 */
 const TAB_ROUTES: string[] = [ROUTES.HOME, ROUTES.MY_DINING, ROUTES.MYPAGE, ROUTES.NOTIFICATIONS]
@@ -14,7 +16,9 @@ export function RootLayout() {
 
   return (
     <div className={`${styles.frame} ${showNav ? styles.withNav : ''}`}>
-      <Outlet />
+      <Suspense fallback={<PageFallback />}>
+        <Outlet />
+      </Suspense>
       {showNav && <BottomNav />}
       <ToastViewport />
     </div>
