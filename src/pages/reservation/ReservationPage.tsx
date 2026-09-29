@@ -42,10 +42,18 @@ export function ReservationPage() {
     (step === 'datetime' && !!form.date && !!form.time) || (step === 'table' && !!form.tableType)
 
   const submit = () => {
-    // TODO(API 연동): useReservationForm().submit — 테이블 자동 배정 후 즉시 확정
+    // TODO(API 연동): useReservationForm().submit — 서버가 테이블을 자동 배정하고 즉시 확정해서 응답
+    const table = assignTable(form.tableType, form.partySize)
+    if (!table) {
+      toast('선택한 조건에 맞는 빈 테이블이 없어요. 다른 시간이나 좌석을 골라주세요')
+      return
+    }
     form.reset()
     toast('예약이 확정됐어요')
-    navigate(paths.reservationDetail(101), { replace: true, state: { justCreated: true } })
+    navigate(paths.reservationDetail(101), {
+      replace: true,
+      state: { justCreated: true, tableNumber: table.tableNumber, tableTypeLabel: TABLE_TYPE_LABEL[table.tableType ?? 'HALL'] },
+    })
   }
 
   const summary = form.date && form.time
@@ -191,6 +199,20 @@ export function ReservationPage() {
       )}
     </Page>
   )
+}
+
+/**
+ * 기능명세「물리 테이블 자동 배정」 — 목데이터용 배정 규칙 (실제 배정은 백엔드)
+ * 선택한 좌석 타입 중 인원이 수용 범위에 들고, 남는 자리가 가장 적은 테이블
+ */
+function assignTable(tableType: TableType | null, partySize: number) {
+  return MOCK_TABLES.filter(
+    (t) =>
+      t.status === 'ACTIVE' &&
+      (!tableType || t.tableType === tableType) &&
+      (t.minCapacity ?? 1) <= partySize &&
+      t.capacity >= partySize,
+  ).sort((a, b) => a.capacity - b.capacity)[0]
 }
 
 /** P2: 예약금 결제 중 테이블 5분 임시 선점 안내 */

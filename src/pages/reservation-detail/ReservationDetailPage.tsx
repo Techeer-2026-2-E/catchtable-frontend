@@ -12,9 +12,15 @@ import styles from './ReservationDetailPage.module.css'
 export function ReservationDetailPage() {
   const { reservationId } = useParams<{ reservationId: string }>()
   const navigate = useNavigate()
-  const { state } = useLocation() as { state: { justCreated?: boolean } | null }
+  const { state } = useLocation() as {
+    state: { justCreated?: boolean; tableNumber?: number; tableTypeLabel?: string } | null
+  }
   // TODO(API 연동): useReservationDetail(reservationId), useCancelReservation
-  const reservation = MOCK_RESERVATIONS.find((r) => r.id === Number(reservationId)) ?? MOCK_RESERVATIONS[0]
+  const found = MOCK_RESERVATIONS.find((r) => r.id === Number(reservationId)) ?? MOCK_RESERVATIONS[0]
+  // 방금 만든 예약이면 자동 배정된 테이블 정보를 반영
+  const reservation = state?.tableNumber
+    ? { ...found, tableNumber: state.tableNumber, tableTypeLabel: state.tableTypeLabel ?? found.tableTypeLabel }
+    : found
   const store = findMockStore(reservation.storeId)
   const [status, setStatus] = useState<ReservationStatus>(reservation.status)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -69,7 +75,7 @@ export function ReservationDetailPage() {
           <dt>좌석</dt>
           <dd>
             {reservation.tableTypeLabel ?? '-'}
-            {reservation.tableNumber ? ` · ${reservation.tableNumber}번 테이블` : ' · 방문 시 자동 배정'}
+            {reservation.tableNumber ? ` · ${reservation.tableNumber}번 테이블 (자동 배정)` : ' · 방문 시 자동 배정'}
           </dd>
         </dl>
       </Section>

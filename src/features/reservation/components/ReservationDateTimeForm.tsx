@@ -1,4 +1,5 @@
 import { MOCK_TIME_SLOTS } from '@/entities/mock'
+import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
 import { Calendar, Chip, ChipGroup } from '@/shared/ui'
 import { useReservationFormStore } from '../store/reservationFormStore'
@@ -22,7 +23,8 @@ export function ReservationDateTimeForm({ maxPartySize = 8, closedDays = [] }: P
 
   return (
     <div className={styles.form}>
-      <Calendar value={date} onChange={setDate} isDisabled={(d) => closedDays.includes(new Date(d).getDay())} />
+      {/* new Date('YYYY-MM-DD') 는 UTC 로 해석돼 시간대에 따라 요일이 밀리므로 dayjs(로컬) 사용 */}
+      <Calendar value={date} onChange={setDate} isDisabled={(d) => closedDays.includes(dayjs(d).day())} />
 
       <div className={styles.field}>
         <p className="t-headline-16">인원</p>
