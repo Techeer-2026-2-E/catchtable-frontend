@@ -34,7 +34,6 @@ export function OwnerWaitingsPage() {
   const [waitings, setWaitings] = useState(MOCK_OWNER_WAITINGS)
   const [pending, setPending] = useState<Pending>(null)
   const [settingOpen, setSettingOpen] = useState(false)
-  const now = useNow()
 
   const active = waitings.filter((w) => w.status === 'WAITING' || w.status === 'CALLED')
   const update = (id: number, patch: Partial<Waiting>, message: string) => {
@@ -79,8 +78,6 @@ export function OwnerWaitingsPage() {
         <ul className={styles.list}>
           {active.map((w) => {
             const called = w.status === 'CALLED'
-            const leftSec = called && w.calledAt ? arrivalLimit * 60 - now.diff(dayjs(w.calledAt), 'second') : 0
-            const expired = called && leftSec <= 0
             return (
               <Card as="li" key={w.id} className={styles.card}>
                 <div className={styles.head}>
@@ -94,13 +91,7 @@ export function OwnerWaitingsPage() {
                 <p className="t-caption-13 text-tertiary">
                   접수 {dayjs(w.createdAt).format('HH:mm')}
                   {called && w.calledAt && ` · 호출 ${dayjs(w.calledAt).format('HH:mm')}`}
-                  {called && !expired && (
-                    <span className="text-accent">
-                      {' '}
-                      · {Math.floor(leftSec / 60)}분 {String(leftSec % 60).padStart(2, '0')}초 남음
-                    </span>
-                  )}
-                  {expired && <span className="text-danger"> · 도착 제한시간 초과</span>}
+                  {called && w.calledAt && <ArrivalCountdown calledAt={w.calledAt} limitMinutes={arrivalLimit} />}
                 </p>
                 <div className={styles.actions}>
                   {called ? (
@@ -177,12 +168,22 @@ export function OwnerWaitingsPage() {
   )
 }
 
-/** 1초마다 현재 시각 갱신 — 호출 남은 시간 표시용 */
-function useNow() {
-  const [now, setNow] = useState(dayjs())
+/**
+ * 호출 후 남은 도착 시간 — 1초마다 이 컴포넌트만 다시 그림 (페이지 전체 리렌더 방지)
+ */
+function ArrivalCountdown({ calledAt, limitMinutes }: { calledAt: string; limitMinutes: number }) {
+  const [now, setNow] = useState(() => dayjs())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(dayjs()), 1000)
     return () => window.clearInterval(timer)
   }, [])
-  return now
+
+  const leftSec = limitMinutes * 60 - now.diff(dayjs(calledAt), 'second')
+  if (leftSec <= 0) return <span className="text-danger"> · 도착 제한시간 초과</span>
+  return (
+    <span className="text-accent" role="timer">
+      {' '}
+      · {Math.floor(leftSec / 60)}분 {String(leftSec % 60).padStart(2, '0')}초 남음
+    </span>
+  )
 }
