@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { BellOff, BellRing, CalendarCheck, CalendarX, ListOrdered, Star } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import type { Notification } from '@/entities'
-import { MOCK_NOTIFICATIONS } from '@/entities/mock'
+import { useInboxStore } from '@/features/notification'
 import { dayjs } from '@/shared/lib/dayjs'
 import { Button, EmptyState, Page, TopBar } from '@/shared/ui'
 import styles from './NotificationsPage.module.css'
@@ -18,12 +18,11 @@ const ICON: Record<NonNullable<Notification['type']>, ReactNode> = {
 /** 기능명세「예약·웨이팅 상태 변경 알림」 */
 export function NotificationsPage() {
   const navigate = useNavigate()
-  // TODO(API 연동): useNotifications(), useReadNotification()
-  const [items, setItems] = useState(MOCK_NOTIFICATIONS)
+  const { items, read, readAll } = useInboxStore()
   const unread = items.filter((n) => !n.read).length
 
   const open = (n: Notification) => {
-    setItems((list) => list.map((x) => (x.id === n.id ? { ...x, read: true } : x)))
+    read(n.id)
     if (n.link) navigate(n.link)
   }
 
@@ -35,7 +34,7 @@ export function NotificationsPage() {
         large
         actions={
           unread > 0 && (
-            <Button variant="ghost" size="S" onClick={() => setItems((list) => list.map((n) => ({ ...n, read: true })))}>
+            <Button variant="ghost" size="S" onClick={readAll}>
               모두 읽음
             </Button>
           )
