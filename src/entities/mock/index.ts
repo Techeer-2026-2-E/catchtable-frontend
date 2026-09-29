@@ -199,13 +199,26 @@ export const MOCK_WAITINGS: Waiting[] = [
   },
 ]
 
-/** 점주 — 오늘 예약 현황 */
+/** 점주 — 오늘 예약 현황 (지금 시각 기준으로 만들어 언제 열어도 상태 흐름을 볼 수 있게 함) */
+const at = (minutesFromNow: number) => {
+  const raw = dayjs().add(minutesFromNow, 'minute')
+  const d = raw.minute(Math.floor(raw.minute() / 30) * 30) // 30분 단위로 내림
+  return { date: d.format('YYYY-MM-DD'), time: d.format('HH:mm') }
+}
+const ownerReservation = (id: number, minutes: number, rest: Pick<Reservation, 'partySize' | 'status' | 'customerName' | 'tableTypeLabel'>): Reservation => ({
+  id,
+  storeId: 2,
+  storeName: '혼술 이자카야',
+  createdAt: today,
+  ...at(minutes),
+  ...rest,
+})
 export const MOCK_OWNER_RESERVATIONS: Reservation[] = [
-  { id: 301, storeId: 2, storeName: '혼술 이자카야', date: today, time: '17:30', partySize: 2, status: 'VISITED', customerName: '이하은', tableTypeLabel: '룸', createdAt: today },
-  { id: 302, storeId: 2, storeName: '혼술 이자카야', date: today, time: '18:00', partySize: 2, status: 'CONFIRMED', customerName: '김민지', tableTypeLabel: '룸', createdAt: today },
-  { id: 303, storeId: 2, storeName: '혼술 이자카야', date: today, time: '18:30', partySize: 4, status: 'CONFIRMED', customerName: '박서준', tableTypeLabel: '바', createdAt: today },
-  { id: 304, storeId: 2, storeName: '혼술 이자카야', date: today, time: '12:00', partySize: 3, status: 'COMPLETED', customerName: '최유진', tableTypeLabel: '홀', createdAt: today },
-  { id: 305, storeId: 2, storeName: '혼술 이자카야', date: today, time: '12:30', partySize: 2, status: 'NO_SHOW', customerName: '정하늘', tableTypeLabel: '홀', createdAt: today },
+  ownerReservation(301, -60, { partySize: 2, status: 'VISITED', customerName: '이하은', tableTypeLabel: '룸' }),
+  ownerReservation(302, -30, { partySize: 2, status: 'CONFIRMED', customerName: '김민지', tableTypeLabel: '룸' }),
+  ownerReservation(303, 30, { partySize: 4, status: 'CONFIRMED', customerName: '박서준', tableTypeLabel: '바' }),
+  ownerReservation(304, -240, { partySize: 3, status: 'VISITED', customerName: '최유진', tableTypeLabel: '홀' }),
+  ownerReservation(305, -180, { partySize: 2, status: 'NO_SHOW', customerName: '정하늘', tableTypeLabel: '홀' }),
 ]
 
 /** 점주 — 현재 웨이팅 */
