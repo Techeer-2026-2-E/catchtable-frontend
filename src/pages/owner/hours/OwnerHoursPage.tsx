@@ -17,7 +17,11 @@ export function OwnerHoursPage() {
   const update = (day: number, patch: Partial<BusinessHour>) =>
     setHours((list) => list.map((h) => (h.dayOfWeek === day ? { ...h, ...patch } : h)))
 
-  const invalid = hours.some((h) => !h.closed && h.openTime >= h.closeTime)
+  // 마감이 오픈보다 이르면 다음날 마감(예: 17:00 ~ 02:00)으로 본다. 같으면 영업시간 0 이라 오류
+  const isOvernight = (h: BusinessHour) => h.closeTime < h.openTime
+  const invalid =
+    hours.some((h) => !h.closed && h.openTime === h.closeTime) ||
+    (breakTime.enabled && breakTime.start >= breakTime.end)
 
   return (
     <Page
@@ -28,10 +32,13 @@ export function OwnerHoursPage() {
       }
     >
       <TopBar title="영업시간 관리" />
+      <p className={`${styles.hint} t-caption-13 text-tertiary`}>
+        마감 시간이 오픈보다 이르면 다음날 새벽 마감으로 저장돼요.
+      </p>
       <ul className={styles.list}>
         {ORDER.map((day) => {
           const h = hours.find((x) => x.dayOfWeek === day)!
-          const wrong = !h.closed && h.openTime >= h.closeTime
+          const wrong = !h.closed && h.openTime === h.closeTime
           return (
             <li key={day} className={`${styles.day} ${h.closed ? styles.closed : ''}`}>
               <span className={`${styles.label} t-headline-16`}>{DAY_LABEL[day]}</span>
@@ -54,6 +61,7 @@ export function OwnerHoursPage() {
                     onChange={(e) => update(day, { closeTime: e.target.value })}
                     aria-invalid={wrong}
                   />
+                  {isOvernight(h) && <span className={styles.nextDay}>다음날</span>}
                 </div>
               )}
               <Toggle
@@ -67,7 +75,11 @@ export function OwnerHoursPage() {
       </ul>
       {invalid && (
         <Section>
-          <Banner tone="danger">마감 시간은 오픈 시간보다 늦어야 해요.</Banner>
+          <Banner tone="danger">
+            {breakTime.enabled && breakTime.start >= breakTime.end
+              ? '브레이크타임 종료는 시작보다 늦어야 해요.'
+              : '오픈과 마감 시간이 같아요. 24시간 영업이면 00:00 ~ 23:59 로 입력해주세요.'}
+          </Banner>
         </Section>
       )}
 

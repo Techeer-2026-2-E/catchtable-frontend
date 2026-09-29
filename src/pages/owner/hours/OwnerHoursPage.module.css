@@ -41,3 +41,15 @@
 .times input[aria-invalid='true'] {
   border-color: var(--color-status-danger);
 }
+.hint {
+  padding: 0 var(--page-gutter);
+}
+.nextDay {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-4);
+  background: var(--color-secondary-soft);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-brand);
+  white-space: nowrap;
+}

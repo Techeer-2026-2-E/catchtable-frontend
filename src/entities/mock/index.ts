@@ -132,8 +132,8 @@ export const MOCK_BUSINESS_HOURS: BusinessHour[] = [
   { dayOfWeek: 2, openTime: '11:30', closeTime: '22:00', closed: false },
   { dayOfWeek: 3, openTime: '11:30', closeTime: '22:00', closed: false },
   { dayOfWeek: 4, openTime: '11:30', closeTime: '22:00', closed: false },
-  { dayOfWeek: 5, openTime: '11:30', closeTime: '23:00', closed: false },
-  { dayOfWeek: 6, openTime: '11:30', closeTime: '23:00', closed: false },
+  { dayOfWeek: 5, openTime: '11:30', closeTime: '02:00', closed: false },
+  { dayOfWeek: 6, openTime: '11:30', closeTime: '02:00', closed: false },
   { dayOfWeek: 0, openTime: '11:30', closeTime: '22:00', closed: true },
 ]
 
