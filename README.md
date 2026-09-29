@@ -93,6 +93,28 @@ import { useReservationForm } from '@/features/reservation'            // ✅
 import { useReservationForm } from '@/features/reservation/hooks/...'  // ❌
 ```
 
+### 디자인 시스템
+
+Figma「Design System」을 코드로 옮긴 것. 새 화면은 아래를 조합해서 만듭니다.
+
+- **토큰** `shared/styles/tokens.css` — 색·간격·반경·그림자 CSS 변수. 화면에서는 의미 색(`--color-*`)만 사용
+- **텍스트 스타일** `shared/styles/typography.css` — `t-title-20`, `t-headline-16`, `t-body-14`, `t-caption-13` …
+- **폰트** IBM Plex Sans KR (Google Fonts)
+- **공통 컴포넌트** `shared/ui` — Button, Chip, Badge, TopBar, Page/Section, BottomSheet, Dialog, Calendar, ListItem, Banner, Toast …
+- **스타일링** CSS Modules (`*.module.css`)
+- **아이콘** lucide-react
+
+색 사용 원칙
+
+- 노랑(primary) = 지금 할 행동. **한 화면에 노랑 CTA 1개**, 보조 액션은 soft/outline
+- 갈색(secondary) = 선택 상태 (칩, 토글 on)
+- 상태 배지는 대부분 neutral/brand. 노랑은 "입장 호출"처럼 즉시 행동이 필요할 때, 빨강은 노쇼 등 예외에만
+
+### 목데이터
+
+API 연동 전까지 화면은 `entities/mock` 의 목데이터를 사용합니다. 개발 서버에서는 로그인 화면의
+「고객으로 둘러보기 / 점주로 둘러보기」 버튼으로 로그인 없이 화면을 볼 수 있습니다.
+
 ### 상태 관리
 
 - 서버 데이터 → **TanStack Query** (query key는 각 feature의 `api/queryKeys.ts`)

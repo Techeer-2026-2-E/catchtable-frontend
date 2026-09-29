@@ -3,22 +3,27 @@ import { createBrowserRouter } from 'react-router'
 import { RequireAuth } from '@/features/auth'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
+import { MyDiningPage } from '@/pages/my-dining'
 import { MyPage } from '@/pages/mypage'
 import { NotFoundPage } from '@/pages/not-found'
 import { NotificationsPage } from '@/pages/notifications'
 import {
   OwnerDashboardPage,
+  OwnerHoursPage,
+  OwnerPolicyPage,
   OwnerReservationsPage,
   OwnerStorePage,
   OwnerTablesPage,
   OwnerWaitingsPage,
 } from '@/pages/owner'
+import { ProfileEditPage } from '@/pages/profile-edit'
 import { ReservationPage } from '@/pages/reservation'
 import { ReservationDetailPage } from '@/pages/reservation-detail'
 import { SearchPage } from '@/pages/search'
 import { SignupPage } from '@/pages/signup'
 import { StoreDetailPage } from '@/pages/store-detail'
 import { WaitingPage } from '@/pages/waiting'
+import { WaitingApplyPage } from '@/pages/waiting-apply'
 import { ROUTES } from '@/shared/config'
 import { OwnerLayout } from './layouts/OwnerLayout'
 import { RootLayout } from './layouts/RootLayout'
@@ -39,8 +44,11 @@ export const router = createBrowserRouter([
       // 로그인 필요
       { path: ROUTES.RESERVATION, element: auth(<ReservationPage />) },
       { path: ROUTES.RESERVATION_DETAIL, element: auth(<ReservationDetailPage />) },
+      { path: ROUTES.WAITING_APPLY, element: auth(<WaitingApplyPage />) },
       { path: ROUTES.WAITING, element: auth(<WaitingPage />) },
+      { path: ROUTES.MY_DINING, element: auth(<MyDiningPage />) },
       { path: ROUTES.MYPAGE, element: auth(<MyPage />) },
+      { path: ROUTES.PROFILE_EDIT, element: auth(<ProfileEditPage />) },
       { path: ROUTES.NOTIFICATIONS, element: auth(<NotificationsPage />) },
     ],
   },
@@ -51,6 +59,8 @@ export const router = createBrowserRouter([
       { path: ROUTES.OWNER, element: <OwnerDashboardPage /> },
       { path: ROUTES.OWNER_STORE, element: <OwnerStorePage /> },
       { path: ROUTES.OWNER_TABLES, element: <OwnerTablesPage /> },
+      { path: ROUTES.OWNER_HOURS, element: <OwnerHoursPage /> },
+      { path: ROUTES.OWNER_POLICY, element: <OwnerPolicyPage /> },
       { path: ROUTES.OWNER_RESERVATIONS, element: <OwnerReservationsPage /> },
       { path: ROUTES.OWNER_WAITINGS, element: <OwnerWaitingsPage /> },
     ],
