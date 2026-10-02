@@ -1,0 +1,5 @@
+export { OwnerDashboardPage } from './dashboard'
+export { OwnerReservationsPage } from './reservations'
+export { OwnerStorePage } from './store'
+export { OwnerTablesPage } from './tables'
+export { OwnerWaitingsPage } from './waitings'

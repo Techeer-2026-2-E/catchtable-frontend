@@ -1,5 +1,14 @@
+import { RouterProvider } from 'react-router'
+import { AppProviders } from './providers'
+import { router } from './router'
+import './styles/global.css'
+
 function App() {
-  return <h1>캐치테이블</h1>
+  return (
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
+  )
 }
 
 export default App
