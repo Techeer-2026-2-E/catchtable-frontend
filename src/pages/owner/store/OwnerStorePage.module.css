@@ -1,0 +1,11 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-8);
+  padding: var(--space-8) var(--page-gutter) var(--space-16);
+}
+.group {
+  padding: var(--space-16) var(--page-gutter) var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
