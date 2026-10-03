@@ -1,0 +1,6 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: var(--space-16) var(--page-gutter);
+}
