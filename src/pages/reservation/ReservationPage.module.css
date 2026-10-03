@@ -1,0 +1,92 @@
+.progress {
+  height: 0.1875rem;
+  background: var(--color-bg-muted);
+}
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary-default);
+  transition: width 0.2s ease;
+}
+.half {
+  flex: 1;
+}
+.tableTypes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-8);
+}
+.optionCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: 5.5rem;
+  padding: var(--space-16);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+.optionCard svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-icon-subtle);
+}
+.optionCard[aria-checked='true'] {
+  border-color: var(--color-secondary-default);
+  box-shadow: 0 0 0 1px var(--color-secondary-default);
+  background: var(--color-secondary-soft);
+  color: var(--color-text-brand);
+}
+.optionCard[aria-checked='true'] svg {
+  color: var(--color-text-brand);
+}
+.menus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.menuCard {
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: auto;
+  text-align: left;
+}
+.infoTable {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  row-gap: var(--space-8);
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.infoTable dt {
+  color: var(--color-text-tertiary);
+}
+.infoTable dd {
+  margin: 0;
+}
+.hold {
+  display: flex;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--page-gutter);
+  background: var(--color-primary-soft);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+.confirmBar {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.confirmSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bottomSpacer {
+  height: 2.5rem;
+}

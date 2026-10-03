@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Clock, Heart, MapPin, Share2, Users, Wallet } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, StoreTags } from '@/entities'
+import { ReservationSheet } from '@/features/reservation'
 import { findMockStore, MOCK_BUSINESS_HOURS, MOCK_MENUS, MOCK_TIME_SLOTS } from '@/entities/mock'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -42,6 +43,10 @@ export function StoreDetailPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('home')
   const [liked, setLiked] = useState(false)
+  const [searchParams] = useSearchParams()
+  const initialDate = searchParams.get('date')
+  // 검색 결과에서 날짜를 눌러 들어오면 예약 시트를 바로 연다
+  const [sheetOpen, setSheetOpen] = useState(!!initialDate)
 
   // TODO(API 연동): useStoreDetail(storeId), useStoreMenus(storeId), useAvailability(storeId, today)
   const store = findMockStore(storeId)
@@ -67,7 +72,7 @@ export function StoreDetailPage() {
               웨이팅 신청
             </Button>
           )}
-          <Button className={styles.cta} onClick={() => navigate(paths.reservation(store.id))}>
+          <Button className={styles.cta} onClick={() => setSheetOpen(true)}>
             예약하기
           </Button>
         </>
@@ -132,7 +137,7 @@ export function StoreDetailPage() {
                   type="button"
                   className={styles.slot}
                   disabled={!slot.available}
-                  onClick={() => navigate(paths.reservation(store.id))}
+                  onClick={() => setSheetOpen(true)}
                 >
                   <span className="t-label-13">{formatTime(slot.time)}</span>
                   <span className="t-caption-12">
@@ -185,6 +190,15 @@ export function StoreDetailPage() {
           </ul>
         </Section>
       )}
+
+      <ReservationSheet
+        storeId={store.id}
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        maxPartySize={store.maxPartySize}
+        closedDays={MOCK_BUSINESS_HOURS.filter((h) => h.closed).map((h) => h.dayOfWeek)}
+        initialDate={initialDate}
+      />
     </Page>
   )
 }
