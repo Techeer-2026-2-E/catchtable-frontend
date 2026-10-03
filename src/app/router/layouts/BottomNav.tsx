@@ -1,5 +1,6 @@
 import { Bell, House, NotebookText, Search, UserRound } from 'lucide-react'
 import { NavLink } from 'react-router'
+import { useUnreadCount } from '@/features/notification'
 import { ROUTES } from '@/shared/config'
 import styles from './Layout.module.css'
 
@@ -13,6 +14,7 @@ const TABS = [
 
 /** 하단 탭 5개 고정. 활성 탭은 진한 아이콘 + 굵은 라벨 */
 export function BottomNav() {
+  const unread = useUnreadCount()
   return (
     <nav className={styles.bottomNav} aria-label="주요 메뉴">
       {TABS.map(({ to, label, icon: Icon, end }) => (
@@ -22,7 +24,14 @@ export function BottomNav() {
           end={end}
           className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navActive : ''}`}
         >
-          <Icon aria-hidden />
+          <span className={styles.navIcon}>
+            <Icon aria-hidden />
+            {to === ROUTES.NOTIFICATIONS && unread > 0 && (
+              <span className={styles.navBadge} aria-label={`안 읽은 알림 ${unread}개`}>
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </span>
           <span>{label}</span>
         </NavLink>
       ))}
