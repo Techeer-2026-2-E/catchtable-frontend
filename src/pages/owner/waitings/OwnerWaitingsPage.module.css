@@ -1,0 +1,44 @@
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: var(--space-4) var(--page-gutter) 0;
+  padding: var(--space-16);
+  border-radius: var(--radius-12);
+  background: var(--color-secondary-soft);
+}
+.control button {
+  text-align: left;
+}
+.summary {
+  padding: var(--space-16) var(--page-gutter) var(--space-8);
+}
+.banner {
+  padding: 0 var(--page-gutter);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--page-gutter) var(--space-24);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.actions {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+.sheetChips {
+  margin-top: var(--space-16);
+}
