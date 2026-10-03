@@ -1,0 +1,136 @@
+/**
+ * 디자인 토큰 — Figma「Design System」의 Variables를 그대로 옮김
+ * - 원시 색(Primitives)은 의미 색의 값으로만 사용하고, 화면·컴포넌트에서는 의미 색(--color-*)만 사용
+ * - 노랑(primary) = 지금 할 행동·핵심 수치 / 갈색(secondary) = 선택 상태·보조
+ * - 노랑 위 글자는 진갈색(--color-text-on-primary), 갈색 위 글자는 흰색
+ */
+:root {
+  /* ---------- Primitives ---------- */
+  --white: #ffffff;
+  --black: #000000;
+
+  --yellow-50: #fffbeb;
+  --yellow-100: #fff3c4;
+  --yellow-200: #ffe58a;
+  --yellow-300: #ffd54f;
+  --yellow-400: #ffc61a;
+  --yellow-500: #f5b800;
+  --yellow-600: #d99e00;
+  --yellow-700: #8a6200;
+  --yellow-800: #664800;
+  --yellow-900: #4d3700;
+
+  --brown-50: #f8f3ef;
+  --brown-100: #efe4db;
+  --brown-200: #dcc7b5;
+  --brown-300: #c2a184;
+  --brown-400: #9e7656;
+  --brown-500: #7f573a;
+  --brown-600: #6b4226;
+  --brown-700: #55331c;
+  --brown-800: #3d2412;
+  --brown-900: #26160a;
+
+  --gray-50: #fafaf9;
+  --gray-100: #f4f3f1;
+  --gray-200: #e8e6e3;
+  --gray-300: #d6d3cf;
+  --gray-400: #a8a39d;
+  --gray-500: #7a756f;
+  --gray-600: #5c5853;
+  --gray-700: #403d39;
+  --gray-800: #292724;
+  --gray-900: #1a1917;
+
+  --green-100: #e6f6ec;
+  --green-600: #1e9e57;
+  --green-700: #167a43;
+  --red-100: #fde8e6;
+  --red-600: #d93a2b;
+  --red-700: #b02a1e;
+  --blue-100: #e6f0fd;
+  --blue-600: #2f6fdb;
+  --blue-700: #2457b0;
+
+  /* ---------- Semantic: background ---------- */
+  --color-bg-canvas: var(--white);
+  --color-bg-surface: var(--white);
+  --color-bg-subtle: var(--gray-50);
+  --color-bg-muted: var(--gray-100);
+  --color-bg-inverse: var(--gray-900);
+  /* 딤 — 불투명도 50%로 사용 */
+  --color-bg-overlay: rgb(26 25 23 / 50%);
+
+  /* ---------- Semantic: text ---------- */
+  --color-text-primary: var(--gray-900);
+  --color-text-secondary: var(--gray-600);
+  --color-text-tertiary: var(--gray-500);
+  --color-text-disabled: var(--gray-400);
+  --color-text-inverse: var(--white);
+  --color-text-on-primary: var(--brown-800);
+  --color-text-on-secondary: var(--white);
+  --color-text-accent: var(--yellow-700);
+  --color-text-brand: var(--brown-600);
+
+  /* ---------- Semantic: border / icon / state ---------- */
+  --color-border-default: var(--gray-200);
+  --color-border-strong: var(--gray-300);
+  --color-border-focus: var(--brown-600);
+  --color-icon-default: var(--gray-900);
+  --color-icon-subtle: var(--gray-500);
+  --color-icon-disabled: var(--gray-400);
+  --color-state-disabled: var(--gray-200);
+
+  /* ---------- Semantic: brand ---------- */
+  --color-primary-default: var(--yellow-500);
+  --color-primary-pressed: var(--yellow-600);
+  --color-primary-subtle: var(--yellow-100);
+  --color-primary-soft: var(--yellow-50);
+  --color-secondary-default: var(--brown-600);
+  --color-secondary-pressed: var(--brown-700);
+  --color-secondary-subtle: var(--brown-100);
+  --color-secondary-soft: var(--brown-50);
+
+  /* ---------- Semantic: status (특수한 상황에서만 사용) ---------- */
+  --color-status-success: var(--green-700);
+  --color-status-success-soft: var(--green-100);
+  --color-status-danger: var(--red-700);
+  --color-status-danger-soft: var(--red-100);
+  --color-status-info: var(--blue-700);
+  --color-status-info-soft: var(--blue-100);
+  --color-status-warning: var(--yellow-700);
+  --color-status-warning-soft: var(--yellow-100);
+
+  /* ---------- Spacing (px → rem) ---------- */
+  --space-2: 0.125rem;
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-20: 1.25rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+
+  /* ---------- Radius ---------- */
+  --radius-4: 0.25rem;
+  --radius-8: 0.5rem;
+  --radius-12: 0.75rem;
+  --radius-16: 1rem;
+  --radius-20: 1.25rem;
+  --radius-full: 999px;
+
+  /* ---------- Elevation ---------- */
+  --shadow-card: 0 2px 8px rgb(38 23 10 / 8%);
+  --shadow-floating: 0 8px 24px rgb(38 23 10 / 16%);
+
+  /* ---------- Typography ---------- */
+  --font-family:
+    'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+    'Noto Sans KR', sans-serif;
+
+  /* ---------- Layout ---------- */
+  --layout-max-width: 25.875rem; /* 414px */
+  --topbar-height: 3.5rem; /* 56px */
+  --bottomnav-height: 4.875rem; /* 78px */
+  --page-gutter: var(--space-16);
+}

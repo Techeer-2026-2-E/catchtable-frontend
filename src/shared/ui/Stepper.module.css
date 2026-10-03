@@ -1,0 +1,30 @@
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-bg-surface);
+  color: var(--color-icon-default);
+}
+.control svg {
+  width: 1rem;
+  height: 1rem;
+}
+.control:disabled {
+  color: var(--color-icon-disabled);
+  border-color: var(--color-border-default);
+}
+.value {
+  min-width: 2.5rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
