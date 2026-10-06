@@ -1,33 +1,103 @@
 import { useState } from 'react'
-import type { BusinessHour } from '@/entities'
-import { MOCK_BUSINESS_HOURS } from '@/entities/mock'
-import { Banner, Button, Page, Section, toast, Toggle, TopBar } from '@/shared/ui'
+import { useParams } from 'react-router'
+import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, type BusinessHour, type DayOfWeek } from '@/entities'
+import { useBusinessHours, useReplaceBusinessHours, type BusinessHourRequest } from '@/features/owner-store'
+import { getErrorMessage } from '@/shared/lib'
+import { Banner, Button, ErrorState, LoadingState, Page, Section, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerHoursPage.module.css'
 
-const DAY_LABEL = ['일', '월', '화', '수', '목', '금', '토']
-/** 월요일부터 표시 */
-const ORDER = [1, 2, 3, 4, 5, 6, 0]
+/** 화면 편집용 — 휴무 요일도 시간 값을 유지해서 다시 켜면 복원되게 함 */
+interface DayRow {
+  dayOfWeek: DayOfWeek
+  open: boolean
+  openTime: string
+  closingTime: string
+}
+interface BreakTime {
+  enabled: boolean
+  start: string
+  end: string
+}
 
-/** 기능명세「영업시간 관리」 */
+const hhmm = (time: string) => time.slice(0, 5)
+
+function toForm(hours: BusinessHour[]): { rows: DayRow[]; breakTime: BreakTime } {
+  const fallback = hours[0]
+  const rows = DAYS_OF_WEEK.map((day) => {
+    const h = hours.find((x) => x.dayOfWeek === day)
+    return {
+      dayOfWeek: day,
+      open: !!h,
+      openTime: hhmm(h?.openTime ?? fallback?.openTime ?? '11:00'),
+      closingTime: hhmm(h?.closingTime ?? fallback?.closingTime ?? '22:00'),
+    }
+  })
+  const withBreak = hours.find((h) => h.breakStartTime && h.breakEndTime)
+  return {
+    rows,
+    breakTime: withBreak
+      ? { enabled: true, start: hhmm(withBreak.breakStartTime!), end: hhmm(withBreak.breakEndTime!) }
+      : { enabled: false, start: '15:00', end: '17:00' },
+  }
+}
+
+/**
+ * 기능명세「영업시간 관리」
+ * GET·PUT /api/owner/stores/{storeId}/business-hours — 목록에 없는 요일은 휴무
+ */
 export function OwnerHoursPage() {
-  // TODO(API 연동): 영업시간 조회, ownerStoreApi.updateBusinessHours
-  const [hours, setHours] = useState<BusinessHour[]>(MOCK_BUSINESS_HOURS)
-  const [breakTime, setBreakTime] = useState({ enabled: true, start: '15:00', end: '17:00' })
+  const { storeId } = useParams<{ storeId: string }>()
+  const id = Number(storeId)
+  const { data, isPending, isError, refetch, dataUpdatedAt } = useBusinessHours(id)
 
-  const update = (day: number, patch: Partial<BusinessHour>) =>
-    setHours((list) => list.map((h) => (h.dayOfWeek === day ? { ...h, ...patch } : h)))
+  if (isPending || isError) {
+    return (
+      <Page>
+        <TopBar title="영업시간 관리" />
+        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+      </Page>
+    )
+  }
+  // 저장 후 서버 값으로 폼을 다시 채우기 위해 key 로 초기화
+  return <HoursForm key={dataUpdatedAt} storeId={id} hours={data} />
+}
+
+function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] }) {
+  const initial = toForm(hours)
+  const [rows, setRows] = useState<DayRow[]>(initial.rows)
+  const [breakTime, setBreakTime] = useState<BreakTime>(initial.breakTime)
+  const replace = useReplaceBusinessHours(storeId)
+
+  const update = (day: DayOfWeek, patch: Partial<DayRow>) =>
+    setRows((list) => list.map((r) => (r.dayOfWeek === day ? { ...r, ...patch } : r)))
 
   // 마감이 오픈보다 이르면 다음날 마감(예: 17:00 ~ 02:00)으로 본다. 같으면 영업시간 0 이라 오류
-  const isOvernight = (h: BusinessHour) => h.closeTime < h.openTime
-  const invalid =
-    hours.some((h) => !h.closed && h.openTime === h.closeTime) ||
-    (breakTime.enabled && breakTime.start >= breakTime.end)
+  const isOvernight = (r: DayRow) => r.closingTime < r.openTime
+  const sameTime = rows.some((r) => r.open && r.openTime === r.closingTime)
+  const badBreak = breakTime.enabled && breakTime.start >= breakTime.end
+  const invalid = sameTime || badBreak
+
+  const save = () => {
+    const body: BusinessHourRequest[] = rows
+      .filter((r) => r.open)
+      .map((r) => ({
+        dayOfWeek: r.dayOfWeek,
+        openTime: r.openTime,
+        closingTime: r.closingTime,
+        breakStartTime: breakTime.enabled ? breakTime.start : null,
+        breakEndTime: breakTime.enabled ? breakTime.end : null,
+      }))
+    replace.mutate(body, {
+      onSuccess: () => toast('영업시간을 저장했어요'),
+      onError: (e) => toast(getErrorMessage(e, '저장하지 못했어요')),
+    })
+  }
 
   return (
     <Page
       bottom={
-        <Button fullWidth disabled={invalid} onClick={() => toast('영업시간을 저장했어요')}>
-          저장
+        <Button fullWidth disabled={invalid || replace.isPending} onClick={save}>
+          {replace.isPending ? '저장 중…' : '저장'}
         </Button>
       }
     >
@@ -36,39 +106,35 @@ export function OwnerHoursPage() {
         마감 시간이 오픈보다 이르면 다음날 새벽 마감으로 저장돼요.
       </p>
       <ul className={styles.list}>
-        {ORDER.map((day) => {
-          const h = hours.find((x) => x.dayOfWeek === day)!
-          const wrong = !h.closed && h.openTime === h.closeTime
+        {rows.map((r) => {
+          const label = DAY_OF_WEEK_LABEL[r.dayOfWeek]
+          const wrong = r.open && r.openTime === r.closingTime
           return (
-            <li key={day} className={`${styles.day} ${h.closed ? styles.closed : ''}`}>
-              <span className={`${styles.label} t-headline-16`}>{DAY_LABEL[day]}</span>
-              {h.closed ? (
+            <li key={r.dayOfWeek} className={`${styles.day} ${r.open ? '' : styles.closed}`}>
+              <span className={`${styles.label} t-headline-16`}>{label}</span>
+              {!r.open ? (
                 <span className="t-body-14 text-tertiary">휴무</span>
               ) : (
                 <div className={styles.times}>
                   <input
                     type="time"
-                    aria-label={`${DAY_LABEL[day]}요일 오픈 시간`}
-                    value={h.openTime}
-                    onChange={(e) => update(day, { openTime: e.target.value })}
+                    aria-label={`${label}요일 오픈 시간`}
+                    value={r.openTime}
+                    onChange={(e) => update(r.dayOfWeek, { openTime: e.target.value })}
                     aria-invalid={wrong}
                   />
                   <span className="text-tertiary">~</span>
                   <input
                     type="time"
-                    aria-label={`${DAY_LABEL[day]}요일 마감 시간`}
-                    value={h.closeTime}
-                    onChange={(e) => update(day, { closeTime: e.target.value })}
+                    aria-label={`${label}요일 마감 시간`}
+                    value={r.closingTime}
+                    onChange={(e) => update(r.dayOfWeek, { closingTime: e.target.value })}
                     aria-invalid={wrong}
                   />
-                  {isOvernight(h) && <span className={styles.nextDay}>다음날</span>}
+                  {isOvernight(r) && <span className={styles.nextDay}>다음날</span>}
                 </div>
               )}
-              <Toggle
-                checked={!h.closed}
-                label={`${DAY_LABEL[day]}요일 영업`}
-                onChange={(on) => update(day, { closed: !on })}
-              />
+              <Toggle checked={r.open} label={`${label}요일 영업`} onChange={(open) => update(r.dayOfWeek, { open })} />
             </li>
           )
         })}
@@ -76,7 +142,7 @@ export function OwnerHoursPage() {
       {invalid && (
         <Section>
           <Banner tone="danger">
-            {breakTime.enabled && breakTime.start >= breakTime.end
+            {badBreak
               ? '브레이크타임 종료는 시작보다 늦어야 해요.'
               : '오픈과 마감 시간이 같아요. 24시간 영업이면 00:00 ~ 23:59 로 입력해주세요.'}
           </Banner>

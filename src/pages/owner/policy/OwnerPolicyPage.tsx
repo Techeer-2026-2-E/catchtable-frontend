@@ -1,38 +1,57 @@
 import { useState } from 'react'
-import { TABLE_TYPE_LABEL, type TableType } from '@/entities'
-import type { ReservationPolicy } from '@/features/owner-store'
-import { Button, Chip, ChipGroup, Divider, Page, Section, Textarea, toast, TopBar } from '@/shared/ui'
+import { useParams } from 'react-router'
+import type { ReservationPolicy } from '@/entities'
+import { useMyStores, useReplaceReservationPolicy, useReservationPolicy } from '@/features/owner-store'
+import { getErrorMessage } from '@/shared/lib'
+import { formatPrice } from '@/shared/lib/format'
+import { Banner, Button, Chip, ChipGroup, Divider, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
 import styles from './OwnerPolicyPage.module.css'
 
 const SLOT_OPTIONS = [15, 30, 60]
 const DURATION_OPTIONS = [60, 90, 120, 150]
 const GRACE_OPTIONS = [5, 10, 15, 20]
-const MAX_PARTY_OPTIONS = [4, 6, 8, 10]
-const DEPOSIT_OPTIONS = ['없음', '1인당 정액', '메뉴 금액 전액'] // P2: 예약금
+const OPEN_DAYS_OPTIONS = [7, 14, 30, 60]
+const DEADLINE_OPTIONS = [0, 30, 60, 180]
 const minutesLabel = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`)
 
-/** 기능명세「예약 정책 관리」 */
+/**
+ * 기능명세「예약 정책 관리」
+ * GET·PUT /api/owner/stores/{storeId}/reservation-policy (백엔드 dev 구현)
+ */
 export function OwnerPolicyPage() {
-  // TODO(API 연동): 예약 정책 조회, ownerStoreApi.updateReservationPolicy
-  const [policy, setPolicy] = useState<ReservationPolicy>({
-    reservationSlotMinutes: 30,
-    reservationDurationMinutes: 120,
-    arrivalGraceMinutes: 10,
-  })
-  const [maxParty, setMaxParty] = useState(6)
-  const [spaceTypes, setSpaceTypes] = useState<TableType[]>(['ROOM', 'HALL'])
-  const [deposit, setDeposit] = useState(DEPOSIT_OPTIONS[0])
-  const [notice, setNotice] = useState('')
+  const { storeId } = useParams<{ storeId: string }>()
+  const id = Number(storeId)
+  const { data, isPending, isError, refetch, dataUpdatedAt } = useReservationPolicy(id)
 
+  if (isPending || isError) {
+    return (
+      <Page>
+        <TopBar title="예약 정책 관리" />
+        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+      </Page>
+    )
+  }
+  return <PolicyForm key={dataUpdatedAt} storeId={id} initial={data} />
+}
+
+function PolicyForm({ storeId, initial }: { storeId: number; initial: ReservationPolicy }) {
+  const [policy, setPolicy] = useState(initial)
+  const replace = useReplaceReservationPolicy(storeId)
+  const store = useMyStores().data?.find((s) => s.id === storeId)
   const set = (patch: Partial<ReservationPolicy>) => setPolicy((p) => ({ ...p, ...patch }))
-  const toggleSpace = (type: TableType) =>
-    setSpaceTypes((list) => (list.includes(type) ? list.filter((t) => t !== type) : [...list, type]))
+  const invalid = policy.arrivalGraceMinutes >= policy.reservationDurationMinutes
+
+  const save = () =>
+    replace.mutate(policy, {
+      onSuccess: () => toast('예약 정책을 저장했어요'),
+      onError: (e) => toast(getErrorMessage(e, '저장하지 못했어요')),
+    })
 
   return (
     <Page
       bottom={
-        <Button fullWidth disabled={spaceTypes.length === 0} onClick={() => toast('예약 정책을 저장했어요')}>
-          저장
+        <Button fullWidth disabled={invalid || replace.isPending} onClick={save}>
+          {replace.isPending ? '저장 중…' : '저장'}
         </Button>
       }
     >
@@ -71,48 +90,39 @@ export function OwnerPolicyPage() {
           ))}
         </ChipGroup>
       </Section>
+      {invalid && (
+        <Section>
+          <Banner tone="danger">도착 유예 시간은 1회 이용 시간보다 짧아야 해요.</Banner>
+        </Section>
+      )}
 
       <Divider thick />
 
-      <Section title="최대 예약 가능 인원">
-        <ChipGroup label="최대 예약 가능 인원">
-          {MAX_PARTY_OPTIONS.map((n) => (
-            <Chip key={n} selected={maxParty === n} onClick={() => setMaxParty(n)}>
-              {n === 10 ? '10명 이상 문의' : `${n}명`}
+      <Section title="예약 오픈 기간" action={<span className="t-caption-13 text-tertiary">오늘부터 며칠 뒤까지</span>}>
+        <ChipGroup label="예약 오픈 기간">
+          {OPEN_DAYS_OPTIONS.map((d) => (
+            <Chip key={d} selected={policy.bookingOpenDays === d} onClick={() => set({ bookingOpenDays: d })}>
+              {d}일
             </Chip>
           ))}
         </ChipGroup>
       </Section>
 
-      <Section title="예약 가능 공간" action={<span className="t-caption-13 text-tertiary">복수 선택</span>}>
-        <ChipGroup label="예약 가능 공간">
-          {(Object.keys(TABLE_TYPE_LABEL) as TableType[]).map((type) => (
-            <Chip key={type} selected={spaceTypes.includes(type)} onClick={() => toggleSpace(type)}>
-              {TABLE_TYPE_LABEL[type]}
-            </Chip>
-          ))}
-        </ChipGroup>
-        {spaceTypes.length === 0 && <p className="t-caption-12 text-danger">한 개 이상 선택해주세요</p>}
-      </Section>
-
-      <Section title="예약금" action={<span className="t-caption-13 text-tertiary">준비 중</span>}>
-        <ChipGroup label="예약금">
-          {DEPOSIT_OPTIONS.map((d) => (
-            <Chip key={d} selected={deposit === d} onClick={() => setDeposit(d)} disabled={d !== DEPOSIT_OPTIONS[0]}>
-              {d}
+      <Section title="예약 마감" action={<span className="t-caption-13 text-tertiary">방문 시각 기준</span>}>
+        <ChipGroup label="예약 마감">
+          {DEADLINE_OPTIONS.map((m) => (
+            <Chip key={m} selected={policy.bookingDeadlineMinutes === m} onClick={() => set({ bookingDeadlineMinutes: m })}>
+              {m === 0 ? '직전까지' : `${minutesLabel(m)} 전`}
             </Chip>
           ))}
         </ChipGroup>
       </Section>
 
       <Divider thick />
-      <Section title="사전 공지사항">
-        <Textarea
-          value={notice}
-          onChange={(e) => setNotice(e.target.value)}
-          placeholder="코스 메뉴 매장으로, 알레르기가 있으신 분은 예약 시 미리 알려주세요."
-          maxLength={300}
-        />
+      <Section title="예약금" action={<span className="t-caption-13 text-tertiary">P2 · 설정 API 준비 중</span>}>
+        <p className="t-body-14 text-secondary">
+          {store?.depositAmount ? `1인당 ${formatPrice(store.depositAmount)}` : '예약금 없이 예약받고 있어요'}
+        </p>
       </Section>
       <div className={styles.spacer} />
     </Page>

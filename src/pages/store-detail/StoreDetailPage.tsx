@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Clock, Heart, MapPin, Share2, Users, Wallet } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { STORE_CATEGORY_LABEL, StoreTags } from '@/entities'
-import { ReservationSheet } from '@/features/reservation'
-import { findMockStore, MOCK_BUSINESS_HOURS, MOCK_MENUS, MOCK_TIME_SLOTS } from '@/entities/mock'
+import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek } from '@/entities'
+import { ReservationSheet, useAvailability } from '@/features/reservation'
+import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
@@ -11,8 +11,11 @@ import {
   Avatar,
   Button,
   Divider,
+  EmptyState,
+  ErrorState,
   IconButton,
   ImagePlaceholder,
+  LoadingState,
   Page,
   Rating,
   Section,
@@ -30,13 +33,8 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'info', label: '매장정보' },
 ]
 
-const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
-
-// TODO(API 연동): 리뷰 조회 API (P2)
-const MOCK_REVIEWS = [
-  { id: 1, author: '맛집탐방러', rating: 5, content: '분위기도 좋고 맛도 최고예요! 재방문 의사 있습니다.', date: '3일 전' },
-  { id: 2, author: '혼밥러', rating: 4, content: '웨이팅 없이 바로 입장했어요. 코스 구성이 알차요.', date: '1주 전' },
-]
+/** "18:00:00" → "18:00" */
+const hhmm = (t: string) => t.slice(0, 5)
 
 export function StoreDetailPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -48,10 +46,35 @@ export function StoreDetailPage() {
   // 검색 결과에서 날짜를 눌러 들어오면 예약 시트를 바로 연다
   const [sheetOpen, setSheetOpen] = useState(!!initialDate)
 
-  // TODO(API 연동): useStoreDetail(storeId), useStoreMenus(storeId), useAvailability(storeId, today)
-  const store = findMockStore(storeId)
-  const todayHour = MOCK_BUSINESS_HOURS.find((h) => h.dayOfWeek === dayjs().day())
-  const closedDays = MOCK_BUSINESS_HOURS.filter((h) => h.closed).map((h) => WEEKDAY[h.dayOfWeek])
+  const id = Number(storeId)
+  const { data: store, isPending, isError, refetch } = useStoreDetail(id)
+  const menus = useStoreMenus(id)
+  const reviews = useStoreReviews(id)
+  const today = dayjs().format('YYYY-MM-DD')
+  const todaySlots = useAvailability(id, today, 2)
+
+  if (isPending) {
+    return (
+      <Page>
+        <TopBar />
+        <LoadingState />
+      </Page>
+    )
+  }
+  if (isError) {
+    return (
+      <Page>
+        <TopBar />
+        <ErrorState message="매장 정보를 불러오지 못했어요" onRetry={() => refetch()} />
+      </Page>
+    )
+  }
+
+  const todayHour = store.businessHours.find((h) => h.dayOfWeek === toDayOfWeek(dayjs().day()))
+  const openDays = store.businessHours.map((h) => h.dayOfWeek)
+  const closedDays = DAYS_OF_WEEK.filter((d) => !openDays.includes(d)).map((d) => DAY_OF_WEEK_LABEL[d])
+  const overnight = todayHour && todayHour.closingTime <= todayHour.openTime
+  const openSlots = todaySlots.data?.slots ?? []
 
   return (
     <Page
@@ -89,7 +112,7 @@ export function StoreDetailPage() {
       <section className={styles.summary}>
         <h1 className="t-title-20">{store.name}</h1>
         <div className={styles.meta}>
-          {store.rating != null && <Rating value={store.rating} count={store.reviewCount} />}
+          {!!store.reviewCount && <Rating value={store.rating ?? 0} count={store.reviewCount} />}
           <span className="t-caption-13 text-tertiary">
             {[store.region, STORE_CATEGORY_LABEL[store.category]].filter(Boolean).join(' · ')}
           </span>
@@ -103,9 +126,15 @@ export function StoreDetailPage() {
           <li>
             <Clock aria-hidden />
             <span>
-              {todayHour && !todayHour.closed
-                ? `오늘 ${todayHour.openTime}~${todayHour.closeTime}`
+              {todayHour
+                ? `오늘 ${hhmm(todayHour.openTime)}~${overnight ? '익일 ' : ''}${hhmm(todayHour.closingTime)}`
                 : '오늘 휴무'}
+              {todayHour?.breakStartTime && todayHour.breakEndTime && (
+                <span className="text-tertiary">
+                  {' '}
+                  · 브레이크 {hhmm(todayHour.breakStartTime)}~{hhmm(todayHour.breakEndTime)}
+                </span>
+              )}
               {closedDays.length > 0 && <span className="text-tertiary"> · {closedDays.join('·')} 휴무</span>}
             </span>
           </li>
@@ -130,22 +159,28 @@ export function StoreDetailPage() {
       {(tab === 'home' || tab === 'info') && (
         <>
           <Section title="오늘 예약 가능 시간">
-            <div className={styles.slots}>
-              {MOCK_TIME_SLOTS.map((slot) => (
-                <button
-                  key={slot.time}
-                  type="button"
-                  className={styles.slot}
-                  disabled={!slot.available}
-                  onClick={() => setSheetOpen(true)}
-                >
-                  <span className="t-label-13">{formatTime(slot.time)}</span>
-                  <span className="t-caption-12">
-                    {slot.available ? `${slot.remainingTables}테이블 남음` : '마감'}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {todaySlots.isPending ? (
+              <LoadingState compact />
+            ) : openSlots.length === 0 ? (
+              <p className="t-caption-13 text-tertiary">오늘은 예약 가능한 시간이 없어요</p>
+            ) : (
+              <div className={styles.slots}>
+                {openSlots.map((slot) => (
+                  <button
+                    key={slot.reservationStartAt}
+                    type="button"
+                    className={styles.slot}
+                    disabled={!slot.available}
+                    onClick={() => setSheetOpen(true)}
+                  >
+                    <span className="t-label-13">{formatTime(slot.reservationStartAt)}</span>
+                    <span className="t-caption-12">
+                      {slot.available ? `${slot.availableTableCount}테이블 남음` : '마감'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </Section>
           <Divider thick />
         </>
@@ -154,8 +189,10 @@ export function StoreDetailPage() {
       {(tab === 'home' || tab === 'menu') && (
         <>
           <Section title="메뉴">
+            {menus.isPending && <LoadingState compact />}
+            {menus.data?.length === 0 && <p className="t-caption-13 text-tertiary">등록된 메뉴가 없어요</p>}
             <ul className={styles.menuList}>
-              {MOCK_MENUS.map((menu) => (
+              {menus.data?.map((menu) => (
                 <li key={menu.id} className={styles.menu}>
                   <div>
                     <p className="t-body-14-strong">{menu.name}</p>
@@ -172,22 +209,38 @@ export function StoreDetailPage() {
       )}
 
       {(tab === 'home' || tab === 'review') && (
-        <Section title={`리뷰 ${store.reviewCount ?? 0}`}>
-          <ul className={styles.reviews}>
-            {MOCK_REVIEWS.map((review) => (
-              <li key={review.id} className={styles.review}>
-                <Avatar name={review.author} size={32} />
-                <div>
-                  <p className="t-caption-13">
-                    <strong>{review.author}</strong>
-                    <span className="text-tertiary"> · {review.date}</span>
-                  </p>
-                  <Rating value={review.rating} />
-                  <p className="t-body-14">{review.content}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <Section title={`리뷰 ${reviews.data?.summary.totalCount ?? store.reviewCount ?? 0}`}>
+          {reviews.isPending ? (
+            <LoadingState compact />
+          ) : !reviews.data?.reviews.length ? (
+            <EmptyState title="아직 리뷰가 없어요" />
+          ) : (
+            <ul className={styles.reviews}>
+              {(tab === 'home' ? reviews.data.reviews.slice(0, 3) : reviews.data.reviews).map((review) => (
+                <li key={review.reviewId} className={styles.review}>
+                  <Avatar name={review.authorName} size={32} />
+                  <div>
+                    <p className="t-caption-13">
+                      <strong>{review.authorName}</strong>
+                      <span className="text-tertiary"> · {dayjs(review.createdAt).fromNow()}</span>
+                    </p>
+                    <Rating value={review.rating} />
+                    <p className="t-body-14">{review.content}</p>
+                    {review.reply && (
+                      <p className={`${styles.reply} t-caption-13`}>
+                        <strong>사장님</strong> {review.reply.content}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {tab === 'home' && (reviews.data?.reviews.length ?? 0) > 3 && (
+            <Button variant="outline" size="M" fullWidth onClick={() => setTab('review')}>
+              리뷰 전체보기
+            </Button>
+          )}
         </Section>
       )}
 
@@ -196,7 +249,7 @@ export function StoreDetailPage() {
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
         maxPartySize={store.maxPartySize}
-        closedDays={MOCK_BUSINESS_HOURS.filter((h) => h.closed).map((h) => h.dayOfWeek)}
+        openDays={openDays}
         initialDate={initialDate}
       />
     </Page>

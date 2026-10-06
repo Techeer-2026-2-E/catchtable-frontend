@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { env } from '@/shared/config'
-import { tokenStorage } from './tokenStorage'
+import { memberIdStorage, tokenStorage } from './tokenStorage'
 
 export const apiClient = axios.create({
   baseURL: env.apiBaseUrl,
@@ -13,6 +13,11 @@ apiClient.interceptors.request.use((config) => {
   const token = tokenStorage.get()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  // 백엔드 dev 는 아직 인증 대신 X-Member-Id 헤더로 회원을 식별 (LoginMemberArgumentResolver)
+  const memberId = memberIdStorage.get()
+  if (memberId) {
+    config.headers['X-Member-Id'] = memberId
   }
   return config
 })

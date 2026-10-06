@@ -1,31 +1,37 @@
 import { useNavigate } from 'react-router'
-import type { Member } from '@/entities'
-import { MOCK_MEMBER, MOCK_OWNER } from '@/entities/mock'
+import { getErrorMessage } from '@/shared/lib'
 import { ROUTES } from '@/shared/config'
-import { Button } from '@/shared/ui'
-import { useAuthStore } from '../store/authStore'
+import { Button, toast } from '@/shared/ui'
+import { useLogin } from '../hooks/useAuthMutations'
+
+/** 목 API 시드 계정 (src/mocks/db.ts) */
+const DEMO_ACCOUNTS = {
+  customer: { email: 'catch@example.com', password: 'password1!' },
+  owner: { email: 'owner@example.com', password: 'password1!' },
+}
 
 /**
- * 개발용 — API 연동 전 로그인 없이 화면을 둘러보기 위한 버튼 (DEV 빌드에서만 노출)
- * TODO(API 연동): 로그인 API 붙으면 제거
+ * 개발용 — 데모 계정으로 바로 로그인 (DEV 빌드에서만 노출)
+ * TODO(인증 API 확정 후): 실제 계정 정책이 정해지면 제거
  */
 export function DevLoginButtons() {
-  const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
+  const login = useLogin()
 
   if (!import.meta.env.DEV) return null
 
-  const login = (member: Member, to: string) => {
-    setAuth('dev-mock-token', member)
-    navigate(to, { replace: true })
-  }
+  const run = (who: keyof typeof DEMO_ACCOUNTS) =>
+    login.mutate(DEMO_ACCOUNTS[who], {
+      onSuccess: () => navigate(who === 'owner' ? ROUTES.OWNER : ROUTES.HOME, { replace: true }),
+      onError: (e) => toast(getErrorMessage(e)),
+    })
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem' }}>
-      <Button variant="outline" size="S" onClick={() => login(MOCK_MEMBER, ROUTES.HOME)}>
+      <Button variant="outline" size="S" disabled={login.isPending} onClick={() => run('customer')}>
         고객으로 둘러보기
       </Button>
-      <Button variant="outline" size="S" onClick={() => login(MOCK_OWNER, ROUTES.OWNER)}>
+      <Button variant="outline" size="S" disabled={login.isPending} onClick={() => run('owner')}>
         점주로 둘러보기
       </Button>
     </div>

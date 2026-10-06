@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { MOCK_MEMBER, MOCK_OWNER } from '@/entities/mock'
-import { DevLoginButtons, useAuthStore } from '@/features/auth'
+import { DevLoginButtons, useLogin } from '@/features/auth'
+import { getErrorMessage } from '@/shared/lib'
 import { ROUTES } from '@/shared/config'
 import { Button, Page, TextField, toast, TopBar } from '@/shared/ui'
 import styles from './AuthPage.module.css'
@@ -11,7 +11,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation() as { state: { from?: { pathname: string } } | null }
-  const setAuth = useAuthStore((s) => s.setAuth)
+  const login = useLogin()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState(false)
@@ -23,12 +23,17 @@ export function LoginPage() {
     e.preventDefault()
     setTouched(true)
     if (!canSubmit) return
-    // TODO(API 연동): useLogin().mutate({ email, password }) — 실패 시 getErrorMessage 로 안내
-    const member = email.startsWith('owner') ? MOCK_OWNER : { ...MOCK_MEMBER, email }
-    setAuth('dev-mock-token', member)
-    toast(`${member.name}님, 반가워요`)
-    const fallback = member.userType === 'OWNER' ? ROUTES.OWNER : ROUTES.HOME
-    navigate(location.state?.from?.pathname ?? fallback, { replace: true })
+    login.mutate(
+      { email, password },
+      {
+        onSuccess: ({ member }) => {
+          toast(`${member.name}님, 반가워요`)
+          const fallback = member.userType === 'OWNER' ? ROUTES.OWNER : ROUTES.HOME
+          navigate(location.state?.from?.pathname ?? fallback, { replace: true })
+        },
+        onError: (err) => toast(getErrorMessage(err, '로그인하지 못했어요')),
+      },
+    )
   }
 
   return (
@@ -62,8 +67,8 @@ export function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit" fullWidth disabled={!canSubmit}>
-            로그인
+          <Button type="submit" fullWidth disabled={!canSubmit || login.isPending}>
+            {login.isPending ? '로그인 중…' : '로그인'}
           </Button>
         </form>
 

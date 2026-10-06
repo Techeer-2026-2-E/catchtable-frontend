@@ -1,64 +1,105 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Armchair, DoorClosed, Wine } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Armchair, CreditCard, DoorClosed, Wine } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router'
-import { TABLE_TYPE_LABEL, type TableType } from '@/entities'
-import { findMockStore, MOCK_BUSINESS_HOURS, MOCK_MEMBER, MOCK_MENUS, MOCK_TABLES } from '@/entities/mock'
-import { ReservationDateTimeForm, useReservationFormStore } from '@/features/reservation'
+import { TABLE_TYPE_LABEL, type ReservationHold, type TableType } from '@/entities'
+import { useAuthStore } from '@/features/auth'
+import { paymentApi } from '@/features/payment'
+import { reservationApi, ReservationDateTimeForm, useReservationForm, useReservationFormStore } from '@/features/reservation'
+import { useStoreDetail, useStoreMenus } from '@/features/store-detail'
 import { paths } from '@/shared/config'
-import { dayjs } from '@/shared/lib/dayjs'
+import { getErrorMessage } from '@/shared/lib'
+import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
 import { formatPhone, formatPrice, formatTime } from '@/shared/lib/format'
-import { Banner, Button, Chip, ChipGroup, Divider, Page, Section, Textarea, toast, TopBar } from '@/shared/ui'
+import {
+  Banner,
+  BottomSheet,
+  Button,
+  Chip,
+  ChipGroup,
+  Divider,
+  ErrorState,
+  LoadingState,
+  Page,
+  Section,
+  Textarea,
+  toast,
+  TopBar,
+} from '@/shared/ui'
 import styles from './ReservationPage.module.css'
 
 type Step = 'datetime' | 'table' | 'confirm'
 const STEPS: Step[] = ['datetime', 'table', 'confirm']
+const TABLE_TYPES: TableType[] = ['ROOM', 'HALL', 'BAR']
 const TABLE_ICON: Record<TableType, ReactNode> = {
   ROOM: <DoorClosed aria-hidden />,
   HALL: <Armchair aria-hidden />,
   BAR: <Wine aria-hidden />,
 }
 const PURPOSES = ['데이트', '친목', '가족식사', '생일', '기념일', '비즈니스', '기타']
-const HOLD_SECONDS = 5 * 60
 
+/** 예약 — 날짜·인원·시간 → 테이블 타입·메뉴 → 확인 후 생성 (POST /api/user/reservations) */
 export function ReservationPage() {
   const { storeId } = useParams<{ storeId: string }>()
+  const id = Number(storeId)
   const navigate = useNavigate()
-  // TODO(API 연동): useStoreDetail, useStoreMenus
-  const store = findMockStore(storeId)
+  const member = useAuthStore((s) => s.member)
+  const { data: store, isPending, isError, refetch } = useStoreDetail(id)
+  const menus = useStoreMenus(id)
   const form = useReservationFormStore()
   const setStore = useReservationFormStore((s) => s.setStore)
+  const reservation = useReservationForm()
   const [step, setStep] = useState<Step>(() => (form.date && form.time ? 'table' : 'datetime'))
 
   useEffect(() => {
-    setStore(store.id)
-  }, [store.id, setStore])
+    setStore(id)
+  }, [id, setStore])
 
-  const tableTypes = [...new Set(MOCK_TABLES.map((t) => t.tableType).filter(Boolean))] as TableType[]
-  const menu = MOCK_MENUS.find((m) => m.id === form.menuId)
-  const deposit = (store.depositAmount ?? 0) * form.partySize
-  const stepIndex = STEPS.indexOf(step)
+  const depositPerPerson = store?.depositAmount ?? 0
+  const deposit = useDeposit(depositPerPerson > 0 && step === 'confirm', id)
 
-  const canNext =
-    (step === 'datetime' && !!form.date && !!form.time) || (step === 'table' && !!form.tableType)
-
-  const submit = () => {
-    // TODO(API 연동): useReservationForm().submit — 서버가 테이블을 자동 배정하고 즉시 확정해서 응답
-    const table = assignTable(form.tableType, form.partySize)
-    if (!table) {
-      toast('선택한 조건에 맞는 빈 테이블이 없어요. 다른 시간이나 좌석을 골라주세요')
-      return
-    }
-    form.reset()
-    toast('예약이 확정됐어요')
-    navigate(paths.reservationDetail(101), {
-      replace: true,
-      state: { justCreated: true, tableNumber: table.tableNumber, tableTypeLabel: TABLE_TYPE_LABEL[table.tableType ?? 'HALL'] },
-    })
+  if (isPending) {
+    return (
+      <Page>
+        <TopBar leading="close" />
+        <LoadingState />
+      </Page>
+    )
+  }
+  if (isError) {
+    return (
+      <Page>
+        <TopBar leading="close" />
+        <ErrorState onRetry={() => refetch()} />
+      </Page>
+    )
   }
 
-  const summary = form.date && form.time
-    ? `${dayjs(form.date).format('M월 D일 (dd)')} · ${formatTime(form.time)} · ${form.partySize}명`
-    : ''
+  const menu = menus.data?.find((m) => m.id === form.menuId)
+  const depositTotal = depositPerPerson * form.partySize
+  const stepIndex = STEPS.indexOf(step)
+  const canNext = (step === 'datetime' && !!form.date && !!form.time) || (step === 'table' && !!form.tableType)
+  const openDays = store.businessHours.map((h) => h.dayOfWeek)
+
+  const finish = (reservationId: number) => {
+    form.reset()
+    toast('예약이 확정됐어요')
+    navigate(paths.reservationDetail(reservationId), { replace: true, state: { justCreated: true } })
+  }
+
+  const submit = async () => {
+    if (depositPerPerson > 0) return deposit.openPayment()
+    try {
+      const created = await reservation.submit()
+      finish(created.reservationId)
+    } catch (e) {
+      toast(getErrorMessage(e, '예약하지 못했어요. 다시 시도해주세요'))
+    }
+  }
+
+  const summary =
+    form.date && form.time
+      ? `${dayjs(form.date).format('M월 D일 (dd)')} · ${formatTime(form.time)} · ${form.partySize}명`
+      : ''
 
   return (
     <Page
@@ -67,10 +108,14 @@ export function ReservationPage() {
           <div className={styles.confirmBar}>
             <div className={styles.confirmSummary}>
               <span className="t-caption-13 text-secondary">{summary}</span>
-              <span className="t-headline-16">예약금 {formatPrice(deposit)}</span>
+              <span className="t-headline-16">예약금 {formatPrice(depositTotal)}</span>
             </div>
-            <Button fullWidth onClick={submit}>
-              예약하기
+            <Button
+              fullWidth
+              onClick={submit}
+              disabled={reservation.isPending || (depositPerPerson > 0 && !deposit.hold)}
+            >
+              {reservation.isPending ? '예약 중…' : depositPerPerson > 0 ? `${formatPrice(depositTotal)} 결제하고 예약` : '예약하기'}
             </Button>
           </div>
         ) : (
@@ -90,7 +135,14 @@ export function ReservationPage() {
       <TopBar
         title={store.name}
         leading={step === 'confirm' ? 'back' : 'close'}
-        onLeadingClick={step === 'confirm' ? () => setStep('table') : () => navigate(-1)}
+        onLeadingClick={
+          step === 'confirm'
+            ? () => {
+                deposit.release()
+                setStep('table')
+              }
+            : () => navigate(-1)
+        }
       />
       <div className={styles.progress} role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={stepIndex + 1}>
         <span style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
@@ -98,10 +150,7 @@ export function ReservationPage() {
 
       {step === 'datetime' && (
         <Section title="언제 방문하시나요?">
-          <ReservationDateTimeForm
-            maxPartySize={store.maxPartySize}
-            closedDays={MOCK_BUSINESS_HOURS.filter((h) => h.closed).map((h) => h.dayOfWeek)}
-          />
+          <ReservationDateTimeForm storeId={store.id} maxPartySize={store.maxPartySize} openDays={openDays} />
         </Section>
       )}
 
@@ -109,7 +158,7 @@ export function ReservationPage() {
         <>
           <Section title="테이블 타입 선택">
             <div className={styles.tableTypes} role="radiogroup" aria-label="테이블 타입">
-              {tableTypes.map((type) => (
+              {TABLE_TYPES.map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -123,12 +172,15 @@ export function ReservationPage() {
                 </button>
               ))}
             </div>
-            <p className="t-caption-12 text-tertiary">* 실제 테이블은 매장 사정에 따라 시스템이 자동으로 배정해요.</p>
+            <p className="t-caption-12 text-tertiary">
+              * 실제 테이블은 매장 사정에 따라 시스템이 자동으로 배정해요. 선택한 타입이 없으면 다른 타입으로 배정될 수 있어요.
+            </p>
           </Section>
           <Divider thick />
           <Section title="메뉴 선택" action={<span className="t-caption-13 text-tertiary">선택</span>}>
+            {menus.isPending && <LoadingState compact />}
             <div className={styles.menus} role="radiogroup" aria-label="메뉴">
-              {MOCK_MENUS.map((m) => (
+              {menus.data?.map((m) => (
                 <button
                   key={m.id}
                   type="button"
@@ -149,11 +201,18 @@ export function ReservationPage() {
 
       {step === 'confirm' && (
         <>
-          {deposit > 0 && <HoldBanner />}
+          {depositPerPerson > 0 && <HoldBanner hold={deposit.hold} error={deposit.error} onRetry={deposit.retry} />}
           <Section
             title="예약 정보"
             action={
-              <Button variant="ghost" size="S" onClick={() => setStep('datetime')}>
+              <Button
+                variant="ghost"
+                size="S"
+                onClick={() => {
+                  deposit.release()
+                  setStep('datetime')
+                }}
+              >
                 변경
               </Button>
             }
@@ -166,9 +225,7 @@ export function ReservationPage() {
               <dt>메뉴</dt>
               <dd>{menu ? `${menu.name} · 1인 ${formatPrice(menu.price)}` : '현장에서 선택'}</dd>
               <dt>예약자</dt>
-              <dd>
-                {MOCK_MEMBER.name} · {formatPhone(MOCK_MEMBER.phone)}
-              </dd>
+              <dd>{member ? `${member.name} · ${formatPhone(member.phone)}` : '-'}</dd>
             </dl>
           </Section>
           <Divider thick />
@@ -191,46 +248,182 @@ export function ReservationPage() {
           </Section>
           <Section>
             <Banner tone="info">
-              방문 당일 취소나 노쇼는 이후 예약이 제한될 수 있어요.
+              {depositPerPerson > 0
+                ? '예약금은 방문 1일 전까지 취소하면 전액, 당일 취소는 50% 환불돼요.'
+                : '방문 당일 취소나 노쇼는 이후 예약이 제한될 수 있어요.'}
             </Banner>
           </Section>
           <div className={styles.bottomSpacer} />
         </>
       )}
+
+      <TestPaymentSheet
+        isOpen={deposit.paying}
+        amount={depositTotal}
+        orderName={`${store.name} 예약금 (${form.partySize}명)`}
+        onClose={deposit.closePayment}
+        onPay={() => deposit.pay().then((reservationId) => reservationId && finish(reservationId))}
+        isPending={deposit.isPaying}
+      />
     </Page>
   )
 }
 
 /**
- * 기능명세「물리 테이블 자동 배정」 — 목데이터용 배정 규칙 (실제 배정은 백엔드)
- * 선택한 좌석 타입 중 인원이 수용 범위에 들고, 남는 자리가 가장 적은 테이블
+ * P2 예약금 — 확인 단계에 들어오면 테이블을 5분 선점하고, 결제가 끝나면 예약 확정
+ * 선점(POST /reservations/holds) → 주문 생성(POST /payments/prepare) → 결제창 → 승인(POST /payments/confirm)
  */
-function assignTable(tableType: TableType | null, partySize: number) {
-  return MOCK_TABLES.filter(
-    (t) =>
-      t.status === 'ACTIVE' &&
-      (!tableType || t.tableType === tableType) &&
-      (t.minCapacity ?? 1) <= partySize &&
-      t.capacity >= partySize,
-  ).sort((a, b) => a.capacity - b.capacity)[0]
+function useDeposit(active: boolean, storeId: number) {
+  const form = useReservationFormStore()
+  const [hold, setHold] = useState<ReservationHold | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [paying, setPaying] = useState(false)
+  const [isPaying, setIsPaying] = useState(false)
+  const holdRef = useRef<ReservationHold | null>(null)
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    if (!active || !form.date || !form.time) return
+    let cancelled = false
+    reservationApi
+      .createHold({
+        storeId,
+        reservationStartAt: toStoreDateTime(form.date, form.time),
+        partySize: form.partySize,
+      })
+      .then((h) => {
+        if (cancelled) return reservationApi.releaseHold(h.holdId)
+        holdRef.current = h
+        setHold(h)
+        setError(null)
+      })
+      .catch((e) => !cancelled && setError(getErrorMessage(e, '테이블을 선점하지 못했어요')))
+    return () => {
+      cancelled = true
+    }
+  }, [active, storeId, form.date, form.time, form.partySize, attempt])
+
+  // 화면을 떠나면 선점 해제
+  useEffect(
+    () => () => {
+      if (holdRef.current?.status === 'HOLDING') reservationApi.releaseHold(holdRef.current.holdId).catch(() => {})
+    },
+    [],
+  )
+
+  const release = () => {
+    if (holdRef.current) reservationApi.releaseHold(holdRef.current.holdId).catch(() => {})
+    holdRef.current = null
+    setHold(null)
+  }
+
+  const pay = async () => {
+    if (!holdRef.current) return null
+    setIsPaying(true)
+    try {
+      const order = await paymentApi.prepare(holdRef.current.holdId)
+      // TODO(토스페이먼츠 연동): 결제창에서 받은 paymentKey 로 승인 요청
+      const result = await paymentApi.confirm({ paymentKey: `test_${Date.now()}`, orderId: order.orderId, amount: order.amount })
+      holdRef.current = null
+      setPaying(false)
+      return result.reservationId
+    } catch (e) {
+      toast(getErrorMessage(e, '결제하지 못했어요'))
+      return null
+    } finally {
+      setIsPaying(false)
+    }
+  }
+
+  return {
+    hold,
+    error,
+    retry: () => setAttempt((n) => n + 1),
+    release,
+    paying,
+    isPaying,
+    openPayment: () => setPaying(true),
+    closePayment: () => setPaying(false),
+    pay,
+  }
 }
 
-/** P2: 예약금 결제 중 테이블 5분 임시 선점 안내 */
-function HoldBanner() {
-  const [left, setLeft] = useState(HOLD_SECONDS)
+/** 선점 남은 시간 — 서버 만료 시각 기준 */
+function HoldBanner({ hold, error, onRetry }: { hold: ReservationHold | null; error: string | null; onRetry: () => void }) {
+  const [, setTick] = useState(0)
   useEffect(() => {
-    const timer = window.setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000)
+    const timer = window.setInterval(() => setTick((n) => n + 1), 1000)
     return () => window.clearInterval(timer)
   }, [])
+
+  if (error) {
+    return (
+      <div className={styles.hold} role="alert">
+        <span>{error}</span>
+        <Button variant="ghost" size="S" onClick={onRetry}>
+          다시 시도
+        </Button>
+      </div>
+    )
+  }
+  if (!hold) return <div className={styles.hold}>테이블을 선점하는 중…</div>
+
+  const left = Math.max(0, dayjs(hold.expiresAt).diff(dayjs(), 'second'))
   const mm = String(Math.floor(left / 60)).padStart(2, '0')
   const ss = String(left % 60).padStart(2, '0')
-
   return (
     <div className={styles.hold} role="timer">
       <strong className="text-accent">
         {mm}:{ss}
       </strong>
-      <span>5분간 테이블이 임시로 선점돼요. 시간 내 예약을 완료해주세요.</span>
+      <span>{left > 0 ? '5분간 테이블이 임시로 선점돼요. 시간 내 결제를 완료해주세요.' : '선점 시간이 지났어요. 일시를 다시 골라주세요.'}</span>
     </div>
+  )
+}
+
+/**
+ * 테스트 결제창 — 실제 토스페이먼츠 결제위젯 자리
+ * TODO(토스페이먼츠 연동): 결제위젯 SDK 로 교체
+ */
+function TestPaymentSheet({
+  isOpen,
+  amount,
+  orderName,
+  onClose,
+  onPay,
+  isPending,
+}: {
+  isOpen: boolean
+  amount: number
+  orderName: string
+  onClose: () => void
+  onPay: () => void
+  isPending: boolean
+}) {
+  return (
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="예약금 결제"
+      footer={
+        <Button onClick={onPay} disabled={isPending}>
+          {isPending ? '결제 중…' : `${formatPrice(amount)} 결제하기`}
+        </Button>
+      }
+    >
+      <div className={styles.payment}>
+        <Banner tone="notice">테스트 결제예요. 실제로 돈이 나가지 않아요.</Banner>
+        <dl className={styles.infoTable}>
+          <dt>주문</dt>
+          <dd>{orderName}</dd>
+          <dt>금액</dt>
+          <dd>{formatPrice(amount)}</dd>
+        </dl>
+        <div className={styles.payMethod}>
+          <CreditCard aria-hidden />
+          <span className="t-body-15">신용·체크카드</span>
+        </div>
+      </div>
+    </BottomSheet>
   )
 }

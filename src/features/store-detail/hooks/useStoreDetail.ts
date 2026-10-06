@@ -17,3 +17,12 @@ export function useStoreMenus(storeId: number) {
     enabled: Number.isFinite(storeId),
   })
 }
+
+/** P2: 매장 리뷰 */
+export function useStoreReviews(storeId: number, sort?: 'latest' | 'rating') {
+  return useQuery({
+    queryKey: storeDetailKeys.reviews(storeId, sort),
+    queryFn: () => storeDetailApi.getReviews(storeId, { sort }),
+    enabled: Number.isFinite(storeId),
+  })
+}

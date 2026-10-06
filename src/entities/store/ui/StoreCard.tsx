@@ -16,7 +16,13 @@ interface StoreCardProps {
 
 /** 홈·검색 결과 매장 카드. 이미지 180 · 이름 · 평점/카테고리/지역 · 태그 */
 export function StoreCard({ store, to, footer, variant = 'default' }: StoreCardProps) {
-  const meta = [STORE_CATEGORY_LABEL[store.category], store.region].filter(Boolean).join(' · ')
+  const distance =
+    store.distanceMeters == null
+      ? null
+      : store.distanceMeters < 1000
+        ? `${store.distanceMeters}m`
+        : `${(store.distanceMeters / 1000).toFixed(1)}km`
+  const meta = [STORE_CATEGORY_LABEL[store.category], store.region, distance].filter(Boolean).join(' · ')
 
   return (
     <article className={variant === 'compact' ? styles.compact : styles.card}>
@@ -25,7 +31,7 @@ export function StoreCard({ store, to, footer, variant = 'default' }: StoreCardP
         <div className={styles.body}>
           <h3 className={`${styles.name} t-headline-16`}>{store.name}</h3>
           <div className={styles.meta}>
-            {store.rating != null && <Rating value={store.rating} count={store.reviewCount} />}
+            {!!store.reviewCount && store.rating != null && <Rating value={store.rating} count={store.reviewCount} />}
             <span className="t-caption-13 text-tertiary">{meta}</span>
           </div>
           {variant === 'default' && store.priceRange && (

@@ -111,3 +111,10 @@
 .liked {
   color: var(--color-secondary-default);
 }
+.reply {
+  margin-top: var(--space-4);
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-muted);
+  color: var(--color-text-secondary);
+}

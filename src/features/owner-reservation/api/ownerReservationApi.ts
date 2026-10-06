@@ -1,23 +1,46 @@
-import type { Reservation } from '@/entities'
+import type { OwnerReservation, ReservationStatus } from '@/entities'
 import { apiClient } from '@/shared/lib'
 
-/**
- * 점주 예약 운영 API
- * TODO: 노션 API 명세(owner-reservations)가 아직 비어 있음 — 아래 경로는 임시, 백엔드 확정 후 수정
- * 기능 명세: 예약 현황 조회·처리 / 확정 상태 조회 / 점주 취소 / 방문 확인 / 노쇼 처리
- */
+/** OwnerReservationActionRequest — 취소·노쇼 사유 (필수, 500자 이내) */
+export interface OwnerReservationActionRequest {
+  reason: string
+}
+
+/** [P2] 예약 변경 — PATCH /api/owner/reservations/{id} (노션 명세, 필드는 제안) */
+export interface ChangeReservationRequest {
+  reservationStartAt?: string
+  partySize?: number
+  tableId?: number
+}
+
+/** 점주 예약 운영 API — 백엔드 dev 구현 (OwnerReservationController) */
 export const ownerReservationApi = {
-  getList: async (storeId: number, params?: { date?: string }) => {
-    const { data } = await apiClient.get<Reservation[]>(`/owner/stores/${storeId}/reservations`, { params })
+  /** 날짜별 예약 현황 — status 를 주면 해당 상태만 */
+  getList: async (storeId: number, params: { date: string; status?: ReservationStatus }) => {
+    const { data } = await apiClient.get<OwnerReservation[]>(`/owner/stores/${storeId}/reservations`, { params })
     return data
   },
-  cancel: async (reservationId: number) => {
-    await apiClient.post(`/owner/reservations/${reservationId}/cancel`)
+  getDetail: async (reservationId: number) => {
+    const { data } = await apiClient.get<OwnerReservation>(`/owner/reservations/${reservationId}`)
+    return data
   },
-  markVisited: async (reservationId: number) => {
-    await apiClient.post(`/owner/reservations/${reservationId}/visit`)
+  cancel: async (reservationId: number, body: OwnerReservationActionRequest) => {
+    const { data } = await apiClient.post<OwnerReservation>(`/owner/reservations/${reservationId}/cancel`, body)
+    return data
   },
-  markNoShow: async (reservationId: number) => {
-    await apiClient.post(`/owner/reservations/${reservationId}/no-show`)
+  /** 방문 확인 — checkedInAt 기록 (상태는 CONFIRMED 유지, 이용시간 지나면 COMPLETED) */
+  enter: async (reservationId: number) => {
+    const { data } = await apiClient.post<OwnerReservation>(`/owner/reservations/${reservationId}/enter`)
+    return data
+  },
+  /** 노쇼 — 예약 시각 + 도착 유예시간 이후에만 가능 */
+  markNoShow: async (reservationId: number, body: OwnerReservationActionRequest) => {
+    const { data } = await apiClient.post<OwnerReservation>(`/owner/reservations/${reservationId}/no-show`, body)
+    return data
+  },
+  /** [P2] 예약 변경 */
+  change: async (reservationId: number, body: ChangeReservationRequest) => {
+    const { data } = await apiClient.patch<OwnerReservation>(`/owner/reservations/${reservationId}`, body)
+    return data
   },
 }

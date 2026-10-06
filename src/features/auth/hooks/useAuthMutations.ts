@@ -4,10 +4,15 @@ import { useAuthStore } from '../store/authStore'
 
 export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth)
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: ({ accessToken, member }) => setAuth(accessToken, member),
+    onSuccess: ({ accessToken, member }) => {
+      // 다른 계정으로 로그인할 때 이전 계정 데이터가 보이지 않도록
+      queryClient.clear()
+      setAuth(accessToken, member)
+    },
   })
 }
 

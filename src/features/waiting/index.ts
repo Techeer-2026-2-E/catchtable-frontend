@@ -1,5 +1,4 @@
 export { waitingApi } from './api/waitingApi'
 export type { RegisterWaitingRequest } from './api/waitingApi'
 export { waitingKeys } from './api/queryKeys'
-export { useWaitingSSE } from './hooks/useWaitingSSE'
-export { useRegisterWaiting, useWaitingActions, useWaitingPosition } from './hooks/useWaiting'
+export { useCancelWaiting, useRegisterWaiting, useWaitingActions, useWaitingDetail, useWaitings } from './hooks/useWaiting'

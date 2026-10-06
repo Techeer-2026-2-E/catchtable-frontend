@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Armchair, DoorClosed, Plus, Wine } from 'lucide-react'
 import { TABLE_TYPE_LABEL, type StoreTable, type TableType } from '@/entities'
-import { MOCK_TABLES } from '@/entities/mock'
+import { useStoreTableMutations, useStoreTables } from '@/features/owner-store'
+import { useParams } from 'react-router'
+import { getErrorMessage } from '@/shared/lib'
 import {
   Badge,
   BottomSheet,
@@ -9,6 +11,8 @@ import {
   Card,
   Chip,
   ChipGroup,
+  ErrorState,
+  LoadingState,
   Page,
   Stepper,
   toast,
@@ -30,9 +34,12 @@ const capacityLabel = (t: Pick<StoreTable, 'minCapacity' | 'capacity'>) =>
 
 /** 기능명세「테이블별 수용 인원 설정」 */
 export function OwnerTablesPage() {
-  // TODO(API 연동): useStoreTables(storeId), useStoreTableMutations(storeId)
-  const [tables, setTables] = useState(MOCK_TABLES)
+  const { storeId } = useParams<{ storeId: string }>()
+  const id = Number(storeId)
+  const { data: tables = [], isPending, isError, refetch } = useStoreTables(id)
+  const { create, update } = useStoreTableMutations(id)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const onError = (e: unknown) => toast(getErrorMessage(e, '저장하지 못했어요'))
 
   const active = tables.filter((t) => t.status === 'ACTIVE')
   const totalCapacity = active.reduce((sum, t) => sum + t.capacity, 0)
@@ -42,15 +49,25 @@ export function OwnerTablesPage() {
 
   const save = () => {
     if (!draft) return
-    if (draft.id) {
-      setTables((list) => list.map((t) => (t.id === draft.id ? { ...t, ...draft, id: t.id } : t)))
-      toast('테이블을 수정했어요')
-    } else {
-      setTables((list) => [...list, { ...draft, id: Date.now() }])
-      toast('테이블을 추가했어요')
+    const body = {
+      tableNumber: draft.tableNumber,
+      minCapacity: draft.minCapacity,
+      capacity: draft.capacity,
+      tableType: draft.tableType,
     }
-    setDraft(null)
+    const onSuccess = (message: string) => () => {
+      toast(message)
+      setDraft(null)
+    }
+    if (draft.id) update.mutate({ tableId: draft.id, body }, { onSuccess: onSuccess('테이블을 수정했어요'), onError })
+    else create.mutate(body, { onSuccess: onSuccess('테이블을 추가했어요'), onError })
   }
+
+  const toggleActive = (table: StoreTable, on: boolean) =>
+    update.mutate(
+      { tableId: table.id, body: { status: on ? 'ACTIVE' : 'INACTIVE' } },
+      { onSuccess: () => toast(on ? `${table.tableNumber}번 테이블을 운영해요` : `${table.tableNumber}번 테이블을 쉬어요`), onError },
+    )
 
   const duplicated = !!draft && tables.some((t) => t.tableNumber === draft.tableNumber && t.id !== draft.id)
 
@@ -67,6 +84,11 @@ export function OwnerTablesPage() {
         운영 중 <strong>{active.length}개</strong> 테이블 · 최대 <strong>{totalCapacity}명</strong> 동시 수용
       </p>
 
+      {isPending ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : (
       <ul className={styles.list}>
         {tables.map((table) => {
           const type = table.tableType ?? 'HALL'
@@ -86,23 +108,20 @@ export function OwnerTablesPage() {
               <Toggle
                 checked={!inactive}
                 label={`${table.tableNumber}번 테이블 운영`}
-                onChange={(on) =>
-                  setTables((list) =>
-                    list.map((t) => (t.id === table.id ? { ...t, status: on ? 'ACTIVE' : 'INACTIVE' } : t)),
-                  )
-                }
+                onChange={(on) => toggleActive(table, on)}
               />
             </Card>
           )
         })}
       </ul>
+      )}
 
       <BottomSheet
         isOpen={!!draft}
         onClose={() => setDraft(null)}
         title={draft?.id ? `${draft.tableNumber}번 테이블 수정` : '테이블 추가'}
         footer={
-          <Button onClick={save} disabled={duplicated}>
+          <Button onClick={save} disabled={duplicated || create.isPending || update.isPending}>
             저장
           </Button>
         }
