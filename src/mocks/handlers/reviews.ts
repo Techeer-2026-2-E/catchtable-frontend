@@ -94,7 +94,17 @@ export const reviewHandlers = [
     if (store?.ownerId !== memberIdOf(request)) return reviewNotFound()
     const b = await body<{ content: string }>(request)
     if (!b.content?.trim()) return badRequest('답글 내용을 입력해주세요.')
+    if (b.content.trim().length > 500) return badRequest('답글은 500자 이내로 작성해주세요.')
     r.reply = { content: b.content.trim(), createdAt: nowIso() }
+    return saved(HttpResponse.json(toReview(r)))
+  }),
+
+  /** 점주 답글 삭제 — 경로 제안 */
+  http.delete(`${API}/user/reviews/:reviewId/reply`, async ({ params, request }) => {
+    await before()
+    const r = db.reviews.find((x) => x.reviewId === Number(params.reviewId))
+    if (!r || findStore(r.storeId)?.ownerId !== memberIdOf(request)) return reviewNotFound()
+    r.reply = null
     return saved(HttpResponse.json(toReview(r)))
   }),
 ]

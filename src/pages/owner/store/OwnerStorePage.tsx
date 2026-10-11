@@ -2,11 +2,11 @@ import { CalendarCheck, ChartColumn, Clock, ListChecks, NotebookPen, Settings2, 
 import { useParams } from 'react-router'
 import { toDayOfWeek } from '@/entities'
 import { useOwnerReservations } from '@/features/owner-reservation'
-import { useBusinessHours, useMyStores, useOwnerMenus, useStoreTables } from '@/features/owner-store'
+import { useBusinessHours, useMyStores, useOwnerMenus, useOwnerReviews, useStoreTables } from '@/features/owner-store'
 import { useOwnerWaitings } from '@/features/owner-waiting'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Divider, KPICard, ListItem, Page, toast, TopBar } from '@/shared/ui'
+import { Divider, KPICard, ListItem, Page, TopBar } from '@/shared/ui'
 import styles from './OwnerStorePage.module.css'
 
 /** 점주 — 매장 관리 홈 */
@@ -19,12 +19,13 @@ export function OwnerStorePage() {
   const tables = useStoreTables(id)
   const hours = useBusinessHours(id)
   const menus = useOwnerMenus(id)
+  const reviews = useOwnerReviews(id)
+  const unanswered = reviews.data?.filter((r) => !r.reply).length ?? 0
 
   const todayReservations = reservations.data?.filter((r) => r.status === 'CONFIRMED') ?? []
   const activeTables = tables.data?.filter((t) => t.status === 'ACTIVE') ?? []
   const today = hours.data?.find((h) => h.dayOfWeek === toDayOfWeek(dayjs().day()))
   const count = (loading: boolean, n: number, unit: string) => (loading ? '-' : `${n}${unit}`)
-  const preparing = () => toast('준비 중인 기능이에요')
 
   return (
     <Page>
@@ -64,7 +65,12 @@ export function OwnerStorePage() {
         to={paths.ownerMenus(storeId)}
       />
       <ListItem icon={<ChartColumn />} title="매출 관리" to={paths.ownerSales(storeId)} />
-      <ListItem icon={<Star />} title="리뷰 관리" value={`${store?.reviewCount ?? 0}개`} onClick={preparing} />
+      <ListItem
+        icon={<Star />}
+        title="리뷰 관리"
+        value={unanswered ? `미답변 ${unanswered}개` : `${reviews.data?.length ?? 0}개`}
+        to={paths.ownerReviews(storeId)}
+      />
     </Page>
   )
 }
