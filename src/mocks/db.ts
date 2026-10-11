@@ -292,9 +292,9 @@ function seed(): Db {
   addReservation({ storeId: 2, memberId: 13, partySize: 3, status: 'COMPLETED', start: slot(-240), tableNumber: 4 })
   addReservation({ storeId: 2, memberId: 14, partySize: 2, status: 'NO_SHOW', start: slot(-180), tableNumber: 3 })
   addReservation({ storeId: 2, memberId: 18, partySize: 2, status: 'CONFIRMED', start: slot(90), tableNumber: 5 })
-  // 과거 매출용 이용 완료 예약
-  for (let d = 1; d <= 34; d++) {
-    const count = 2 + ((d * 7) % 5)
+  // 과거 매출용 이용 완료 예약 — 월별 비교(최근 4개월 + 직전 4개월)가 되도록 약 8개월치
+  for (let d = 1; d <= 250; d++) {
+    const count = d <= 40 ? 2 + ((d * 7) % 5) : 1 + ((d * 3) % 4)
     for (let k = 0; k < count; k++) {
       addReservation({
         storeId: 2,
@@ -426,7 +426,7 @@ function seed(): Db {
 /* 저장 / 불러오기                                                      */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = 'catchtable-mock-db-v1'
+const STORAGE_KEY = 'catchtable-mock-db-v2'
 
 function load(): Db {
   try {

@@ -177,7 +177,7 @@ export interface SalesReport {
   totalAmount: number
   reservationCount: number
   waitingCount: number
-  /** 직전 같은 구간 대비 증감률(%) */
-  changeRate: number
+  /** 직전 같은 구간 대비 증감률(%) — 직전 기간 매출이 없으면 null */
+  changeRate: number | null
   points: SalesPoint[]
 }

@@ -63,7 +63,7 @@ export function OwnerStorePage() {
         value={menus.data ? `${menus.data.length}개` : undefined}
         to={paths.ownerMenus(storeId)}
       />
-      <ListItem icon={<ChartColumn />} title="매출 관리" onClick={preparing} />
+      <ListItem icon={<ChartColumn />} title="매출 관리" to={paths.ownerSales(storeId)} />
       <ListItem icon={<Star />} title="리뷰 관리" value={`${store?.reviewCount ?? 0}개`} onClick={preparing} />
     </Page>
   )
