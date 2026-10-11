@@ -102,6 +102,7 @@ export function MyDiningPage() {
                 key={`r-${item.data.reservationId}`}
                 reservation={item.data}
                 onOpen={() => navigate(paths.reservationDetail(item.data.reservationId))}
+                onReview={() => navigate(paths.reviewWrite(item.data.reservationId))}
                 onCancel={() =>
                   setCancelTarget({ kind: 'reservation', id: item.data.reservationId, label: item.data.storeName })
                 }
@@ -138,10 +139,12 @@ function ReservationItem({
   reservation: r,
   onOpen,
   onCancel,
+  onReview,
 }: {
   reservation: Reservation
   onOpen: () => void
   onCancel: () => void
+  onReview: () => void
 }) {
   const display = getReservationDisplayStatus(r)
   const upcoming = display === 'CONFIRMED' && dayjs(r.reservationStartAt).isAfter(dayjs())
@@ -167,8 +170,7 @@ function ReservationItem({
       )}
       {r.status === 'COMPLETED' && !r.reviewed && (
         <div className={styles.actions}>
-          {/* P2: 방문 완료 매장 리뷰 작성 */}
-          <Button variant="soft" size="S" onClick={() => toast('리뷰 작성은 준비 중이에요')}>
+          <Button variant="soft" size="S" onClick={onReview}>
             리뷰 쓰기
           </Button>
         </div>

@@ -1,0 +1,55 @@
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.thumb {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.thumb svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.content {
+  white-space: pre-line;
+  word-break: keep-all;
+}
+.photos {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+}
+.photo {
+  width: 5rem;
+  height: 5rem;
+}
+.reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-12);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-subtle);
+}
+.actions {
+  display: flex;
+  gap: var(--space-4);
+}

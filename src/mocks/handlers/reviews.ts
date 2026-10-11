@@ -54,7 +54,7 @@ export const reviewHandlers = [
       reservationId: reservation.reservationId,
       rating: b.rating,
       content: b.content.trim(),
-      imageUrls: b.imageUrls ?? [],
+      imageUrls: (b.imageUrls ?? []).slice(0, 3),
       createdAt: nowIso(),
       updatedAt: null,
       reply: null,
@@ -67,11 +67,12 @@ export const reviewHandlers = [
     await before()
     const r = db.reviews.find((x) => x.reviewId === Number(params.reviewId) && x.memberId === memberIdOf(request))
     if (!r) return reviewNotFound()
-    const b = await body<{ rating: number; content: string }>(request)
+    const b = await body<{ rating: number; content: string; imageUrls: string[] }>(request)
     if (b.rating !== undefined && (b.rating < 1 || b.rating > 5)) return badRequest('별점은 1~5점이어야 합니다.')
     if (b.content !== undefined && b.content.trim().length < 10) return badRequest('리뷰는 10자 이상 작성해주세요.')
     if (b.rating !== undefined) r.rating = b.rating
     if (b.content !== undefined) r.content = b.content.trim()
+    if (b.imageUrls !== undefined) r.imageUrls = b.imageUrls.slice(0, 3)
     r.updatedAt = nowIso()
     return saved(HttpResponse.json(toReview(r)))
   }),

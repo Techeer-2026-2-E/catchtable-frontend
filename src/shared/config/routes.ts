@@ -15,6 +15,10 @@ export const ROUTES = {
   MYPAGE: '/mypage',
   PROFILE_EDIT: '/mypage/profile',
   NOTIFICATIONS: '/notifications',
+  /** P2 리뷰 */
+  MY_REVIEWS: '/mypage/reviews',
+  REVIEW_WRITE: '/reviews/write/:reservationId',
+  REVIEW_EDIT: '/reviews/:reviewId/edit',
 
   OWNER: '/owner',
   OWNER_STORE: '/owner/stores/:storeId',
@@ -33,6 +37,8 @@ export const paths = {
   reservationDetail: (reservationId: Id) => `/reservations/${reservationId}`,
   waitingApply: (storeId: Id) => `/stores/${storeId}/waiting`,
   waiting: (waitingId: Id) => `/waitings/${waitingId}`,
+  reviewWrite: (reservationId: Id) => `/reviews/write/${reservationId}`,
+  reviewEdit: (reviewId: Id) => `/reviews/${reviewId}/edit`,
   ownerStore: (storeId: Id) => `/owner/stores/${storeId}`,
   ownerTables: (storeId: Id) => `/owner/stores/${storeId}/tables`,
   ownerHours: (storeId: Id) => `/owner/stores/${storeId}/hours`,
