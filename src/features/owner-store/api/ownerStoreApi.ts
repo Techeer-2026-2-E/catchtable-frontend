@@ -48,6 +48,10 @@ export interface CreateMenuRequest {
   name: string
   price: number
   description?: string
+  /** [목 전용] 이미지 업로드 API 확정 전까지 data URL */
+  imageUrl?: string | null
+  /** [목 전용] 판매 중지 */
+  soldOut?: boolean
 }
 export type UpdateMenuRequest = Partial<CreateMenuRequest>
 

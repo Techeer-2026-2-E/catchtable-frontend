@@ -122,6 +122,8 @@ export interface Menu {
   description: string | null
   /** [목 전용] */
   imageUrl?: string
+  /** [목 전용] 품절·판매 중지 — 고객 예약 화면에서 선택 불가 */
+  soldOut?: boolean
 }
 
 /** GET /api/user/stores/{storeId}/availability — AvailabilityResponse */
