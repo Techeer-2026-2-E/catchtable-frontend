@@ -9,7 +9,7 @@ import {
   type ReservationDisplayStatus,
 } from '@/entities'
 import { useOwnerReservationActions, useOwnerReservations } from '@/features/owner-reservation'
-import { useReservationPolicy } from '@/features/owner-store'
+import { useMyStores, useReservationPolicy } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPhone, formatTime } from '@/shared/lib/format'
@@ -29,6 +29,7 @@ import {
   toast,
   TopBar,
 } from '@/shared/ui'
+import { ChangeReservationSheet } from './ChangeReservationSheet'
 import styles from './OwnerReservationsPage.module.css'
 
 type Filter = 'ALL' | ReservationDisplayStatus
@@ -59,6 +60,8 @@ export function OwnerReservationsPage() {
   const [filter, setFilter] = useState<Filter>('ALL')
   const [pending, setPending] = useState<Pending>(null)
   const [reason, setReason] = useState('')
+  const [changing, setChanging] = useState<OwnerReservation | null>(null)
+  const store = useMyStores().data?.find((s) => s.id === id)
 
   const { data = [], isPending, isError, refetch } = useOwnerReservations(id, date.format('YYYY-MM-DD'))
   const policy = useReservationPolicy(id).data
@@ -176,8 +179,11 @@ export function OwnerReservationsPage() {
                     >
                       노쇼 처리
                     </Button>
+                    <Button size="S" variant="ghost" onClick={() => setChanging(r)}>
+                      변경
+                    </Button>
                     <Button size="S" variant="ghost" onClick={() => openDialog('cancel', r)}>
-                      예약 취소
+                      취소
                     </Button>
                   </div>
                 )}
@@ -190,6 +196,15 @@ export function OwnerReservationsPage() {
             )
           })}
         </ul>
+      )}
+
+      {changing && (
+        <ChangeReservationSheet
+          key={changing.reservationId}
+          reservation={changing}
+          maxPartySize={store?.maxPartySize}
+          onClose={() => setChanging(null)}
+        />
       )}
 
       <Dialog
