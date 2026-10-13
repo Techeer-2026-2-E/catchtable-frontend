@@ -3,6 +3,7 @@ import type {
   DayOfWeek,
   Menu,
   ReservationPolicy,
+  Review,
   SalesPeriod,
   SalesReport,
   Store,
@@ -134,6 +135,21 @@ export const ownerStoreApi = {
   },
 
   /* ---------- P2: 매출 (노션 명세, 응답은 제안) ---------- */
+  /* ---------- P2: 리뷰 관리 (노션 명세, 답글 삭제는 경로 제안) ---------- */
+  getReviews: async (storeId: number) => {
+    const { data } = await apiClient.get<Review[]>(`/owner/stores/${storeId}/reviews`)
+    return data
+  },
+  /** 답글 작성·수정 — 이미 있으면 덮어씀 */
+  replyReview: async (reviewId: number, content: string) => {
+    const { data } = await apiClient.post<Review>(`/user/reviews/${reviewId}/reply`, { content })
+    return data
+  },
+  deleteReply: async (reviewId: number) => {
+    const { data } = await apiClient.delete<Review>(`/user/reviews/${reviewId}/reply`)
+    return data
+  },
+
   getSales: async (storeId: number, params: { period: SalesPeriod; date?: string }) => {
     const { data } = await apiClient.get<SalesReport>(`/owner/stores/${storeId}/sales`, { params })
     return data

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ReservationPolicy, SalesPeriod } from '@/entities'
+import type { ReservationPolicy, Review, SalesPeriod } from '@/entities'
 import {
   ownerStoreApi,
   type BusinessHourRequest,
@@ -92,4 +92,26 @@ export function useSales(storeId: number, period: SalesPeriod) {
     queryKey: ownerStoreKeys.sales(storeId, period),
     queryFn: () => ownerStoreApi.getSales(storeId, { period }),
   })
+}
+
+/* ---------- P2: 리뷰 관리 ---------- */
+export function useOwnerReviews(storeId: number) {
+  return useQuery({ queryKey: ownerStoreKeys.reviews(storeId), queryFn: () => ownerStoreApi.getReviews(storeId) })
+}
+
+/** 답글 저장·삭제 — 응답으로 받은 리뷰로 목록 캐시를 바로 갱신 */
+export function useReviewReply(storeId: number) {
+  const queryClient = useQueryClient()
+  const replace = (review: Review) =>
+    queryClient.setQueryData<Review[]>(ownerStoreKeys.reviews(storeId), (list) =>
+      list?.map((r) => (r.reviewId === review.reviewId ? review : r)),
+    )
+  return {
+    save: useMutation({
+      mutationFn: ({ reviewId, content }: { reviewId: number; content: string }) =>
+        ownerStoreApi.replyReview(reviewId, content),
+      onSuccess: replace,
+    }),
+    remove: useMutation({ mutationFn: ownerStoreApi.deleteReply, onSuccess: replace }),
+  }
 }
