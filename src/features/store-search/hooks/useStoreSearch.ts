@@ -14,8 +14,12 @@ export function useStoreSearch(params: StoreSearchParams) {
   })
 }
 
-export function useHomeStores() {
-  return useQuery({ queryKey: storeSearchKeys.home(), queryFn: () => storeSearchApi.getHomeStores() })
+export function useHomeStores(position?: { latitude: number; longitude: number } | null) {
+  return useQuery({
+    queryKey: storeSearchKeys.home(position?.latitude, position?.longitude),
+    queryFn: () => storeSearchApi.getHomeStores(position ?? undefined),
+    placeholderData: keepPreviousData,
+  })
 }
 
 export function useCategories() {

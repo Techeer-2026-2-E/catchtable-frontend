@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Bell, ChevronRight, CreditCard, Star, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
-import { MOCK_MEMBER } from '@/entities/mock'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, useLogout } from '@/features/auth'
+import { useMe, useNotificationSettings, useUpdateNotificationSettings } from '@/features/member'
 import { ROUTES } from '@/shared/config'
 import { formatPhone } from '@/shared/lib/format'
 import { Avatar, Dialog, Divider, ListItem, Page, toast, Toggle, TopBar } from '@/shared/ui'
@@ -11,10 +11,13 @@ import styles from './MyPage.module.css'
 /** MY — 회원정보 설정 */
 export function MyPage() {
   const navigate = useNavigate()
-  // TODO(API 연동): useMe()
-  const member = useAuthStore((s) => s.member) ?? MOCK_MEMBER
-  const clearAuth = useAuthStore((s) => s.clearAuth)
-  const [notify, setNotify] = useState(true)
+  const cached = useAuthStore((s) => s.member)
+  const { data: me } = useMe()
+  const member = me ?? cached
+  const logout = useLogout()
+  const settings = useNotificationSettings()
+  const updateSettings = useUpdateNotificationSettings()
+  const notify = settings.data ? settings.data.reservation && settings.data.waiting : true
   const [logoutOpen, setLogoutOpen] = useState(false)
 
   return (
@@ -22,10 +25,10 @@ export function MyPage() {
       <TopBar title="MY" leading="none" large />
 
       <Link to={ROUTES.PROFILE_EDIT} className={styles.profile}>
-        <Avatar name={member.name} size={56} />
+        <Avatar name={member?.name ?? '?'} size={56} />
         <div className={styles.profileText}>
-          <p className="t-title-18">{member.name}</p>
-          <p className="t-caption-13 text-tertiary">{formatPhone(member.phone)}</p>
+          <p className="t-title-18">{member?.name}</p>
+          <p className="t-caption-13 text-tertiary">{member ? formatPhone(member.phone) : ''}</p>
         </div>
         <ChevronRight className={styles.chevron} aria-hidden />
       </Link>
@@ -42,10 +45,13 @@ export function MyPage() {
           <Toggle
             checked={notify}
             label="알림 수신"
-            onChange={(v) => {
-              setNotify(v)
-              toast(v ? '알림을 받을게요' : '알림을 끌게요')
-            }}
+            disabled={settings.isPending || updateSettings.isPending}
+            onChange={(v) =>
+              updateSettings.mutate(
+                { reservation: v, waiting: v },
+                { onSuccess: () => toast(v ? '예약·웨이팅 알림을 받을게요' : '예약·웨이팅 알림을 끌게요') },
+              )
+            }
           />
         }
       />
@@ -71,11 +77,7 @@ export function MyPage() {
         title="로그아웃할까요?"
         confirmLabel="로그아웃"
         cancelLabel="취소"
-        onConfirm={() => {
-          // TODO(API 연동): useLogout()
-          clearAuth()
-          navigate(ROUTES.HOME, { replace: true })
-        }}
+        onConfirm={() => logout.mutate(undefined, { onSettled: () => navigate(ROUTES.HOME, { replace: true }) })}
       />
     </Page>
   )

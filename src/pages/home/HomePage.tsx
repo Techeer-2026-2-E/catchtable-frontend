@@ -1,13 +1,12 @@
+import { useState } from 'react'
 import { Bell, ChevronRight, LocateFixed, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
-import { STORE_CATEGORY_LABEL, StoreCard, type StoreCategory } from '@/entities'
-import { MOCK_STORES } from '@/entities/mock'
+import { StoreCard, type StoreCategory } from '@/entities'
+import { useCategories, useHomeStores } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
-import { Page, SearchBar, Section } from '@/shared/ui'
+import { ErrorState, LoadingState, Page, SearchBar, Section, toast } from '@/shared/ui'
 import styles from './HomePage.module.css'
 
-// TODO(API 연동): useHomeStores(주변·인기 매장), useCategories 로 교체
-const CATEGORIES = Object.entries(STORE_CATEGORY_LABEL) as [StoreCategory, string][]
 const CATEGORY_EMOJI: Record<StoreCategory, string> = {
   KOREAN: '🍚',
   JAPANESE: '🍣',
@@ -18,9 +17,30 @@ const CATEGORY_EMOJI: Record<StoreCategory, string> = {
   ETC: '🍽️',
 }
 
+type Position = { latitude: number; longitude: number }
+
 export function HomePage() {
-  const popular = [...MOCK_STORES].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-  const waitingStores = MOCK_STORES.filter((s) => s.waitingAvailable)
+  const [position, setPosition] = useState<Position | null>(null)
+  const [locating, setLocating] = useState(false)
+  const { data: categories } = useCategories()
+  const { data, isPending, isError, refetch } = useHomeStores(position)
+
+  /** 현재 위치로 주변 매장 보기 (P2 주변 매장) — 권한 거부 시 안내 */
+  const locate = () => {
+    if (!navigator.geolocation) return toast('이 브라우저에서는 위치를 확인할 수 없어요')
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setPosition({ latitude: coords.latitude, longitude: coords.longitude })
+        setLocating(false)
+      },
+      () => {
+        setLocating(false)
+        toast('위치 권한을 허용하면 주변 매장을 볼 수 있어요')
+      },
+      { timeout: 8000 },
+    )
+  }
 
   return (
     <Page>
@@ -37,11 +57,11 @@ export function HomePage() {
       <div className={styles.location}>
         <button type="button" className={styles.locationButton}>
           <MapPin aria-hidden />
-          <span className="t-headline-16">전국</span>
+          <span className="t-headline-16">{position ? '내 주변' : '전국'}</span>
         </button>
-        <button type="button" className={`${styles.locate} t-caption-13`}>
+        <button type="button" className={`${styles.locate} t-caption-13`} onClick={locate} disabled={locating}>
           <LocateFixed aria-hidden />
-          현재 위치로
+          {locating ? '위치 확인 중…' : '현재 위치로'}
         </button>
       </div>
 
@@ -60,7 +80,7 @@ export function HomePage() {
       </Link>
 
       <nav className={styles.categories} aria-label="카테고리">
-        {CATEGORIES.map(([code, label]) => (
+        {(categories ?? []).map(({ code, name: label }) => (
           <Link key={code} to={`${ROUTES.SEARCH}?category=${code}`} className={styles.category}>
             <span className={styles.categoryIcon} aria-hidden>
               {CATEGORY_EMOJI[code]}
@@ -70,28 +90,46 @@ export function HomePage() {
         ))}
       </nav>
 
-      <Section
-        title="지금 바로 웨이팅"
-        action={
-          <Link to={`${ROUTES.SEARCH}?waiting=1`} className="t-caption-13 text-tertiary">
-            전체보기
-          </Link>
-        }
-      >
-        <div className={styles.horizontal}>
-          {waitingStores.map((store) => (
-            <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} variant="compact" />
-          ))}
-        </div>
-      </Section>
+      {isPending ? (
+        <LoadingState compact />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : (
+        <>
+          {data.nearby.length > 0 && (
+            <Section title="내 주변 매장">
+              <div className={styles.horizontal}>
+                {data.nearby.map((store) => (
+                  <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} variant="compact" />
+                ))}
+              </div>
+            </Section>
+          )}
 
-      <Section title="지금 인기 있는 매장">
-        <div className={styles.list}>
-          {popular.map((store) => (
-            <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} />
-          ))}
-        </div>
-      </Section>
+          <Section
+            title="지금 바로 웨이팅"
+            action={
+              <Link to={`${ROUTES.SEARCH}?waiting=1`} className="t-caption-13 text-tertiary">
+                전체보기
+              </Link>
+            }
+          >
+            <div className={styles.horizontal}>
+              {data.waitingNow.map((store) => (
+                <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} variant="compact" />
+              ))}
+            </div>
+          </Section>
+
+          <Section title="지금 인기 있는 매장">
+            <div className={styles.list}>
+              {data.popular.map((store) => (
+                <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} />
+              ))}
+            </div>
+          </Section>
+        </>
+      )}
     </Page>
   )
 }

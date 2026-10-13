@@ -3,7 +3,7 @@ export type { CreateHoldRequest, CreateReservationRequest } from './api/reservat
 export { reservationKeys } from './api/queryKeys'
 export { useAvailability } from './hooks/useAvailability'
 export { useReservationForm } from './hooks/useReservationForm'
-export { useCancelReservation, useReservationDetail, useReservations } from './hooks/useReservations'
+export { useCancelReservation, useRefundPreview, useReservationDetail, useReservations } from './hooks/useReservations'
 export { useReservationFormStore } from './store/reservationFormStore'
 export { ReservationDateTimeForm } from './components/ReservationDateTimeForm'
 export { ReservationSheet } from './components/ReservationSheet'

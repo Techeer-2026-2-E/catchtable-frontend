@@ -1,4 +1,4 @@
 export { notificationApi } from './api/notificationApi'
 export { notificationKeys } from './api/queryKeys'
-export { useNotifications, useReadNotification } from './hooks/useNotifications'
-export { useInboxStore, useUnreadCount } from './store/inboxStore'
+export { useNotifications, useReadNotification, useUnreadCount } from './hooks/useNotifications'
+export { useNotificationStream } from './hooks/useNotificationStream'

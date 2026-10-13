@@ -1,11 +1,18 @@
-import type { Member } from '@/entities'
+import type { Member, UserType } from '@/entities'
 import { apiClient } from '@/shared/lib'
+
+/*
+ * 인증 API — 노션 명세 "API 명세 (보류)(auth)" 경로 기준, 백엔드 미구현이라 목 API 로만 동작
+ * 요청·응답 필드는 제안안 (백엔드와 확정 필요)
+ */
 
 export interface SignupRequest {
   email: string
   password: string
   name: string
+  /** 010-1234-5678 */
   phone: string
+  userType: UserType
 }
 
 export interface LoginRequest {

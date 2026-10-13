@@ -1,3 +1,4 @@
 export { storeDetailApi } from './api/storeDetailApi'
+export type { StoreReviewsResponse } from './api/storeDetailApi'
 export { storeDetailKeys } from './api/queryKeys'
-export { useStoreDetail, useStoreMenus } from './hooks/useStoreDetail'
+export { useStoreDetail, useStoreMenus, useStoreReviews } from './hooks/useStoreDetail'

@@ -3,11 +3,7 @@ import { ownerStoreApi, type CreateTableRequest, type UpdateTableRequest } from 
 import { ownerStoreKeys } from '../api/queryKeys'
 
 export function useStoreTables(storeId: number) {
-  return useQuery({
-    queryKey: ownerStoreKeys.tables(storeId),
-    queryFn: () => ownerStoreApi.getTables(storeId),
-    enabled: Number.isFinite(storeId),
-  })
+  return useQuery({ queryKey: ownerStoreKeys.tables(storeId), queryFn: () => ownerStoreApi.getTables(storeId) })
 }
 
 export function useStoreTableMutations(storeId: number) {
@@ -20,7 +16,7 @@ export function useStoreTableMutations(storeId: number) {
       onSuccess: invalidate,
     }),
     update: useMutation({
-      mutationFn: ({ tableId, ...body }: UpdateTableRequest & { tableId: number }) =>
+      mutationFn: ({ tableId, body }: { tableId: number; body: UpdateTableRequest }) =>
         ownerStoreApi.updateTable(storeId, tableId, body),
       onSuccess: invalidate,
     }),

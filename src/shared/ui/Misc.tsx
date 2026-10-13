@@ -111,3 +111,32 @@ export function SearchBar({
     </label>
   )
 }
+
+/** 데이터 불러오는 중 */
+export function LoadingState({ label = '불러오는 중', compact = false }: { label?: string; compact?: boolean }) {
+  return (
+    <div className={cn(styles.loading, compact && styles.loadingCompact)} role="status" aria-label={label}>
+      <span className={styles.spinner} />
+    </div>
+  )
+}
+
+/** 불러오기 실패 — 다시 시도 버튼 */
+export function ErrorState({
+  message = '정보를 불러오지 못했어요',
+  onRetry,
+}: {
+  message?: string
+  onRetry?: () => void
+}) {
+  return (
+    <div className={styles.empty} role="alert">
+      <p className="t-body-15">{message}</p>
+      {onRetry && (
+        <button type="button" className={styles.retry} onClick={onRetry}>
+          다시 시도
+        </button>
+      )}
+    </div>
+  )
+}

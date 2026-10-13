@@ -4,4 +4,5 @@ export const reservationKeys = {
     [...reservationKeys.all, 'availability', storeId, date, partySize] as const,
   list: () => [...reservationKeys.all, 'list'] as const,
   detail: (reservationId: number) => [...reservationKeys.all, 'detail', reservationId] as const,
+  refundPreview: (reservationId: number) => [...reservationKeys.all, 'refund-preview', reservationId] as const,
 }

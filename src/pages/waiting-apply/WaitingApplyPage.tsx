@@ -1,34 +1,52 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { findMockStore, MOCK_WAITINGS } from '@/entities/mock'
+import { useStoreDetail } from '@/features/store-detail'
+import { useRegisterWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
-import { Banner, Button, Chip, ChipGroup, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
+import { getErrorMessage } from '@/shared/lib'
+import { Banner, Button, Chip, ChipGroup, ErrorState, LoadingState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
 import styles from './WaitingApplyPage.module.css'
 
 const SEAT_OPTIONS = ['상관없음', '테이블석', '바석']
-const MINUTES_PER_TEAM = 3
+const MINUTES_PER_TEAM = 4
 const ARRIVAL_LIMIT_MINUTES = 10
 
 /** 기능명세「원격 웨이팅 신청」「웨이팅 인원 입력」 */
 export function WaitingApplyPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const navigate = useNavigate()
-  // TODO(API 연동): useStoreDetail(storeId), useRegisterWaiting
-  const store = findMockStore(storeId)
+  const { data: store, isPending, isError, refetch } = useStoreDetail(Number(storeId))
+  const register = useRegisterWaiting()
   const [partySize, setPartySize] = useState(2)
   const [seat, setSeat] = useState(SEAT_OPTIONS[0])
-  const teams = store.waitingTeams ?? 0
 
-  const submit = () => {
-    toast('웨이팅을 신청했어요')
-    navigate(paths.waiting(MOCK_WAITINGS[0].id), { replace: true })
+  if (isPending || isError) {
+    return (
+      <Page>
+        <TopBar title="웨이팅 신청" />
+        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+      </Page>
+    )
   }
+
+  const teams = store.waitingTeams ?? 0
+  const submit = () =>
+    register.mutate(
+      { storeId: store.id, partyCount: partySize, seatPreference: seat },
+      {
+        onSuccess: (waiting) => {
+          toast(`대기번호 ${waiting.waitNumber}번으로 접수됐어요`)
+          navigate(paths.waiting(waiting.waitingId), { replace: true })
+        },
+        onError: (e) => toast(getErrorMessage(e, '웨이팅을 신청하지 못했어요')),
+      },
+    )
 
   return (
     <Page
       bottom={
-        <Button fullWidth onClick={submit} disabled={!store.waitingAvailable}>
-          {partySize}명 웨이팅 신청하기
+        <Button fullWidth onClick={submit} disabled={!store.waitingAvailable || register.isPending}>
+          {register.isPending ? '신청 중…' : `${partySize}명 웨이팅 신청하기`}
         </Button>
       }
     >

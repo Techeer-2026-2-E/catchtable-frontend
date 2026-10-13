@@ -1,7 +1,9 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { UserType } from '@/entities'
+import { useSignup } from '@/features/auth'
 import { ROUTES } from '@/shared/config'
+import { getErrorMessage } from '@/shared/lib'
 import { formatPhone } from '@/shared/lib/format'
 import { Button, Chip, ChipGroup, Page, TextField, toast, TopBar } from '@/shared/ui'
 import styles from '../login/AuthPage.module.css'
@@ -13,6 +15,7 @@ type Field = 'name' | 'email' | 'password' | 'passwordConfirm' | 'phone'
 
 export function SignupPage() {
   const navigate = useNavigate()
+  const signup = useSignup()
   const [userType, setUserType] = useState<UserType>('CUSTOMER')
   const [values, setValues] = useState<Record<Field, string>>({
     name: '',
@@ -45,9 +48,22 @@ export function SignupPage() {
     e.preventDefault()
     setTouched({ name: true, email: true, password: true, passwordConfirm: true, phone: true })
     if (!valid) return
-    // TODO(API 연동): useSignup().mutate({ name, email, password, phone }) — 회원 유형 전달 방식 백엔드 확인 필요
-    toast('가입이 완료됐어요. 로그인해주세요')
-    navigate(ROUTES.LOGIN, { replace: true })
+    signup.mutate(
+      {
+        name: values.name.trim(),
+        email: values.email,
+        password: values.password,
+        phone: formatPhone(values.phone),
+        userType,
+      },
+      {
+        onSuccess: () => {
+          toast('가입이 완료됐어요. 로그인해주세요')
+          navigate(ROUTES.LOGIN, { replace: true })
+        },
+        onError: (err) => toast(getErrorMessage(err, '가입하지 못했어요')),
+      },
+    )
   }
 
   return (
@@ -95,8 +111,8 @@ export function SignupPage() {
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
           [필수] 이용약관 및 개인정보 처리방침에 동의해요
         </label>
-        <Button type="submit" fullWidth disabled={!valid}>
-          가입하기
+        <Button type="submit" fullWidth disabled={!valid || signup.isPending}>
+          {signup.isPending ? '가입 중…' : '가입하기'}
         </Button>
       </form>
     </Page>

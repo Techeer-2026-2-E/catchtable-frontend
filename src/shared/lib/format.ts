@@ -15,4 +15,4 @@ export const formatTime = (time: string | Date) => {
 
 /** "01012345678" → "010-1234-5678" */
 export const formatPhone = (phone: string) =>
-  phone.replace(/\D/g, '').replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3')
+  phone.replace(/\D/g, '').slice(0, 11).replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3')
