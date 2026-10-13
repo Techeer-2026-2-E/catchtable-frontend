@@ -28,6 +28,7 @@ export const ROUTES = {
   OWNER_RESERVATIONS: '/owner/stores/:storeId/reservations',
   OWNER_WAITINGS: '/owner/stores/:storeId/waitings',
   OWNER_MENUS: '/owner/stores/:storeId/menus',
+  OWNER_SALES: '/owner/stores/:storeId/sales',
 } as const
 
 type Id = number | string
@@ -47,4 +48,5 @@ export const paths = {
   ownerReservations: (storeId: Id) => `/owner/stores/${storeId}/reservations`,
   ownerWaitings: (storeId: Id) => `/owner/stores/${storeId}/waitings`,
   ownerMenus: (storeId: Id) => `/owner/stores/${storeId}/menus`,
+  ownerSales: (storeId: Id) => `/owner/stores/${storeId}/sales`,
 }

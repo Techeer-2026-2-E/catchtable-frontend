@@ -260,7 +260,7 @@ function salesReport(store: StoreRow, period: SalesPeriod) {
     totalAmount: total,
     reservationCount: points.reduce((s, p) => s + p.reservationCount, 0),
     waitingCount: points.reduce((s, p) => s + p.waitingCount, 0),
-    changeRate: prevTotal ? Math.round(((total - prevTotal) / prevTotal) * 1000) / 10 : 0,
+    changeRate: prevTotal ? Math.round(((total - prevTotal) / prevTotal) * 1000) / 10 : null,
     points,
   }
 }
