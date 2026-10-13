@@ -186,10 +186,14 @@ export function ReservationPage() {
                   type="button"
                   role="radio"
                   aria-checked={form.menuId === m.id}
+                  disabled={m.soldOut}
                   className={`${styles.optionCard} ${styles.menuCard}`}
                   onClick={() => form.setMenu(form.menuId === m.id ? null : m.id)}
                 >
-                  <span className="t-body-15">{m.name}</span>
+                  <span className="t-body-15">
+                    {m.name}
+                    {m.soldOut && <span className="text-tertiary"> · 품절</span>}
+                  </span>
                   <span className="t-caption-13 text-tertiary">1인 {formatPrice(m.price)}</span>
                   {m.description && <span className="t-caption-12 text-tertiary">{m.description}</span>}
                 </button>

@@ -2,7 +2,7 @@ import { CalendarCheck, ChartColumn, Clock, ListChecks, NotebookPen, Settings2, 
 import { useParams } from 'react-router'
 import { toDayOfWeek } from '@/entities'
 import { useOwnerReservations } from '@/features/owner-reservation'
-import { useBusinessHours, useMyStores, useStoreTables } from '@/features/owner-store'
+import { useBusinessHours, useMyStores, useOwnerMenus, useStoreTables } from '@/features/owner-store'
 import { useOwnerWaitings } from '@/features/owner-waiting'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -18,6 +18,7 @@ export function OwnerStorePage() {
   const waitings = useOwnerWaitings(id)
   const tables = useStoreTables(id)
   const hours = useBusinessHours(id)
+  const menus = useOwnerMenus(id)
 
   const todayReservations = reservations.data?.filter((r) => r.status === 'CONFIRMED') ?? []
   const activeTables = tables.data?.filter((t) => t.status === 'ACTIVE') ?? []
@@ -55,9 +56,13 @@ export function OwnerStorePage() {
       <ListItem icon={<Settings2 />} title="예약 정책 관리" to={paths.ownerPolicy(storeId)} />
 
       <Divider thick />
-      {/* P2: 메뉴 설정 · 매출 관리 · 점주 리뷰 관리 */}
       <p className={styles.group}>더보기</p>
-      <ListItem icon={<NotebookPen />} title="메뉴 설정" onClick={preparing} />
+      <ListItem
+        icon={<NotebookPen />}
+        title="메뉴 설정"
+        value={menus.data ? `${menus.data.length}개` : undefined}
+        to={paths.ownerMenus(storeId)}
+      />
       <ListItem icon={<ChartColumn />} title="매출 관리" onClick={preparing} />
       <ListItem icon={<Star />} title="리뷰 관리" value={`${store?.reviewCount ?? 0}개`} onClick={preparing} />
     </Page>

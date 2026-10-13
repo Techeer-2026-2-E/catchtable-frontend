@@ -112,3 +112,7 @@
   width: 1.375rem;
   height: 1.375rem;
 }
+.optionCard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

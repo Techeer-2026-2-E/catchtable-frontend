@@ -8,6 +8,7 @@ import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
 import {
+  Badge,
   Button,
   Divider,
   EmptyState,
@@ -194,7 +195,10 @@ export function StoreDetailPage() {
               {menus.data?.map((menu) => (
                 <li key={menu.id} className={styles.menu}>
                   <div>
-                    <p className="t-body-14-strong">{menu.name}</p>
+                    <p className="t-body-14-strong">
+                      {menu.name}
+                      {menu.soldOut && <Badge className={styles.soldOut}>품절</Badge>}
+                    </p>
                     {menu.description && <p className="t-caption-13 text-tertiary">{menu.description}</p>}
                     <p className="t-label-13">{formatPrice(menu.price)}</p>
                   </div>

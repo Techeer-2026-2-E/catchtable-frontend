@@ -102,3 +102,7 @@
 .liked {
   color: var(--color-secondary-default);
 }
+.soldOut {
+  margin-left: var(--space-4);
+  vertical-align: middle;
+}

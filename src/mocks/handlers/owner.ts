@@ -31,6 +31,8 @@ function ownStore(request: Request, storeId: number): { store: StoreRow } | { er
 }
 
 const presentTable = ({ storeId: _s, ...t }: (typeof db.tables)[number]) => t
+/** 메뉴 요청 — imageUrl·soldOut 은 [목 전용] */
+type MenuBody = { name: string; price: number; description: string; imageUrl?: string | null; soldOut?: boolean }
 const presentMenu = ({ storeId: _s, ...m }: (typeof db.menus)[number]) => m
 const timeOk = (v: unknown) => typeof v === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(v)
 const withSeconds = (v: string) => (v.length === 5 ? `${v}:00` : v)
@@ -170,10 +172,18 @@ const storeHandlers = [
     await before()
     const own = ownStore(request, Number(params.storeId))
     if ('error' in own) return own.error
-    const b = await body<{ name: string; price: number; description: string }>(request)
+    const b = await body<MenuBody>(request)
     if (!b.name?.trim() || b.name.length > 100) return badRequest('메뉴 이름을 확인해주세요.')
     if (typeof b.price !== 'number' || b.price < 0) return badRequest('가격은 0원 이상이어야 합니다.')
-    const row = { id: nextId('menu'), storeId: own.store.id, name: b.name.trim(), price: b.price, description: b.description?.trim() || null }
+    const row = {
+      id: nextId('menu'),
+      storeId: own.store.id,
+      name: b.name.trim(),
+      price: b.price,
+      description: b.description?.trim() || null,
+      imageUrl: b.imageUrl ?? undefined,
+      soldOut: !!b.soldOut,
+    }
     db.menus.push(row)
     return saved(HttpResponse.json(presentMenu(row), { status: 201 }))
   }),
@@ -184,12 +194,14 @@ const storeHandlers = [
     if ('error' in own) return own.error
     const menu = db.menus.find((m) => m.storeId === own.store.id && m.id === Number(params.menuId))
     if (!menu) return notFound('MENU_NOT_FOUND', '메뉴를 찾을 수 없습니다.')
-    const b = await body<{ name: string; price: number; description: string }>(request)
+    const b = await body<MenuBody>(request)
     if (b.name !== undefined && !b.name.trim()) return badRequest('메뉴 이름을 확인해주세요.')
     if (b.price !== undefined && b.price < 0) return badRequest('가격은 0원 이상이어야 합니다.')
     if (b.name !== undefined) menu.name = b.name.trim()
     if (b.price !== undefined) menu.price = b.price
     if (b.description !== undefined) menu.description = b.description.trim() || null
+    if (b.imageUrl !== undefined) menu.imageUrl = b.imageUrl ?? undefined
+    if (b.soldOut !== undefined) menu.soldOut = b.soldOut
     return saved(HttpResponse.json(presentMenu(menu)))
   }),
 
