@@ -3,6 +3,7 @@ import { Bell, ChevronRight, CreditCard, Star, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { useAuthStore, useLogout } from '@/features/auth'
 import { useMe, useNotificationSettings, useUpdateNotificationSettings } from '@/features/member'
+import { useMyReviews } from '@/features/review'
 import { ROUTES } from '@/shared/config'
 import { formatPhone } from '@/shared/lib/format'
 import { Avatar, Dialog, Divider, ListItem, Page, toast, Toggle, TopBar } from '@/shared/ui'
@@ -19,6 +20,7 @@ export function MyPage() {
   const updateSettings = useUpdateNotificationSettings()
   const notify = settings.data ? settings.data.reservation && settings.data.waiting : true
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const reviews = useMyReviews()
 
   return (
     <Page>
@@ -55,8 +57,12 @@ export function MyPage() {
           />
         }
       />
-      {/* P2: 고객 리뷰 관리 */}
-      <ListItem icon={<Star />} title="리뷰 관리" onClick={() => toast('리뷰 관리는 준비 중이에요')} />
+      <ListItem
+        icon={<Star />}
+        title="리뷰 관리"
+        value={reviews.data ? `${reviews.data.length}개` : undefined}
+        to={ROUTES.MY_REVIEWS}
+      />
       <Divider thick />
       <ListItem icon={<CreditCard />} title="결제수단 관리" onClick={() => toast('결제수단 관리는 준비 중이에요')} />
       <Divider thick />

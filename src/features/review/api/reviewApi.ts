@@ -14,6 +14,7 @@ export interface CreateReviewRequest {
 export interface UpdateReviewRequest {
   rating?: number
   content?: string
+  imageUrls?: string[]
 }
 
 export const reviewApi = {

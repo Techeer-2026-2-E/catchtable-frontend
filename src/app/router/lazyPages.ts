@@ -19,6 +19,8 @@ export const WaitingPage = lazy(() => import('@/pages/waiting').then((m) => ({ d
 export const MyDiningPage = lazy(() => import('@/pages/my-dining').then((m) => ({ default: m.MyDiningPage })))
 export const MyPage = lazy(() => import('@/pages/mypage').then((m) => ({ default: m.MyPage })))
 export const ProfileEditPage = lazy(() => import('@/pages/profile-edit').then((m) => ({ default: m.ProfileEditPage })))
+export const MyReviewsPage = lazy(() => import('@/pages/my-reviews').then((m) => ({ default: m.MyReviewsPage })))
+export const ReviewWritePage = lazy(() => import('@/pages/review-write').then((m) => ({ default: m.ReviewWritePage })))
 export const NotificationsPage = lazy(() => import('@/pages/notifications').then((m) => ({ default: m.NotificationsPage })))
 
 // 점주 화면은 하나의 청크로 묶음

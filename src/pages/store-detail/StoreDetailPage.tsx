@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { Clock, Heart, MapPin, Share2, Users, Wallet } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek } from '@/entities'
+import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek } from '@/entities'
 import { ReservationSheet, useAvailability } from '@/features/reservation'
 import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
 import {
-  Avatar,
   Button,
   Divider,
   EmptyState,
@@ -217,21 +216,8 @@ export function StoreDetailPage() {
           ) : (
             <ul className={styles.reviews}>
               {(tab === 'home' ? reviews.data.reviews.slice(0, 3) : reviews.data.reviews).map((review) => (
-                <li key={review.reviewId} className={styles.review}>
-                  <Avatar name={review.authorName} size={32} />
-                  <div>
-                    <p className="t-caption-13">
-                      <strong>{review.authorName}</strong>
-                      <span className="text-tertiary"> · {dayjs(review.createdAt).fromNow()}</span>
-                    </p>
-                    <Rating value={review.rating} />
-                    <p className="t-body-14">{review.content}</p>
-                    {review.reply && (
-                      <p className={`${styles.reply} t-caption-13`}>
-                        <strong>사장님</strong> {review.reply.content}
-                      </p>
-                    )}
-                  </div>
+                <li key={review.reviewId}>
+                  <ReviewItem review={review} />
                 </li>
               ))}
             </ul>
