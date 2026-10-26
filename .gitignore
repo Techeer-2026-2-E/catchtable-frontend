@@ -18,6 +18,10 @@ build/
 *.sln
 *.sw?
 
+# 개인 AI 지침·로컬 권한 설정
+CLAUDE.local.md
+.claude/settings.local.json
+
 # OS
 .DS_Store
 
