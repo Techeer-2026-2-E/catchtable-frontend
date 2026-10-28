@@ -1,0 +1,37 @@
+.tabs {
+  display: flex;
+  gap: var(--space-20);
+  padding: 0 var(--page-gutter);
+  border-bottom: 1px solid var(--color-border-default);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab {
+  position: relative;
+  flex-shrink: 0;
+  height: 2.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.active {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.active::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--color-secondary-default);
+  content: '';
+}
+.fill {
+  gap: 0;
+  padding: 0;
+}
+.fill .tab {
+  flex: 1;
+}

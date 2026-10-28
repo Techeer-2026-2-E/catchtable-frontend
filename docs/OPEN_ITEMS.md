@@ -4,8 +4,9 @@
 
 ## 브랜치 안내와 적용 범위 — 2026-10-27 확인
 
-- 기존 [main README](../README.md#브랜치-전략)는 `feature/<이슈번호>-<설명>`을 사용하고, 확인한 [dev README](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/e47b63b2c546dd5ff3d3b327b0299c5453b3342d/README.md#git-규칙)는 `feat/<설명>`을 안내한다. 일반 통합은 모두 `dev`, 발표·배포는 `dev` → `main`이다. 이번 작업에서는 기존 규칙을 보존하고 팀의 다음 정리 때 표기를 맞춘다.
+- 기존 [main README](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/22380d5d6ffd961c59a7b9e3c76b2f9fa6a9d8c2/README.md#브랜치-전략)는 `feature/<이슈번호>-<설명>`을 사용하고, 확인한 [dev README](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/e47b63b2c546dd5ff3d3b327b0299c5453b3342d/README.md#git-규칙)는 `feat/<설명>`을 안내한다. 일반 통합은 모두 `dev`, 발표·배포는 `dev` → `main`이다. 이번 작업에서는 기존 규칙을 보존하고 팀의 다음 정리 때 표기를 맞춘다.
 - 이번 문서 묶음은 사용자 요청에 따라 `main`에만 반영한다. `dev`에는 지침·양식이 자동으로 생기지 않는다. 구현 작업에서는 [main의 AGENTS.md](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/main/AGENTS.md)를 명시적으로 전달하고, `dev` 도입은 별도 반영으로 진행한다.
+- 2026-10-29: `dev`(e47b63b)를 `main`에 통합했다. `main` README는 두 README를 합쳤고, 브랜치 표기 차이는 위 항목대로 팀 결정 전까지 둘 다 안내한다. 지침 문서의 `dev` 반영은 여전히 별도다.
 
 ## 관련 작업에서 확인할 항목
 

@@ -1,0 +1,28 @@
+.iconButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  color: var(--color-icon-default);
+}
+.iconButton svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.ghost:active {
+  background: var(--color-bg-muted);
+}
+.outline {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+.filled {
+  background: var(--color-primary-default);
+  color: var(--color-text-on-primary);
+}
+.iconButton:disabled {
+  color: var(--color-icon-disabled);
+}

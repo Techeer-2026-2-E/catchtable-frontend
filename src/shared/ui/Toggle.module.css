@@ -1,0 +1,29 @@
+.toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 1.625rem;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+  transition: background-color 0.2s ease;
+}
+.thumb {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 16%);
+  transition: transform 0.2s ease;
+}
+.on {
+  background: var(--color-secondary-default);
+}
+.on .thumb {
+  transform: translateX(1.125rem);
+}
+.toggle:disabled {
+  opacity: 0.5;
+}

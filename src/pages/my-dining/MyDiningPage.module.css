@@ -1,0 +1,27 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-16) var(--page-gutter) var(--space-24);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  text-align: left;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+.actions {
+  display: flex;
+  gap: var(--space-8);
+}

@@ -1,0 +1,59 @@
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-16) var(--page-gutter) var(--space-8);
+  text-align: center;
+}
+.doneIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: var(--space-8);
+  border-radius: 50%;
+  background: var(--color-primary-subtle);
+  color: var(--color-text-on-primary);
+}
+.doneIcon svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.store {
+  text-align: left;
+}
+.info {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  row-gap: var(--space-8);
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.info dt {
+  color: var(--color-text-tertiary);
+}
+.info dd {
+  margin: 0;
+}
+.address {
+  display: flex;
+  gap: var(--space-8);
+  font-size: 0.875rem;
+}
+.address svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-icon-subtle);
+}
+.flex {
+  flex: 1;
+}

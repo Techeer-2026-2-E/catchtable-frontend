@@ -1,0 +1,68 @@
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.todayButton {
+  width: 3rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-accent);
+}
+.spacer {
+  width: 3rem;
+}
+.monthNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.monthNav button {
+  display: inline-flex;
+  padding: var(--space-4);
+  border-radius: var(--radius-full);
+}
+.monthNav button:disabled {
+  color: var(--color-icon-disabled);
+}
+.monthNav svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: var(--space-4);
+  justify-items: center;
+}
+.weekday {
+  padding: var(--space-4) 0;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+.day {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+.day:disabled {
+  color: var(--color-text-disabled);
+}
+.today {
+  border-color: var(--color-secondary-default);
+}
+.selected {
+  border-color: transparent;
+  background: var(--color-primary-default);
+  font-weight: 600;
+  color: var(--color-text-on-primary);
+}

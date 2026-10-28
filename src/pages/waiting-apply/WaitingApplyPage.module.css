@@ -1,0 +1,26 @@
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--page-gutter);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+}
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-status-success);
+  box-shadow: 0 0 0 3px var(--color-status-success-soft);
+}
+.estimate {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: var(--space-16);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-muted);
+}
+.estimate > div + div {
+  padding-left: var(--space-16);
+  border-left: 1px solid var(--color-border-strong);
+}
