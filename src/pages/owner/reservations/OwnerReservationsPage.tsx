@@ -14,7 +14,6 @@ import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPhone, formatTime } from '@/shared/lib/format'
 import {
-  Badge,
   Button,
   Card,
   Chip,
@@ -131,65 +130,69 @@ export function OwnerReservationsPage() {
             const noShowAvailableAt = start.add(graceMinutes, 'minute')
             return (
               <Card as="li" key={r.reservationId} className={styles.card}>
-                <div className={styles.head}>
-                  <p className="t-headline-16">
-                    {formatTime(r.reservationStartAt)} · {r.customerName}
-                  </p>
-                  <Badge tone={RESERVATION_STATUS_TONE[r.display]}>{RESERVATION_STATUS_LABEL[r.display]}</Badge>
+                <div className={styles.lead}>
+                  <span className={`${styles.leadTime} tnum`}>{start.format('HH:mm')}</span>
+                  <span className="t-caption-12 text-tertiary">{r.partySize}명</span>
                 </div>
-                <p className="t-caption-13 text-tertiary">
-                  {r.partySize}명{tableNumberOf(r.tableId) != null && ` · ${tableNumberOf(r.tableId)}번 테이블`} ·{' '}
-                  {formatPhone(r.customerPhone)}
-                </p>
-                {r.display === 'VISITED' && (
-                  <p className="t-caption-13 text-accent">{formatTime(r.reservationEndAt)}에 자동으로 이용 완료 처리돼요</p>
-                )}
-                {r.display === 'COMPLETED' && r.checkedInAt && (
-                  <p className="t-caption-13 text-tertiary">
-                    {dayjs(r.checkedInAt).format('HH:mm')} 방문 · 이용 시간이 지나 자동으로 이용 완료됐어요
+                <div className={styles.body}>
+                  <span className="status-text" data-tone={RESERVATION_STATUS_TONE[r.display]}>
+                    {RESERVATION_STATUS_LABEL[r.display]}
+                  </span>
+                  <p className="t-headline-16">{r.customerName}</p>
+                  <p className="t-caption-13 text-tertiary tnum">
+                    {tableNumberOf(r.tableId) != null && `${tableNumberOf(r.tableId)}번 테이블, `}
+                    {formatPhone(r.customerPhone)}
                   </p>
-                )}
-                {(r.display === 'CANCELLED' || r.display === 'NO_SHOW') && (r.cancellationReason || r.noShowReason) && (
-                  <p className="t-caption-13 text-tertiary">
-                    {r.display === 'CANCELLED' ? (r.cancellationActor === 'OWNER' ? '매장 취소' : '고객 취소') : '노쇼'} ·{' '}
-                    {r.cancellationReason ?? r.noShowReason}
-                  </p>
-                )}
-                {r.display === 'CONFIRMED' && (
-                  <div className={styles.actions}>
-                    <Button
-                      size="S"
-                      variant="secondary"
-                      disabled={enter.isPending}
-                      onClick={() =>
-                        enter.mutate(r.reservationId, {
-                          onSuccess: () => toast(`${r.customerName}님 방문을 확인했어요`),
-                          onError,
-                        })
-                      }
-                    >
-                      방문 확인
-                    </Button>
-                    <Button
-                      size="S"
-                      variant="ghost"
-                      disabled={now.isBefore(noShowAvailableAt)}
-                      title={`예약 시각 ${graceMinutes}분 후부터 노쇼 처리할 수 있어요`}
-                      onClick={() => openDialog('noShow', r)}
-                    >
-                      노쇼 처리
-                    </Button>
-                    <Button size="S" variant="ghost" onClick={() => setChanging(r)}>
-                      변경
-                    </Button>
-                    <Button size="S" variant="ghost" onClick={() => openDialog('cancel', r)}>
-                      취소
-                    </Button>
-                  </div>
-                )}
-                {r.display === 'CONFIRMED' && now.isBefore(noShowAvailableAt) && isToday && (
-                  <p className="t-caption-12 text-tertiary">노쇼 처리는 {noShowAvailableAt.format('HH:mm')}부터 가능해요</p>
-                )}
+                  {r.display === 'VISITED' && (
+                    <p className="t-caption-13 text-accent">{formatTime(r.reservationEndAt)}에 자동으로 이용 완료 처리돼요</p>
+                  )}
+                  {r.display === 'COMPLETED' && r.checkedInAt && (
+                    <p className="t-caption-13 text-tertiary">
+                      {dayjs(r.checkedInAt).format('HH:mm')} 방문, 이용 시간이 지나 자동으로 이용 완료됐어요
+                    </p>
+                  )}
+                  {(r.display === 'CANCELLED' || r.display === 'NO_SHOW') && (r.cancellationReason || r.noShowReason) && (
+                    <p className="t-caption-13 text-tertiary">
+                      {r.display === 'CANCELLED' ? (r.cancellationActor === 'OWNER' ? '매장 취소' : '고객 취소') : '노쇼'}:{' '}
+                      {r.cancellationReason ?? r.noShowReason}
+                    </p>
+                  )}
+                  {r.display === 'CONFIRMED' && (
+                    <div className={styles.actions}>
+                      <Button
+                        size="S"
+                        variant="secondary"
+                        disabled={enter.isPending}
+                        onClick={() =>
+                          enter.mutate(r.reservationId, {
+                            onSuccess: () => toast(`${r.customerName}님 방문을 확인했어요`),
+                            onError,
+                          })
+                        }
+                      >
+                        방문 확인
+                      </Button>
+                      <Button
+                        size="S"
+                        variant="ghost"
+                        disabled={now.isBefore(noShowAvailableAt)}
+                        title={`예약 시각 ${graceMinutes}분 후부터 노쇼 처리할 수 있어요`}
+                        onClick={() => openDialog('noShow', r)}
+                      >
+                        노쇼 처리
+                      </Button>
+                      <Button size="S" variant="ghost" onClick={() => setChanging(r)}>
+                        변경
+                      </Button>
+                      <Button size="S" variant="ghost" onClick={() => openDialog('cancel', r)}>
+                        취소
+                      </Button>
+                    </div>
+                  )}
+                  {r.display === 'CONFIRMED' && now.isBefore(noShowAvailableAt) && isToday && (
+                    <p className="t-caption-12 text-tertiary">노쇼 처리는 {noShowAvailableAt.format('HH:mm')}부터 가능해요</p>
+                  )}
+                </div>
               </Card>
             )
           })}

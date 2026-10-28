@@ -42,9 +42,22 @@
   width: 1.5rem;
   height: 1.5rem;
 }
+.navItem {
+  position: relative;
+}
 .navActive {
   font-weight: 600;
   color: var(--color-text-primary);
+}
+/* 현재 탭 — 위쪽 굵은 선 */
+.navActive::before {
+  position: absolute;
+  top: -1px;
+  left: 25%;
+  width: 50%;
+  height: 2px;
+  background: var(--color-text-primary);
+  content: '';
 }
 
 .fallback {

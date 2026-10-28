@@ -14,8 +14,6 @@ import {
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import {
-  Badge,
-  Banner,
   BottomSheet,
   Button,
   Card,
@@ -26,6 +24,7 @@ import {
   ErrorState,
   LoadingState,
   Page,
+  StatLine,
   Textarea,
   toast,
   Toggle,
@@ -108,12 +107,7 @@ export function OwnerWaitingsPage() {
       <TopBar title="웨이팅 현황 관리" />
 
       <div className={styles.control}>
-        <div>
-          <p className="t-headline-16">{open ? '웨이팅 접수 중' : '웨이팅 접수 마감'}</p>
-          <button type="button" className="t-caption-13 text-tertiary" onClick={() => setSettingOpen(true)}>
-            호출 후 도착 제한시간 {arrivalLimit}분 · <u>변경</u>
-          </button>
-        </div>
+        <p className="t-headline-16">{open ? '줄 서기 받는 중' : '줄 서기 마감'}</p>
         <Toggle
           checked={open}
           label="웨이팅 접수"
@@ -121,14 +115,17 @@ export function OwnerWaitingsPage() {
           onChange={toggleOpen}
         />
       </div>
-
       <div className={styles.summary}>
-        <span className="t-body-14">
-          현재 대기 <strong>{active.length}팀</strong> · {active.reduce((s, w) => s + w.partySize, 0)}명
-        </span>
-      </div>
-      <div className={styles.banner}>
-        <Banner tone="info">공석이 생기면 다음 대기 고객을 호출해주세요. 호출 알림은 고객에게 바로 전송돼요.</Banner>
+        <StatLine
+          items={[
+            { label: '대기', value: active.length, unit: '팀' },
+            { label: '인원', value: active.reduce((sum, w) => sum + w.partySize, 0), unit: '명' },
+            { label: '도착 제한', value: arrivalLimit, unit: '분' },
+          ]}
+        />
+        <button type="button" className={`${styles.setting} t-caption-13`} onClick={() => setSettingOpen(true)}>
+          도착 제한시간 바꾸기
+        </button>
       </div>
 
       {waitings.isPending ? (
@@ -143,49 +140,51 @@ export function OwnerWaitingsPage() {
             const called = w.status === 'CALLED' || w.status === 'CONFIRMED'
             return (
               <Card as="li" key={w.id} className={styles.card}>
-                <div className={styles.head}>
-                  <p className="t-headline-16">
-                    {w.waitingNumber}번 · {w.customerName} · {w.partySize}명
-                  </p>
-                  <Badge tone={WAITING_STATUS_TONE[w.status]} solid={w.status === 'CALLED'}>
-                    {WAITING_STATUS_LABEL[w.status]}
-                  </Badge>
+                <div className={styles.lead}>
+                  <span className={`${styles.leadNumber} tnum`}>{w.waitingNumber}</span>
+                  <span className="t-caption-12 text-tertiary">{w.partySize}명</span>
                 </div>
-                <p className="t-caption-13 text-tertiary">
-                  {w.createdAt && `접수 ${dayjs(w.createdAt).format('HH:mm')}`}
-                  {called && w.calledAt && ` · 호출 ${dayjs(w.calledAt).format('HH:mm')}`}
-                  {called && w.callExpiresAt && <ArrivalCountdown expiresAt={w.callExpiresAt} />}
-                </p>
-                <div className={styles.actions}>
-                  {called ? (
-                    <>
-                      <Button
-                        size="S"
-                        variant="secondary"
-                        disabled={actions.enter.isPending}
-                        onClick={() => run(actions.enter, w, `${w.waitingNumber}번 고객을 착석 처리했어요`)}
-                      >
-                        착석 처리
-                      </Button>
-                      <Button size="S" variant="ghost" onClick={() => openPending('noShow', w)}>
-                        미응답 노쇼
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        size="S"
-                        variant="secondary"
-                        disabled={actions.call.isPending}
-                        onClick={() => run(actions.call, w, `${w.waitingNumber}번 고객을 호출했어요`)}
-                      >
-                        호출
-                      </Button>
-                      <Button size="S" variant="ghost" onClick={() => openPending('cancel', w)}>
-                        웨이팅 취소
-                      </Button>
-                    </>
-                  )}
+                <div className={styles.body}>
+                  <span className="status-text" data-tone={WAITING_STATUS_TONE[w.status]}>
+                    {WAITING_STATUS_LABEL[w.status]}
+                    {called && w.callExpiresAt && <ArrivalCountdown expiresAt={w.callExpiresAt} />}
+                  </span>
+                  <p className="t-headline-16">{w.customerName}</p>
+                  <p className="t-caption-13 text-tertiary tnum">
+                    {w.createdAt && `${dayjs(w.createdAt).format('HH:mm')} 접수`}
+                    {called && w.calledAt && `, ${dayjs(w.calledAt).format('HH:mm')} 호출`}
+                  </p>
+                  <div className={styles.actions}>
+                    {called ? (
+                      <>
+                        <Button
+                          size="S"
+                          variant="secondary"
+                          disabled={actions.enter.isPending}
+                          onClick={() => run(actions.enter, w, `${w.waitingNumber}번 고객을 착석 처리했어요`)}
+                        >
+                          착석 처리
+                        </Button>
+                        <Button size="S" variant="ghost" onClick={() => openPending('noShow', w)}>
+                          미응답 노쇼
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          size="S"
+                          variant="secondary"
+                          disabled={actions.call.isPending}
+                          onClick={() => run(actions.call, w, `${w.waitingNumber}번 고객을 호출했어요`)}
+                        >
+                          호출
+                        </Button>
+                        <Button size="S" variant="ghost" onClick={() => openPending('cancel', w)}>
+                          웨이팅 취소
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </Card>
             )
@@ -200,7 +199,7 @@ export function OwnerWaitingsPage() {
         confirmLabel={pending?.type === 'noShow' ? '노쇼 처리' : '웨이팅 취소'}
         onConfirm={confirmPending}
       >
-        {pending && `${pending.waiting.waitingNumber}번 · ${pending.waiting.customerName}님 · ${pending.waiting.partySize}명`}
+        {pending && `${pending.waiting.waitingNumber}번 ${pending.waiting.customerName}님, ${pending.waiting.partySize}명`}
         <br />
         고객에게 알림이 전송되고 순번이 목록에서 사라져요.
         {pending?.type === 'noShow' && (
@@ -254,11 +253,10 @@ function ArrivalCountdown({ expiresAt }: { expiresAt: string }) {
   }, [])
 
   const leftSec = dayjs(expiresAt).diff(now, 'second')
-  if (leftSec <= 0) return <span className="text-danger"> · 도착 제한시간 초과</span>
+  if (leftSec <= 0) return <span className="text-danger">, 도착 제한시간 초과</span>
   return (
-    <span className="text-accent" role="timer">
-      {' '}
-      · {Math.floor(leftSec / 60)}분 {String(leftSec % 60).padStart(2, '0')}초 남음
+    <span className="tnum" role="timer">
+      , {Math.floor(leftSec / 60)}:{String(leftSec % 60).padStart(2, '0')} 남음
     </span>
   )
 }

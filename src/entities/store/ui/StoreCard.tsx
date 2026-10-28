@@ -10,14 +10,15 @@ interface StoreCardProps {
   footer?: React.ReactNode
 }
 
-/** 홈·검색 결과 매장 카드 — StoreSummaryResponse(이름·카테고리·주소·웨이팅 가능)만 표시 */
+/** 홈·검색 결과 매장 한 줄 — StoreSummaryResponse(이름·카테고리·주소·웨이팅 가능)만 표시 */
 export function StoreCard({ store, to, footer }: StoreCardProps) {
   return (
     <article className={styles.card}>
       <Link to={to} className={styles.link}>
         <h3 className={`${styles.name} t-headline-16`}>{store.name}</h3>
-        <p className="t-caption-13 text-tertiary">
-          {store.categoryName} · {store.address}
+        <p className={`${styles.meta} t-caption-13 text-tertiary`}>
+          <span className={styles.category}>{store.categoryName}</span>
+          {store.address}
         </p>
         <StoreTags store={store} />
       </Link>
@@ -31,7 +32,7 @@ export function StoreTags({ store }: { store: Store }) {
   if (!store.waitingAvailable) return null
   return (
     <div className={styles.tags}>
-      <Badge tone="brand">웨이팅 가능</Badge>
+      <Badge tone="primary">줄 서기</Badge>
     </div>
   )
 }

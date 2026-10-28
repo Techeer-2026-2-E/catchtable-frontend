@@ -46,7 +46,7 @@ export function Section({
   )
 }
 
-/** 섹션 사이 8px 회색 구분 영역 */
+/** 구분선 — thick 은 섹션 사이 (좌우 여백을 둔 한 줄) */
 export function Divider({ thick = false }: { thick?: boolean }) {
   return <hr className={cn(styles.divider, thick && styles.thick)} />
 }

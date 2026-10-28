@@ -43,8 +43,6 @@ export function ReservationPage() {
 
   const stepIndex = STEPS.indexOf(step)
   const openDays = store.businessHours.map((h) => h.dayOfWeek)
-  const summary =
-    form.date && form.time ? `${dayjs(form.date).format('M월 D일 (dd)')} · ${formatTime(form.time)} · ${form.partySize}명` : ''
 
   const submit = async () => {
     try {
@@ -86,24 +84,25 @@ export function ReservationPage() {
         </Section>
       )}
 
-      {step === 'confirm' && (
-        <Section
-          title="예약 정보"
-          action={
-            <Button variant="ghost" size="S" onClick={() => setStep('datetime')}>
-              변경
-            </Button>
-          }
-        >
+      {step === 'confirm' && form.date && form.time && (
+        <section className={styles.confirm}>
+          <p className="t-body-15 text-secondary">{store.name}</p>
+          <p className={`${styles.when} tnum`}>
+            <span>{dayjs(form.date).format('M월 D일 (dd)')}</span>
+            <strong>{formatTime(form.time)}</strong>
+          </p>
           <dl className={styles.infoTable}>
-            <dt>매장</dt>
-            <dd>{store.name}</dd>
-            <dt>일시</dt>
-            <dd>{summary}</dd>
+            <dt>인원</dt>
+            <dd>{form.partySize}명</dd>
             <dt>예약자</dt>
-            <dd>{member ? `${member.name} · ${formatPhone(member.phone)}` : '-'}</dd>
+            <dd>{member ? `${member.name}, ${formatPhone(member.phone)}` : '-'}</dd>
+            <dt>테이블</dt>
+            <dd>인원에 맞는 자리로 매장이 배정해요</dd>
           </dl>
-        </Section>
+          <Button variant="ghost" size="S" onClick={() => setStep('datetime')}>
+            날짜·시간 바꾸기
+          </Button>
+        </section>
       )}
     </Page>
   )

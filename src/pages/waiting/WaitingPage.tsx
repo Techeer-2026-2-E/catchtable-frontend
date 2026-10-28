@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
-import { BellRing } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router'
-import { ACTIVE_WAITING_STATUSES, WAITING_STATUS_LABEL, WAITING_STATUS_TONE } from '@/entities'
+import { ACTIVE_WAITING_STATUSES, WAITING_STATUS_LABEL, type WaitingStatus } from '@/entities'
 import { useWaitingActions, useWaitingDetail } from '@/features/waiting'
 import { paths, ROUTES } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Badge, Banner, Button, Dialog, Divider, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { Button, Dialog, ErrorState, LoadingState, Page, Ticket, toast, TopBar } from '@/shared/ui'
 import styles from './WaitingPage.module.css'
+
+const ENDED_MESSAGE: Partial<Record<WaitingStatus, string>> = {
+  SEATED: '착석했어요. 맛있게 드세요',
+  CANCELED: '웨이팅이 취소됐어요',
+  NO_SHOW: '호출에 응답하지 않거나 제한시간 안에 입장하지 않아 순번이 만료됐어요',
+}
 
 /**
  * 기능명세「현재 대기순번 조회」「대기순번 실시간 갱신」「입장 호출 알림」「호출 응답·도착 의사 확인」
@@ -57,88 +62,67 @@ export function WaitingPage() {
     >
       <TopBar title={waiting.storeName ?? '웨이팅'} />
 
-      {called && (
-        <section className={styles.called} aria-live="assertive">
-          <div className={styles.calledHead}>
-            <BellRing aria-hidden />
-            <div>
-              <p className="t-headline-16">입장 가능합니다!</p>
-              <p className="t-caption-13 text-secondary">
-                {status === 'CONFIRMED'
-                  ? `매장에 도착을 알렸어요 · ${mm}:${ss} 안에 입장해주세요`
-                  : `${mm}:${ss} 안에 도착 의사를 알려주세요`}
-              </p>
-            </div>
+      <div className={styles.wrap}>
+        <Ticket
+          muted={!isActive}
+          stub={
+            status === 'WAITING' ? (
+              <div className={styles.stubRow}>
+                <p>
+                  <span className={`${styles.stubValue} tnum`}>{waiting.currentPosition ?? (waiting.teamsAhead ?? 0) + 1}</span>
+                  번째 순서
+                </p>
+                <p className="t-body-14">앞에 {waiting.teamsAhead ?? 0}팀</p>
+              </div>
+            ) : called ? (
+              <div className={styles.called} aria-live="assertive">
+                <p className="t-headline-16">
+                  {status === 'CONFIRMED' ? '도착을 알렸어요. 입장해주세요' : '입장 차례예요. 도착을 알려주세요'}
+                </p>
+                <p className="t-body-14">
+                  남은 시간{' '}
+                  <strong className="tnum">
+                    {mm}:{ss}
+                  </strong>
+                </p>
+                {status === 'CALLED' && (
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    disabled={accept.isPending}
+                    onClick={() => accept.mutate(undefined, { onSuccess: () => toast('매장에 도착했다고 알렸어요'), onError })}
+                  >
+                    지금 가고 있어요
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="t-body-14">{ENDED_MESSAGE[status]}</p>
+            )
+          }
+        >
+          <div className={styles.ticketHead}>
+            <span className="t-label-13">{WAITING_STATUS_LABEL[status]}</span>
+            <span className="t-caption-13 tnum">{dayjs(waiting.waitingDate).format('M월 D일 (dd)')}</span>
           </div>
-          <div className={styles.calledActions}>
-            {status === 'CALLED' && (
-              <Button
-                size="M"
-                className={styles.flex}
-                disabled={accept.isPending}
-                onClick={() => accept.mutate(undefined, { onSuccess: () => toast('매장에 도착했다고 알렸어요'), onError })}
-              >
-                도착했어요
-              </Button>
-            )}
-          </div>
-        </section>
-      )}
-
-      <section className={styles.ticket}>
-        <Badge tone={WAITING_STATUS_TONE[status]} solid={called}>
-          {WAITING_STATUS_LABEL[status]}
-        </Badge>
-        {status === 'WAITING' && (
-          <>
-            <p className="t-caption-13 text-secondary">내 대기순번 · 실시간 갱신 중</p>
-            <p className={styles.position}>
-              <span className="t-display-28">{waiting.currentPosition ?? (waiting.teamsAhead ?? 0) + 1}</span>번째
-            </p>
-            <p className="t-body-14 text-secondary">앞에 {waiting.teamsAhead ?? 0}팀</p>
-          </>
-        )}
-        {called && (
-          <>
-            <p className="t-caption-13 text-secondary">대기번호</p>
-            <p className={styles.position}>
-              <span className="t-display-28">{waiting.waitNumber}</span>번
-            </p>
-            <p className="t-body-14 text-secondary">매장 입구에서 대기번호를 말씀해주세요</p>
-          </>
-        )}
-        {status === 'NO_SHOW' && (
-          <p className="t-body-14 text-secondary">
-            호출에 응답하지 않았거나 제한시간 안에 입장하지 않아 순번이 만료됐어요.
-            <br />
-            다시 방문하시려면 웨이팅을 새로 신청해주세요.
+          <p className={styles.number}>
+            <span className="tnum">{waiting.waitNumber}</span>번
           </p>
-        )}
-        {status === 'CANCELED' && <p className="t-body-14 text-secondary">웨이팅이 취소됐어요</p>}
-        {status === 'SEATED' && <p className="t-body-14 text-secondary">착석이 완료됐어요. 맛있게 드세요!</p>}
-        {!isActive && status !== 'SEATED' && (
-          <Button variant="ghost" size="S" onClick={() => navigate(paths.waitingApply(waiting.storeId))}>
-            다시 신청하기
-          </Button>
-        )}
-      </section>
+          <p className="t-body-14">{waiting.partyCount}명</p>
+        </Ticket>
 
-      <Divider thick />
-      <Section title="웨이팅 정보">
-        <dl className={styles.info}>
-          <dt>대기번호</dt>
-          <dd>{waiting.waitNumber}번</dd>
-          <dt>인원</dt>
-          <dd>{waiting.partyCount}명</dd>
-          <dt>날짜</dt>
-          <dd>{dayjs(waiting.waitingDate).format('M월 D일 (dd)')}</dd>
-        </dl>
-      </Section>
-      {isActive && (
-        <Section>
-          <Banner tone="info">호출 후 제한시간 안에 응답하지 않거나 착석하지 않으면 순번이 자동으로 만료돼요.</Banner>
-        </Section>
-      )}
+        {isActive ? (
+          <p className="t-caption-13 text-tertiary">
+            순번은 실시간으로 바뀌어요. 호출 후 제한시간 안에 응답하거나 입장하지 않으면 순번이 만료돼요.
+          </p>
+        ) : (
+          status !== 'SEATED' && (
+            <Button variant="outline" fullWidth onClick={() => navigate(paths.waitingApply(waiting.storeId))}>
+              다시 줄 서기
+            </Button>
+          )
+        )}
+      </div>
 
       <Dialog
         isOpen={cancelOpen}

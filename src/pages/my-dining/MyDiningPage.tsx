@@ -17,8 +17,7 @@ import { useCancelWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import { formatTime } from '@/shared/lib/format'
-import { Badge, Button, Card, Dialog, EmptyState, ErrorState, LoadingState, Page, Tabs, toast, TopBar } from '@/shared/ui'
+import { Button, Dialog, EmptyState, ErrorState, LoadingState, Page, Tabs, toast, TopBar } from '@/shared/ui'
 import styles from './MyDiningPage.module.css'
 
 type Tab = 'active' | 'past'
@@ -130,64 +129,70 @@ function ReservationItem({
 }) {
   const status = item.status as ReservationStatus
   const display = getReservationDisplayStatus({ status })
-  const startAt = item.reservationStartAt ?? item.requestedAt
-  const upcoming = status === 'CONFIRMED' && dayjs(startAt).isAfter(dayjs())
+  const startAt = dayjs(item.reservationStartAt ?? item.requestedAt)
+  const upcoming = status === 'CONFIRMED' && startAt.isAfter(dayjs())
   return (
-    <Card as="li" className={styles.card}>
-      <button type="button" className={styles.cardBody} onClick={onOpen}>
-        <div className={styles.cardHead}>
-          <Badge tone={RESERVATION_STATUS_TONE[display]}>{RESERVATION_STATUS_LABEL[display]}</Badge>
-          <span className="t-caption-12 text-tertiary">예약</span>
-        </div>
-        <p className="t-headline-16">{item.storeName}</p>
-        <p className="t-caption-13 text-tertiary">
-          {dayjs(startAt).format('M/D(dd)')} {formatTime(startAt)} · {item.partySize}명
-        </p>
+    <li className={styles.row}>
+      <button type="button" className={styles.lead} onClick={onOpen} aria-label={`${item.storeName} 예약 상세`}>
+        <span className="t-caption-12 text-tertiary tnum">{startAt.format('M/D dd')}</span>
+        <span className={`${styles.leadValue} tnum`}>{startAt.format('HH:mm')}</span>
       </button>
-      {upcoming && (
-        <div className={styles.actions}>
-          <Button variant="soft" size="S" onClick={onCancel}>
-            예약 취소
-          </Button>
-        </div>
-      )}
-      {status === 'COMPLETED' && (
-        <div className={styles.actions}>
-          <Button variant="soft" size="S" onClick={onReview}>
-            리뷰 쓰기
-          </Button>
-        </div>
-      )}
-    </Card>
+      <div className={styles.body}>
+        <button type="button" className={styles.bodyMain} onClick={onOpen}>
+          <span className="status-text" data-tone={RESERVATION_STATUS_TONE[display]}>
+            {RESERVATION_STATUS_LABEL[display]}
+          </span>
+          <span className="t-headline-16">{item.storeName}</span>
+          <span className="t-caption-13 text-tertiary">{item.partySize}명</span>
+        </button>
+        {upcoming && (
+          <div className={styles.actions}>
+            <Button variant="soft" size="S" onClick={onCancel}>
+              예약 취소
+            </Button>
+          </div>
+        )}
+        {status === 'COMPLETED' && (
+          <div className={styles.actions}>
+            <Button variant="outline" size="S" onClick={onReview}>
+              리뷰 쓰기
+            </Button>
+          </div>
+        )}
+      </div>
+    </li>
   )
 }
 
 function WaitingItem({ item, onOpen, onCancel }: { item: HistoryItem; onOpen: () => void; onCancel: () => void }) {
   const status = item.status as WaitingStatus
   return (
-    <Card as="li" className={styles.card}>
-      <button type="button" className={styles.cardBody} onClick={onOpen}>
-        <div className={styles.cardHead}>
-          <Badge tone={WAITING_STATUS_TONE[status]} solid={status === 'CALLED'}>
-            {WAITING_STATUS_LABEL[status]}
-          </Badge>
-          <span className="t-caption-12 text-tertiary">웨이팅</span>
-        </div>
-        <p className="t-headline-16">{item.storeName}</p>
-        <p className="t-caption-13 text-tertiary">
-          대기번호 {item.waitNumber}번 · {dayjs(item.requestedAt).format('M/D HH:mm')} 접수 · {item.partySize}명
-        </p>
+    <li className={styles.row}>
+      <button type="button" className={styles.lead} onClick={onOpen} aria-label={`${item.storeName} 웨이팅 현황`}>
+        <span className="t-caption-12 text-tertiary">대기번호</span>
+        <span className={`${styles.leadValue} tnum`}>{item.waitNumber}</span>
       </button>
-      {item.active && (
-        <div className={styles.actions}>
-          <Button variant="soft" size="S" onClick={onCancel}>
-            웨이팅 취소
-          </Button>
-          <Button variant="outline" size="S" onClick={onOpen}>
-            현황 보기
-          </Button>
-        </div>
-      )}
-    </Card>
+      <div className={styles.body}>
+        <button type="button" className={styles.bodyMain} onClick={onOpen}>
+          <span className="status-text" data-tone={WAITING_STATUS_TONE[status]}>
+            웨이팅 {WAITING_STATUS_LABEL[status]}
+          </span>
+          <span className="t-headline-16">{item.storeName}</span>
+          <span className="t-caption-13 text-tertiary tnum">
+            {item.partySize}명, {dayjs(item.requestedAt).format('M/D HH:mm')} 접수
+          </span>
+        </button>
+        {item.active && (
+          <div className={styles.actions}>
+            <Button variant="secondary" size="S" onClick={onOpen}>
+              순번 보기
+            </Button>
+            <Button variant="soft" size="S" onClick={onCancel}>
+              웨이팅 취소
+            </Button>
+          </div>
+        )}
+      </div>
+    </li>
   )
 }

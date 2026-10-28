@@ -1,41 +1,61 @@
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+/* ---------- 조건 한 줄 ---------- */
+.condition {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-8);
-  background: var(--color-bg-canvas);
-}
-.title {
-  flex: 1;
-}
-.condition {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: var(--space-4);
-  height: 2.75rem;
-  padding: 0 var(--space-8);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  justify-content: space-between;
+  gap: var(--space-12);
+  width: calc(100% - var(--page-gutter) * 2);
+  margin: 0 var(--page-gutter);
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-default);
+  text-align: left;
 }
 .condition svg {
+  flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
+  color: var(--color-icon-subtle);
 }
-.filters {
-  padding: var(--space-4) var(--page-gutter) var(--space-12);
+.conditionValue {
+  display: flex;
+  gap: var(--space-16);
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
+}
+.conditionValue strong {
+  font-weight: 600;
+}
+
+/* ---------- 카테고리 — 글자 탭 ---------- */
+.categories {
+  display: flex;
+  overflow-x: auto;
+  gap: var(--space-20);
+  padding: var(--space-16) var(--page-gutter) 0;
+  scrollbar-width: none;
+}
+.category {
+  flex-shrink: 0;
+  padding-bottom: var(--space-8);
+  border-bottom: 2px solid transparent;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
+.category[aria-pressed='true'] {
+  border-bottom-color: var(--color-text-primary);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* ---------- 결과 ---------- */
+.results {
+  padding: 0 var(--page-gutter) var(--space-32);
+  border-top: 1px solid var(--color-border-default);
 }
 .count {
-  padding: var(--space-8) var(--page-gutter) 0;
-}
-.results {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-32);
-  padding: var(--space-12) var(--page-gutter) var(--space-32);
+  padding: var(--space-12) 0 var(--space-4);
 }
 .slots {
   display: flex;
@@ -46,30 +66,37 @@
   scrollbar-width: none;
 }
 .slot {
-  display: flex;
+  display: inline-flex;
   flex-shrink: 0;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  min-width: 4.5rem;
-  padding: var(--space-8) var(--space-12);
-  border: 1px solid var(--color-border-default);
+  gap: var(--space-8);
+  height: 2.25rem;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--color-secondary-default);
   border-radius: var(--radius-8);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-brand);
 }
-.slot span:last-child {
-  color: var(--color-text-accent);
+.slotCount {
+  min-width: 1.25rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-4);
+  background: var(--color-secondary-soft);
+  font-size: 0.75rem;
+  text-align: center;
 }
 .slotsSkeleton {
-  height: 3.25rem;
+  height: 2.25rem;
   border-radius: var(--radius-8);
   background: var(--color-bg-muted);
 }
-.noSlot {
-  padding: var(--space-12);
-  border-radius: var(--radius-8);
-  background: var(--color-bg-subtle);
-  color: var(--color-text-tertiary);
-}
 .sheetLabel {
   margin: var(--space-20) 0 var(--space-12);
+}
+.sheetParty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-20);
 }

@@ -43,7 +43,7 @@ export function OwnerDashboardPage() {
                 <div className={styles.text}>
                   <p className="t-headline-16">{store.name}</p>
                   <p className="t-caption-13 text-tertiary">
-                    {STORE_CATEGORY_LABEL[store.category]} · {store.address}
+                    <span className="text-brand">{STORE_CATEGORY_LABEL[store.category]}</span> {store.address}
                   </p>
                 </div>
                 <ChevronRight className={styles.chevron} aria-hidden />

@@ -66,9 +66,7 @@ export function ReservationDateTimeForm({ storeId, maxPartySize = 8, openDays }:
                   onClick={() => setTime(slotTime)}
                 >
                   <span className="t-label-13">{formatTime(slotTime)}</span>
-                  <span className={styles.slotMeta}>
-                    {slot.available ? `${slot.availableTableCount}테이블` : '마감'}
-                  </span>
+                  <span className={styles.slotMeta}>{slot.available ? `${slot.availableTableCount}석` : '마감'}</span>
                 </button>
               )
             })}

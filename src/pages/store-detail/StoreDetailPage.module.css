@@ -5,91 +5,98 @@
   width: 100%;
   height: 15rem;
 }
+
+/* ---------- 매장 머리 ---------- */
 .summary {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
-  padding: var(--space-20) var(--page-gutter);
-}
-.meta {
-  display: flex;
-  align-items: center;
   gap: var(--space-4);
+  padding: var(--space-8) var(--page-gutter) var(--space-20);
 }
-.infoList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  margin-top: var(--space-8);
+.facts {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  row-gap: var(--space-8);
+  margin: var(--space-16) 0 0;
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--color-text-primary);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
-.infoList li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-8);
+.facts dt {
+  color: var(--color-text-tertiary);
 }
-.infoList svg {
-  flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
-  margin-top: 0.0625rem;
-  color: var(--color-icon-subtle);
+.facts dd {
+  margin: 0;
 }
+.sub {
+  display: block;
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- 예약 가능 시간 — 시간표 격자 ---------- */
 .slots {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-8);
-  margin: 0 calc(var(--page-gutter) * -1);
-  padding: 0 var(--page-gutter);
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 .slot {
   display: flex;
-  flex-shrink: 0;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  min-width: 5.5rem;
-  padding: var(--space-8) var(--space-12);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-12);
+  padding: var(--space-8) 0;
+  border: 1px solid var(--color-secondary-default);
+  border-radius: var(--radius-8);
+  color: var(--color-text-brand);
 }
-.slot span:last-child {
-  color: var(--color-text-accent);
+.slotTime {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+.slotCount {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--color-text-secondary);
 }
 .slot:disabled {
-  background: var(--color-bg-subtle);
+  border-color: var(--color-border-default);
   color: var(--color-text-disabled);
 }
-.slot:disabled span:last-child {
+.slot:disabled .slotTime {
+  text-decoration: line-through;
+}
+.slot:disabled .slotCount {
   color: var(--color-text-disabled);
 }
+
+/* ---------- 메뉴 — 이름 왼쪽, 가격 오른쪽 ---------- */
 .menuList {
   display: flex;
   flex-direction: column;
 }
 .menu {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-16);
+  row-gap: var(--space-2);
   padding: var(--space-12) 0;
+  border-bottom: 1px solid var(--color-border-default);
 }
-.menu + .menu {
-  margin-top: var(--space-12);
-  padding-top: var(--space-12);
-  border-top: 1px solid var(--color-border-default);
+.price {
+  text-align: right;
 }
-.menu > div {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.menuDescription {
+  grid-column: 1 / -1;
 }
 .reviews {
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+}
+.reviews > li {
+  padding: var(--space-16) 0;
+  border-bottom: 1px solid var(--color-border-default);
 }
 .cta {
   flex: 1;
