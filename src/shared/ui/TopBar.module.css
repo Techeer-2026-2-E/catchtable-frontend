@@ -1,0 +1,34 @@
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--topbar-height);
+  padding: 0 var(--space-8) 0 var(--space-16);
+  background: var(--color-bg-canvas);
+}
+.leading {
+  margin-left: calc(var(--space-8) * -1);
+}
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+.transparent {
+  position: absolute;
+  inset: 0 0 auto;
+  background: transparent;
+}
+.transparent button {
+  background: rgb(255 255 255 / 85%);
+}

@@ -1,0 +1,1 @@
+export { OwnerTablesPage } from './OwnerTablesPage'

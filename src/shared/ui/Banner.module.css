@@ -1,0 +1,46 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  border-radius: var(--radius-12);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: var(--color-text-primary);
+}
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.icon svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.body {
+  flex: 1;
+  min-width: 0;
+}
+.info {
+  background: var(--color-bg-muted);
+}
+.info .icon {
+  color: var(--color-icon-subtle);
+}
+.notice {
+  background: var(--color-primary-soft);
+}
+.notice .icon {
+  color: var(--color-text-accent);
+}
+.success {
+  background: var(--color-status-success-soft);
+}
+.success .icon {
+  color: var(--color-status-success);
+}
+.danger {
+  background: var(--color-status-danger-soft);
+}
+.danger .icon {
+  color: var(--color-status-danger);
+}

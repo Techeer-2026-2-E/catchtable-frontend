@@ -2,7 +2,7 @@
 
 공통 규칙은 [AGENTS.md](../AGENTS.md) 한곳에서 관리한다. 개인 모델·스킬·에디터가 같을 필요는 없다. 작업의 범위와 검증 근거를 같은 방식으로 남긴다.
 
-이번 문서 묶음은 `main`에만 반영한다. `dev`에는 아직 이 파일들이 없으므로 구현 작업에서는 [main의 AGENTS.md](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/main/AGENTS.md)와 관련 문서를 명시적으로 읽도록 요청한다. 아래 자동 로딩 설명은 파일이 실제 체크아웃에 있을 때 적용된다.
+이번 문서 묶음은 `main`에만 반영했다 (2026-10-29 `dev`를 `main`에 통합했지만 `dev`에는 여전히 이 파일들이 없다). 그래서 구현 작업에서는 [main의 AGENTS.md](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/main/AGENTS.md)와 관련 문서를 명시적으로 읽도록 요청한다. 아래 자동 로딩 설명은 파일이 실제 체크아웃에 있을 때 적용된다.
 
 GitHub 기본 브랜치도 `dev`이므로 이번에 `main`에 둔 이슈·PR 양식이 생성 화면에 자동 적용된다고 가정하지 않는다. 현재는 양식 링크로 내용을 복사하며, 기본 브랜치 도입은 별도 반영이 필요하다.
 

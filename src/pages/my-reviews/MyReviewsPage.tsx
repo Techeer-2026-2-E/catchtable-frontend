@@ -1,0 +1,110 @@
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { MessageSquareText } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { ReviewItem, type Review } from '@/entities'
+import { reservationKeys } from '@/features/reservation'
+import { useMyReviews, useReviewMutations, useWritableVisits } from '@/features/review'
+import { paths } from '@/shared/config'
+import { getErrorMessage } from '@/shared/lib'
+import { dayjs } from '@/shared/lib/dayjs'
+import { Button, Card, Dialog, Divider, EmptyState, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import styles from './MyReviewsPage.module.css'
+
+/**
+ * 기능명세「내 리뷰 조회」「리뷰 수정」「리뷰 삭제」 (P2)
+ * GET /api/user/members/me/reviews · GET /api/user/reviews/writable
+ */
+export function MyReviewsPage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const writable = useWritableVisits()
+  const mine = useMyReviews()
+  const { remove } = useReviewMutations()
+  const [deleting, setDeleting] = useState<Review | null>(null)
+
+  const confirmDelete = () => {
+    if (!deleting) return
+    remove.mutate(deleting.reviewId, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: reservationKeys.all })
+        toast('리뷰를 삭제했어요')
+        setDeleting(null)
+      },
+      onError: (e) => toast(getErrorMessage(e, '삭제하지 못했어요')),
+    })
+  }
+
+  return (
+    <Page>
+      <TopBar title={`내가 쓴 리뷰${mine.data ? ` (${mine.data.length})` : ''}`} />
+
+      {!!writable.data?.length && (
+        <>
+          <Section title="리뷰를 기다리는 방문" action={<span className="t-caption-13 text-tertiary">{writable.data.length}곳</span>}>
+            <ul className={styles.writable}>
+              {writable.data.map((v) => (
+                <Card as="li" key={v.reservationId} className={styles.visit}>
+                  <div>
+                    <p className="t-label-15">{v.storeName}</p>
+                    <p className="t-caption-13 text-tertiary">
+                      {dayjs(v.reservationStartAt).format('M/D(dd)')} 방문 · {v.partySize}명
+                    </p>
+                  </div>
+                  <Button size="S" onClick={() => navigate(paths.reviewWrite(v.reservationId))}>
+                    리뷰 쓰기
+                  </Button>
+                </Card>
+              ))}
+            </ul>
+          </Section>
+          <Divider thick />
+        </>
+      )}
+
+      {mine.isPending ? (
+        <LoadingState />
+      ) : mine.isError ? (
+        <ErrorState onRetry={() => mine.refetch()} />
+      ) : mine.data.length === 0 ? (
+        <EmptyState
+          icon={<MessageSquareText />}
+          title="아직 쓴 리뷰가 없어요"
+          description="방문한 매장의 리뷰를 남기면 다른 손님에게 도움이 돼요"
+        />
+      ) : (
+        <ul className={styles.list}>
+          {mine.data.map((review) => (
+            <Card as="li" key={review.reviewId}>
+              <ReviewItem
+                review={review}
+                heading="store"
+                actions={
+                  <>
+                    <Button size="S" variant="soft" onClick={() => navigate(paths.reviewEdit(review.reviewId))}>
+                      수정
+                    </Button>
+                    <Button size="S" variant="ghost" onClick={() => setDeleting(review)}>
+                      삭제
+                    </Button>
+                  </>
+                }
+              />
+            </Card>
+          ))}
+        </ul>
+      )}
+
+      <Dialog
+        isOpen={!!deleting}
+        onClose={() => setDeleting(null)}
+        title="리뷰를 삭제할까요?"
+        confirmLabel={remove.isPending ? '삭제 중…' : '삭제'}
+        cancelLabel="취소"
+        onConfirm={confirmDelete}
+      >
+        {deleting?.storeName} 리뷰가 삭제되고, 같은 방문에 다시 리뷰를 쓸 수 있어요.
+      </Dialog>
+    </Page>
+  )
+}

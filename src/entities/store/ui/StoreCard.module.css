@@ -1,0 +1,65 @@
+.card,
+.compact {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.card .image {
+  width: 100%;
+  height: 11.25rem;
+}
+.compact {
+  flex-shrink: 0;
+  width: 9rem;
+}
+.compact .link {
+  gap: var(--space-8);
+}
+.compact .image {
+  width: 9rem;
+  height: 9rem;
+}
+.compact .name {
+  font-size: 0.9375rem;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.name {
+  padding-right: var(--space-32);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.like {
+  position: absolute;
+  top: calc(11.25rem + var(--space-8));
+  right: 0;
+  display: inline-flex;
+  padding: var(--space-4);
+  color: var(--color-icon-subtle);
+}
+.like svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}

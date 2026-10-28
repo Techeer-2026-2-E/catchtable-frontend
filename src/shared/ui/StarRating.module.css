@@ -1,0 +1,37 @@
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.S svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.L {
+  gap: var(--space-4);
+}
+.L svg {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+.on {
+  color: var(--color-primary-default);
+  fill: currentcolor;
+}
+.off {
+  color: var(--color-border-strong);
+  fill: var(--color-bg-muted);
+}
+.button {
+  display: inline-flex;
+  padding: var(--space-2);
+  border-radius: var(--radius-8);
+  transition: transform 0.12s ease;
+}
+.button:active {
+  transform: scale(0.92);
+}
+.button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}

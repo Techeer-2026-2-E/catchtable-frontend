@@ -34,7 +34,7 @@ Engineering Requirements Document와 DB의 Entity Relationship Diagram을 모두
 
 ## 로컬 실행
 
-현재 문서 전용 `main`에는 `package.json`·앱 소스가 없다. 앱 실행은 `dev` 체크아웃에서 한다. Node.js **22.22.0 이상**과 npm을 사용한다. 이는 잠금 파일에 있는 React Router·MSW 등의 최소 요구사항을 함께 만족하는 기준이다. 저장소에 Node 버전 고정 파일과 `engines` 설정은 아직 없으므로 실제 검증 버전은 결과에 남긴다.
+2026-10-29 `dev`를 `main`에 통합해 `main`에서도 앱을 실행할 수 있다 (2026-10-27 확인 당시 `main`은 문서 전용). 일반 개발은 계속 `dev`에서 한다. Node.js **22.22.0 이상**과 npm을 사용한다. 이는 잠금 파일에 있는 React Router·MSW 등의 최소 요구사항을 함께 만족하는 기준이다. 저장소에 Node 버전 고정 파일과 `engines` 설정은 아직 없으므로 실제 검증 버전은 결과에 남긴다.
 
 ```bash
 npm ci
@@ -88,7 +88,7 @@ Vite preview는 기본적으로 `server.proxy`를 이어받는다. 로컬 previe
 
 ## 협업 기준
 
-[README 브랜치·머지 규칙](../README.md#브랜치-전략)을 유지한다. 일반 작업은 `dev`에서 분기해 `dev`로 PR을 만들고 발표·배포 통합은 `dev` → `main`으로 한다. 기존 `main` 안내는 `feature/<이슈번호>-<설명>`, 실제 `dev` 작업은 `feat/`도 사용하므로 새 규칙을 임의로 확정하지 않고 [확인할 사항](OPEN_ITEMS.md)에 연결한다. 커밋·PR 제목은 `<type>: <설명>` 형식이다.
+[README Git 규칙](../README.md#git-규칙)(기존 `main` 안내: [브랜치 전략](https://github.com/Techeer-2026-2-E/catchtable-frontend/blob/22380d5d6ffd961c59a7b9e3c76b2f9fa6a9d8c2/README.md#브랜치-전략))을 유지한다. 일반 작업은 `dev`에서 분기해 `dev`로 PR을 만들고 발표·배포 통합은 `dev` → `main`으로 한다. 기존 `main` 안내는 `feature/<이슈번호>-<설명>`, 실제 `dev` 작업은 `feat/`도 사용하므로 새 규칙을 임의로 확정하지 않고 [확인할 사항](OPEN_ITEMS.md)에 연결한다. 커밋·PR 제목은 `<type>: <설명>` 형식이다.
 
 `dev` 개발 안내의 리뷰어 1명 승인·CI 통과 기준과 GitHub 강제 설정은 구분한다. 2026-10-27 GitHub API 조회에서 기본 브랜치는 `dev`, `main`·`dev` 모두 보호 미설정이었다. 이 문서 작업에서 보호 규칙이나 CI를 추가하지 않는다.
 

@@ -1,0 +1,118 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--page-gutter);
+  background: var(--color-bg-canvas);
+}
+.logo {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-primary-default);
+  font-weight: 700;
+  color: var(--color-text-on-primary);
+}
+.location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-8) var(--page-gutter);
+}
+.locationButton,
+.locate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.locationButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.locate {
+  color: var(--color-text-tertiary);
+}
+.locate svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.promo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: var(--space-8) var(--page-gutter) 0;
+  padding: var(--space-20);
+  border-radius: var(--radius-16);
+  background: var(--color-primary-soft);
+}
+.promo p + p {
+  margin-top: var(--space-4);
+}
+.promoLink {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-brand);
+}
+.promoLink svg {
+  width: 1rem;
+  height: 1rem;
+}
+.categories {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--space-16);
+  padding: var(--space-24) var(--page-gutter) var(--space-8);
+}
+.category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  color: var(--color-text-secondary);
+}
+.categoryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--color-bg-muted);
+  font-size: 1.5rem;
+}
+.horizontal {
+  display: flex;
+  gap: var(--space-12);
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding: 0 var(--page-gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+}
+.bell {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.bell svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
