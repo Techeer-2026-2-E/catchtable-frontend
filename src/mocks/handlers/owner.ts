@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, sse } from 'msw'
 import type { BusinessHour, DayOfWeek, ReservationPolicy, ReservationStatus, SalesPeriod, TableStatus, TableType, WaitingSettings } from '@/entities'
 import { ACTIVE_WAITING_STATUSES } from '@/entities'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -6,16 +6,20 @@ import { db, nextId, type StoreRow } from '../db'
 import {
   activeQueue,
   callWaiting,
+  endWaiting,
   findStore,
   freeTables,
   notify,
   nowIso,
+  queueChanged,
   storeTables,
+  subscribeOwner,
   toIso,
   toOwnerReservation,
   toOwnerWaiting,
-  toReview,
   toStore,
+  toStoreReview,
+  toWaitingTermination,
   validateBookable,
 } from '../logic'
 import { API, badRequest, before, body, conflict, fail, memberIdOf, notFound, saved, unauthorized } from '../utils'
@@ -41,7 +45,7 @@ const withSeconds = (v: string) => (v.length === 5 ? `${v}:00` : v)
 /* 매장 · 테이블 · 영업시간 · 예약 정책 · 메뉴 · 매출                      */
 /* ================================================================== */
 const storeHandlers = [
-  /** 내 매장 목록 (노션 명세) */
+  /** [목 전용] 내 매장 목록 (노션 명세) */
   http.get(`${API}/owner/stores`, async ({ request }) => {
     await before()
     const memberId = memberIdOf(request)
@@ -224,12 +228,12 @@ const storeHandlers = [
     return HttpResponse.json(salesReport(own.store, period))
   }),
 
-  /** 점주 리뷰 조회 (P2 보류 — 목만 제공) */
+  /** [목 전용] 점주 리뷰 조회 */
   http.get(`${API}/owner/stores/:storeId/reviews`, async ({ params, request }) => {
     await before()
     const own = ownStore(request, Number(params.storeId))
     if ('error' in own) return own.error
-    return HttpResponse.json(db.reviews.filter((r) => r.storeId === own.store.id).map(toReview))
+    return HttpResponse.json(db.reviews.filter((r) => r.storeId === own.store.id).map(toStoreReview))
   }),
 ]
 
@@ -365,13 +369,13 @@ const reservationHandlers = [
     r.reservationEndAt = toIso(startAt.add(own.store.policy.reservationDurationMinutes, 'minute'))
     r.partySize = partySize
     r.tableId = table.id
-    notify(r.memberId, 'RESERVATION_CONFIRMED', r.reservationId, '예약이 변경됐어요', `${own.store.name} · ${startAt.format('M/D(dd) HH:mm')} · ${partySize}명으로 변경됐어요`)
+    notify(r.memberId, 'RESERVATION_CHANGED', r.reservationId, '예약이 변경됐어요', `${own.store.name} · ${startAt.format('M/D(dd) HH:mm')} · ${partySize}명으로 변경됐어요`)
     return saved(HttpResponse.json(toOwnerReservation(r)))
   }),
 ]
 
 /* ================================================================== */
-/* 웨이팅 운영 (노션 명세 owner-waitings)                                */
+/* 웨이팅 운영 (백엔드 dev OwnerWaitingController)                      */
 /* ================================================================== */
 function ownWaiting(request: Request, waitingId: number) {
   const w = db.waitings.find((x) => x.waitingId === waitingId)
@@ -381,7 +385,34 @@ function ownWaiting(request: Request, waitingId: number) {
   return { w, store: own.store }
 }
 
+/** WaitingPolicyResponse */
+const presentSettings = (store: StoreRow) => ({ storeId: store.id, ...store.waitingSettings })
+
+/** WaitingCallResponse */
+const callResult = (w: (typeof db.waitings)[number]) => ({
+  waitingId: w.waitingId,
+  status: w.status,
+  waitNumber: w.waitNumber,
+  callCount: 1 + w.recallCount,
+  calledAt: w.calledAt,
+  expiresAt: w.callExpiresAt,
+})
+
 const waitingHandlers = [
+  /**
+   * 점주 실시간 구독 — GET /api/owner/stores/{storeId}/waitings/subscribe?memberId=
+   * 연결 직후 "connect", 이후 대기 목록이 바뀔 때마다 WAITING_CHANGED (targetId = 매장 id)
+   * (/settings·/open 보다 먼저 매칭되도록 목록 조회 위에 둠)
+   */
+  sse(`${API}/owner/stores/:storeId/waitings/subscribe`, ({ client, params, request }) => {
+    const storeId = Number(params.storeId)
+    client.send({ event: 'connect', data: 'connected' } as never)
+    const unsubscribe = subscribeOwner(storeId, (message) => {
+      client.send({ event: message.type, data: JSON.stringify(message) } as never)
+    })
+    request.signal.addEventListener('abort', unsubscribe)
+  }),
+
   http.get(`${API}/owner/stores/:storeId/waitings`, async ({ params, request }) => {
     await before()
     const own = ownStore(request, Number(params.storeId))
@@ -393,19 +424,19 @@ const waitingHandlers = [
     await before()
     const own = ownStore(request, Number(params.storeId))
     if ('error' in own) return own.error
-    return HttpResponse.json(own.store.waitingSettings)
+    return HttpResponse.json(presentSettings(own.store))
   }),
 
   http.put(`${API}/owner/stores/:storeId/waitings/settings`, async ({ params, request }) => {
     await before()
     const own = ownStore(request, Number(params.storeId))
     if ('error' in own) return own.error
-    const b = await body<WaitingSettings>(request)
+    const { storeId: _s, ...b } = await body<WaitingSettings>(request)
     if (b.arrivalLimitMinutes !== undefined && (b.arrivalLimitMinutes < 1 || b.arrivalLimitMinutes > 60)) {
       return badRequest('도착 제한시간은 1~60분이어야 합니다.')
     }
     own.store.waitingSettings = { ...own.store.waitingSettings, ...b }
-    return saved(HttpResponse.json(own.store.waitingSettings))
+    return saved(HttpResponse.json(presentSettings(own.store)))
   }),
 
   http.post(`${API}/owner/stores/:storeId/waitings/open`, async ({ params, request }) => {
@@ -413,7 +444,7 @@ const waitingHandlers = [
     const own = ownStore(request, Number(params.storeId))
     if ('error' in own) return own.error
     own.store.waitingSettings.open = true
-    return saved(HttpResponse.json(own.store.waitingSettings))
+    return saved(HttpResponse.json(presentSettings(own.store)))
   }),
 
   http.post(`${API}/owner/stores/:storeId/waitings/close`, async ({ params, request }) => {
@@ -421,7 +452,7 @@ const waitingHandlers = [
     const own = ownStore(request, Number(params.storeId))
     if ('error' in own) return own.error
     own.store.waitingSettings.open = false
-    return saved(HttpResponse.json(own.store.waitingSettings))
+    return saved(HttpResponse.json(presentSettings(own.store)))
   }),
 
   http.post(`${API}/owner/waitings/:waitingId/call`, async ({ params, request }) => {
@@ -430,10 +461,10 @@ const waitingHandlers = [
     if ('error' in found) return found.error
     if (found.w.status !== 'WAITING') return conflict('WAITING_NOT_CALLABLE', '대기 중인 고객만 호출할 수 있습니다.')
     callWaiting(found.w)
-    return saved(HttpResponse.json(toOwnerWaiting(found.w)))
+    return saved(HttpResponse.json(callResult(found.w)))
   }),
 
-  /** P2: 호출 재전송 — 도착 제한시간 다시 시작 */
+  /** [목 전용] 호출 재전송 — 도착 제한시간 다시 시작 */
   http.post(`${API}/owner/waitings/:waitingId/recall`, async ({ params, request }) => {
     await before()
     const found = ownWaiting(request, Number(params.waitingId))
@@ -441,7 +472,7 @@ const waitingHandlers = [
     if (found.w.status !== 'CALLED') return conflict('WAITING_NOT_CALLED', '호출 중인 고객만 다시 호출할 수 있습니다.')
     found.w.recallCount += 1
     callWaiting(found.w)
-    return saved(HttpResponse.json(toOwnerWaiting(found.w)))
+    return saved(HttpResponse.json(callResult(found.w)))
   }),
 
   /** 입장(착석) 처리 */
@@ -452,12 +483,13 @@ const waitingHandlers = [
     if (!ACTIVE_WAITING_STATUSES.includes(found.w.status)) return conflict('WAITING_NOT_ACTIVE', '이미 종료된 웨이팅입니다.')
     found.w.status = 'SEATED'
     found.w.updatedAt = nowIso()
-    // 자동 호출 설정이면 다음 대기 고객 호출
+    queueChanged(found.store.id)
+    // [목 전용] 자동 호출 설정이면 다음 대기 고객 호출
     if (found.store.waitingSettings.autoCall) {
       const next = activeQueue(found.store.id).find((x) => x.status === 'WAITING')
       if (next) callWaiting(next)
     }
-    return saved(HttpResponse.json(toOwnerWaiting(found.w)))
+    return saved(HttpResponse.json({ waitingId: found.w.waitingId, status: found.w.status, enteredAt: found.w.updatedAt }))
   }),
 
   http.post(`${API}/owner/waitings/:waitingId/no-show`, async ({ params, request }) => {
@@ -467,13 +499,16 @@ const waitingHandlers = [
     if (found.w.status !== 'CALLED' && found.w.status !== 'CONFIRMED') {
       return conflict('WAITING_NOT_CALLED', '호출한 고객만 노쇼 처리할 수 있습니다.')
     }
-    found.w.status = 'EXPIRED'
-    found.w.updatedAt = nowIso()
+    const b = await body<{ reason: 'NO_RESPONSE' | 'NO_SHOW'; detail: string }>(request)
+    if (b.reason !== 'NO_RESPONSE' && b.reason !== 'NO_SHOW') return badRequest('처리 사유를 선택해주세요.')
+    if (!b.detail?.trim() || b.detail.length > 300) return badRequest('상세 사유는 1~300자로 입력해주세요.')
+    endWaiting(found.w, 'NO_SHOW', b.reason, b.detail.trim())
     notify(found.w.memberId, 'WAITING_EXPIRED', found.w.waitingId, '웨이팅 순번이 만료됐어요', `${found.store.name} · 호출에 응답이 없어 순번이 만료됐어요`)
-    return saved(HttpResponse.json(toOwnerWaiting(found.w)))
+    queueChanged(found.store.id)
+    return saved(HttpResponse.json(toWaitingTermination(found.w)))
   }),
 
-  /** 순번 연기 — 바로 뒤 고객과 순서 교체 */
+  /** [목 전용] 순번 연기 — 바로 뒤 고객과 순서 교체 */
   http.post(`${API}/owner/waitings/:waitingId/defer`, async ({ params, request }) => {
     await before()
     const found = ownWaiting(request, Number(params.waitingId))
@@ -489,18 +524,21 @@ const waitingHandlers = [
       found.w.callExpiresAt = null
     }
     found.w.updatedAt = nowIso()
+    queueChanged(found.store.id)
     return saved(HttpResponse.json(toOwnerWaiting(found.w)))
   }),
 
-  /** 점주 취소 */
+  /** 점주 취소 — 본문 { reason } 필수, 204 */
   http.delete(`${API}/owner/waitings/:waitingId`, async ({ params, request }) => {
     await before()
     const found = ownWaiting(request, Number(params.waitingId))
     if ('error' in found) return found.error
     if (!ACTIVE_WAITING_STATUSES.includes(found.w.status)) return conflict('WAITING_NOT_ACTIVE', '이미 종료된 웨이팅입니다.')
-    found.w.status = 'CANCELED'
-    found.w.updatedAt = nowIso()
+    const b = await body<{ reason: string }>(request)
+    if (!b.reason?.trim() || b.reason.length > 300) return badRequest('취소 사유는 1~300자로 입력해주세요.')
+    endWaiting(found.w, 'CANCELED', 'OWNER_CANCELED', b.reason.trim())
     notify(found.w.memberId, 'WAITING_CANCELED', found.w.waitingId, '웨이팅이 취소됐어요', `${found.store.name} 사정으로 웨이팅이 취소됐어요`)
+    queueChanged(found.store.id)
     return saved(new HttpResponse(null, { status: 204 }))
   }),
 ]

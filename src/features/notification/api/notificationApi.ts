@@ -3,7 +3,7 @@ import { env } from '@/shared/config'
 import { apiClient } from '@/shared/lib'
 
 export const notificationApi = {
-  /** 알림 목록 — 노션 명세 (백엔드 미구현, 응답 필드는 제안) */
+  /** [목 전용] 알림 목록·읽음 — 노션 명세 (백엔드 미구현, 응답 필드는 제안) */
   getList: async () => {
     const { data } = await apiClient.get<Notification[]>('/user/notifications')
     return data

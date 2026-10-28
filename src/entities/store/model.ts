@@ -86,9 +86,15 @@ export interface Store {
   distanceMeters?: number
 }
 
-/** GET /api/user/stores/{storeId} — StoreDetailResponse */
+/** GET /api/user/stores/{storeId} — StoreDetailResponse (메뉴 포함) */
 export interface StoreDetail extends Store {
+  description: string | null
+  /** 0X-XXXX-XXXX */
+  phone: string | null
+  imageUrl: string | null
   businessHours: BusinessHour[]
+  /** 매장 메뉴 — 백엔드는 별도 메뉴 조회 API 없이 상세에 포함 */
+  menus: Menu[]
 }
 
 /** store.entity.TableStatus */

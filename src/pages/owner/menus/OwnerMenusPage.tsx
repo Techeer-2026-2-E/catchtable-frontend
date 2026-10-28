@@ -3,6 +3,7 @@ import { Camera, NotebookPen, Plus } from 'lucide-react'
 import { useParams } from 'react-router'
 import type { Menu } from '@/entities'
 import { useMenuMutations, useOwnerMenus } from '@/features/owner-store'
+import { isFeatureAvailable } from '@/shared/config'
 import { getErrorMessage, resizeImage } from '@/shared/lib'
 import { formatPrice } from '@/shared/lib/format'
 import {
@@ -42,10 +43,14 @@ const toDraft = (m: Menu): Draft => ({
   soldOut: !!m.soldOut,
 })
 const MAX_PRICE = 10_000_000
+/** 메뉴 사진·품절·삭제는 백엔드 미구현 — 실제 연동에서는 이름·가격·설명만 다룸 */
+const canExtras = () => isFeatureAvailable('menuExtras')
+const canDelete = () => isFeatureAvailable('menuDelete')
 
 /**
  * 기능명세「메뉴 설정」 (P2)
- * 조회 GET /api/user/stores/{id}/menus · 등록 POST · 수정 PATCH · 삭제 DELETE /api/owner/stores/{id}/menus
+ * 조회 GET /api/user/stores/{id} (menus) · 등록 POST · 수정 PATCH /api/owner/stores/{id}/menus
+ * 삭제·사진·품절은 [목 전용]
  */
 export function OwnerMenusPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -58,7 +63,8 @@ export function OwnerMenusPage() {
   const onError = (e: unknown) => toast(getErrorMessage(e, '저장하지 못했어요'))
 
   const price = Number(draft?.price || NaN)
-  const priceError = draft?.price && (!Number.isInteger(price) || price < 0 || price > MAX_PRICE) ? '0원 이상 숫자로 입력해주세요' : undefined
+  const priceError =
+    draft?.price && (!Number.isInteger(price) || price < 0 || price > MAX_PRICE) ? '0원 이상 숫자로 입력해주세요' : undefined
   const canSave = !!draft && !!draft.name.trim() && draft.price !== '' && !priceError
   const saving = create.isPending || update.isPending
 
@@ -68,8 +74,7 @@ export function OwnerMenusPage() {
       name: draft.name.trim(),
       price,
       description: draft.description.trim(),
-      imageUrl: draft.imageUrl ?? null,
-      soldOut: draft.soldOut,
+      ...(canExtras() && { imageUrl: draft.imageUrl ?? null, soldOut: draft.soldOut }),
     }
     const onSuccess = (message: string) => () => {
       toast(message)
@@ -117,7 +122,7 @@ export function OwnerMenusPage() {
       }
     >
       <TopBar title="메뉴 설정" />
-      {!isPending && !isError && menus.length > 0 && (
+      {canExtras() && !isPending && !isError && menus.length > 0 && (
         <p className={styles.summary}>
           판매 중 <strong>{onSaleCount}개</strong> · 품절 <strong>{menus.length - onSaleCount}개</strong>
           <span className="text-tertiary"> · 예약 화면에 바로 반영돼요</span>
@@ -129,7 +134,11 @@ export function OwnerMenusPage() {
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : menus.length === 0 ? (
-        <EmptyState icon={<NotebookPen />} title="등록된 메뉴가 없어요" description="대표 메뉴를 등록하면 고객이 예약할 때 미리 고를 수 있어요" />
+        <EmptyState
+          icon={<NotebookPen />}
+          title="등록된 메뉴가 없어요"
+          description="대표 메뉴를 등록하면 고객이 예약할 때 미리 고를 수 있어요"
+        />
       ) : (
         <ul className={styles.list}>
           {menus.map((menu) => (
@@ -142,8 +151,12 @@ export function OwnerMenusPage() {
                   {menu.description && <span className="t-caption-12 text-tertiary">{menu.description}</span>}
                 </span>
               </button>
-              {menu.soldOut && <Badge>품절</Badge>}
-              <Toggle checked={!menu.soldOut} label={`${menu.name} 판매`} onChange={(on) => toggleSoldOut(menu, on)} />
+              {canExtras() && (
+                <>
+                  {menu.soldOut && <Badge>품절</Badge>}
+                  <Toggle checked={!menu.soldOut} label={`${menu.name} 판매`} onChange={(on) => toggleSoldOut(menu, on)} />
+                </>
+              )}
             </Card>
           ))}
         </ul>
@@ -155,7 +168,7 @@ export function OwnerMenusPage() {
         title={draft?.id ? '메뉴 수정' : '메뉴 추가'}
         footer={
           <div className={styles.footer}>
-            {draft?.id && (
+            {draft?.id && canDelete() && (
               <Button variant="ghost" onClick={() => setDeleteOpen(true)}>
                 삭제
               </Button>
@@ -168,23 +181,27 @@ export function OwnerMenusPage() {
       >
         {draft && (
           <div className={styles.form}>
-            <button type="button" className={styles.photo} onClick={() => fileRef.current?.click()}>
-              <ImagePlaceholder src={draft.imageUrl} className={styles.photoImage} radius={12} />
-              <span className={styles.photoBadge}>
-                <Camera aria-hidden />
-                {draft.imageUrl ? '사진 변경' : '사진 추가'}
-              </span>
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                pickPhoto(e.target.files?.[0])
-                e.target.value = ''
-              }}
-            />
+            {canExtras() && (
+              <>
+                <button type="button" className={styles.photo} onClick={() => fileRef.current?.click()}>
+                  <ImagePlaceholder src={draft.imageUrl} className={styles.photoImage} radius={12} />
+                  <span className={styles.photoBadge}>
+                    <Camera aria-hidden />
+                    {draft.imageUrl ? '사진 변경' : '사진 추가'}
+                  </span>
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    pickPhoto(e.target.files?.[0])
+                    e.target.value = ''
+                  }}
+                />
+              </>
+            )}
             <TextField
               label="메뉴 이름"
               value={draft.name}
@@ -206,20 +223,18 @@ export function OwnerMenusPage() {
               value={draft.description}
               onChange={(e) => setDraft({ ...draft, description: e.target.value })}
               placeholder="구성이나 특징을 짧게 적어주세요"
-              maxLength={200}
+              maxLength={1000}
               rows={3}
             />
-            <div className={styles.row}>
-              <div>
-                <p className="t-body-15">판매 중</p>
-                <p className="t-caption-12 text-tertiary">끄면 고객 예약 화면에 품절로 보여요</p>
+            {canExtras() && (
+              <div className={styles.row}>
+                <div>
+                  <p className="t-body-15">판매 중</p>
+                  <p className="t-caption-12 text-tertiary">끄면 고객 예약 화면에 품절로 보여요</p>
+                </div>
+                <Toggle checked={!draft.soldOut} label="판매 중" onChange={(on) => setDraft({ ...draft, soldOut: !on })} />
               </div>
-              <Toggle
-                checked={!draft.soldOut}
-                label="판매 중"
-                onChange={(on) => setDraft({ ...draft, soldOut: !on })}
-              />
-            </div>
+            )}
           </div>
         )}
       </BottomSheet>

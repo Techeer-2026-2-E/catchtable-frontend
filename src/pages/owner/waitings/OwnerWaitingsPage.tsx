@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react'
 import { UsersRound } from 'lucide-react'
 import { useParams } from 'react-router'
 import { ACTIVE_WAITING_STATUSES, WAITING_STATUS_LABEL, WAITING_STATUS_TONE, type OwnerWaiting } from '@/entities'
+import { useAuthStore } from '@/features/auth'
 import {
+  type OwnerWaitingNoShowRequest,
   useOwnerWaitingActions,
+  useOwnerWaitingStream,
   useOwnerWaitings,
   useWaitingSettings,
   useWaitingSettingsMutations,
 } from '@/features/owner-waiting'
+import { isFeatureAvailable } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import {
@@ -23,6 +27,7 @@ import {
   ErrorState,
   LoadingState,
   Page,
+  Textarea,
   toast,
   Toggle,
   TopBar,
@@ -31,11 +36,18 @@ import styles from './OwnerWaitingsPage.module.css'
 
 const ARRIVAL_OPTIONS = [5, 10, 15]
 type Pending = { type: 'noShow' | 'cancel'; waiting: OwnerWaiting } | null
+type NoShowReason = OwnerWaitingNoShowRequest['reason']
+const NO_SHOW_REASONS: { value: NoShowReason; label: string }[] = [
+  { value: 'NO_RESPONSE', label: '호출 미응답' },
+  { value: 'NO_SHOW', label: '미방문(노쇼)' },
+]
+const REASON_MAX = 300
 
 /**
  * 기능명세「웨이팅 접수 시작·종료」「현재 대기 고객 목록」「웨이팅 고객 호출」「웨이팅 착석 처리」
  * 「웨이팅 미응답·노쇼 처리」「점주 웨이팅 취소」「호출 도착 제한시간 설정」「순번 미루기」「호출 재전송(P2)」
- * GET /api/owner/stores/{storeId}/waitings (10초마다 갱신) · POST /api/owner/waitings/{id}/{call|recall|enter|no-show|defer}
+ * GET /api/owner/stores/{storeId}/waitings + 실시간 구독(SSE, WAITING_CHANGED) · POST /api/owner/waitings/{id}/{call|enter|no-show}
+ * DELETE /api/owner/waitings/{id} (사유 필수) · 호출 재전송·순서 미루기·자동 호출은 [목 전용]
  */
 export function OwnerWaitingsPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -44,17 +56,47 @@ export function OwnerWaitingsPage() {
   const settings = useWaitingSettings(id)
   const settingMutations = useWaitingSettingsMutations(id)
   const actions = useOwnerWaitingActions(id)
+  const memberId = useAuthStore((s) => s.member?.id ?? null)
+  useOwnerWaitingStream(id, memberId)
   const [pending, setPending] = useState<Pending>(null)
+  const [noShowReason, setNoShowReason] = useState<NoShowReason>('NO_RESPONSE')
+  const [reasonText, setReasonText] = useState('')
   const [settingOpen, setSettingOpen] = useState(false)
 
   const open = settings.data?.open ?? false
   const arrivalLimit = settings.data?.arrivalLimitMinutes ?? 10
   const active = (waitings.data ?? [])
     .filter((w) => ACTIVE_WAITING_STATUSES.includes(w.status))
-    .sort((a, b) => a.waitNumber - b.waitNumber)
+    .sort((a, b) => a.waitingNumber - b.waitingNumber)
   const onError = (e: unknown) => toast(getErrorMessage(e, '처리하지 못했어요'))
   const run = (mutation: { mutate: (id: number, o: object) => void }, w: OwnerWaiting, message: string) =>
-    mutation.mutate(w.waitingId, { onSuccess: () => toast(message), onError })
+    mutation.mutate(w.id, { onSuccess: () => toast(message), onError })
+
+  const openPending = (type: 'noShow' | 'cancel', waiting: OwnerWaiting) => {
+    setNoShowReason('NO_RESPONSE')
+    setReasonText('')
+    setPending({ type, waiting })
+  }
+
+  // 백엔드는 노쇼 상세 사유·취소 사유 모두 공백 불가
+  const confirmPending = () => {
+    if (!pending) return
+    const reason = reasonText.trim()
+    if (!reason) {
+      toast('사유를 입력해주세요')
+      return
+    }
+    const { waiting: w, type } = pending
+    const onSuccess = () => {
+      toast(type === 'noShow' ? `${w.waitingNumber}번을 노쇼로 처리했어요` : `${w.waitingNumber}번 웨이팅을 취소했어요`)
+      setPending(null)
+    }
+    if (type === 'noShow') {
+      actions.noShow.mutate({ waitingId: w.id, body: { reason: noShowReason, detail: reason } }, { onSuccess, onError })
+    } else {
+      actions.cancel.mutate({ waitingId: w.id, reason }, { onSuccess, onError })
+    }
+  }
 
   const toggleOpen = (v: boolean) =>
     (v ? settingMutations.open : settingMutations.close).mutate(undefined, {
@@ -70,7 +112,8 @@ export function OwnerWaitingsPage() {
         <div>
           <p className="t-headline-16">{open ? '웨이팅 접수 중' : '웨이팅 접수 마감'}</p>
           <button type="button" className="t-caption-13 text-tertiary" onClick={() => setSettingOpen(true)}>
-            호출 후 도착 제한시간 {arrivalLimit}분{settings.data?.autoCall && ' · 자동 호출'} · <u>변경</u>
+            호출 후 도착 제한시간 {arrivalLimit}분{isFeatureAvailable('waitingAutoCall') && settings.data?.autoCall && ' · 자동 호출'} ·{' '}
+            <u>변경</u>
           </button>
         </div>
         <Toggle
@@ -83,7 +126,7 @@ export function OwnerWaitingsPage() {
 
       <div className={styles.summary}>
         <span className="t-body-14">
-          현재 대기 <strong>{active.length}팀</strong> · {active.reduce((s, w) => s + w.partyCount, 0)}명
+          현재 대기 <strong>{active.length}팀</strong> · {active.reduce((s, w) => s + w.partySize, 0)}명
         </span>
       </div>
       <div className={styles.banner}>
@@ -102,10 +145,10 @@ export function OwnerWaitingsPage() {
             const called = w.status === 'CALLED' || w.status === 'CONFIRMED'
             const isLast = index === active.length - 1
             return (
-              <Card as="li" key={w.waitingId} className={styles.card}>
+              <Card as="li" key={w.id} className={styles.card}>
                 <div className={styles.head}>
                   <p className="t-headline-16">
-                    {w.waitNumber}번 · {w.customerName} · {w.partyCount}명
+                    {w.waitingNumber}번 · {w.customerName} · {w.partySize}명
                   </p>
                   <Badge tone={WAITING_STATUS_TONE[w.status]} solid={w.status === 'CALLED'}>
                     {WAITING_STATUS_LABEL[w.status]}
@@ -125,11 +168,11 @@ export function OwnerWaitingsPage() {
                         size="S"
                         variant="secondary"
                         disabled={actions.enter.isPending}
-                        onClick={() => run(actions.enter, w, `${w.waitNumber}번 고객을 착석 처리했어요`)}
+                        onClick={() => run(actions.enter, w, `${w.waitingNumber}번 고객을 착석 처리했어요`)}
                       >
                         착석 처리
                       </Button>
-                      {w.status === 'CALLED' && (
+                      {w.status === 'CALLED' && isFeatureAvailable('waitingRecall') && (
                         <Button
                           size="S"
                           variant="soft"
@@ -139,7 +182,7 @@ export function OwnerWaitingsPage() {
                           호출 재전송
                         </Button>
                       )}
-                      <Button size="S" variant="ghost" onClick={() => setPending({ type: 'noShow', waiting: w })}>
+                      <Button size="S" variant="ghost" onClick={() => openPending('noShow', w)}>
                         미응답 노쇼
                       </Button>
                     </>
@@ -149,21 +192,21 @@ export function OwnerWaitingsPage() {
                         size="S"
                         variant="secondary"
                         disabled={actions.call.isPending}
-                        onClick={() => run(actions.call, w, `${w.waitNumber}번 고객을 호출했어요`)}
+                        onClick={() => run(actions.call, w, `${w.waitingNumber}번 고객을 호출했어요`)}
                       >
                         호출
                       </Button>
-                      {!isLast && (
+                      {!isLast && isFeatureAvailable('waitingRecall') && (
                         <Button
                           size="S"
                           variant="soft"
                           disabled={actions.defer.isPending}
-                          onClick={() => run(actions.defer, w, `${w.waitNumber}번 순서를 한 칸 미뤘어요`)}
+                          onClick={() => run(actions.defer, w, `${w.waitingNumber}번 순서를 한 칸 미뤘어요`)}
                         >
                           순서 미루기
                         </Button>
                       )}
-                      <Button size="S" variant="ghost" onClick={() => setPending({ type: 'cancel', waiting: w })}>
+                      <Button size="S" variant="ghost" onClick={() => openPending('cancel', w)}>
                         웨이팅 취소
                       </Button>
                     </>
@@ -178,24 +221,30 @@ export function OwnerWaitingsPage() {
       <Dialog
         isOpen={!!pending}
         onClose={() => setPending(null)}
-        title={pending?.type === 'noShow' ? '미응답 노쇼로 처리할까요?' : '웨이팅을 취소할까요?'}
+        title={pending?.type === 'noShow' ? '미응답·노쇼로 처리할까요?' : '웨이팅을 취소할까요?'}
         confirmLabel={pending?.type === 'noShow' ? '노쇼 처리' : '웨이팅 취소'}
-        onConfirm={() => {
-          if (!pending) return
-          const { waiting: w, type } = pending
-          const mutation = type === 'noShow' ? actions.noShow : actions.cancel
-          mutation.mutate(w.waitingId, {
-            onSuccess: () => {
-              toast(type === 'noShow' ? `${w.waitNumber}번을 노쇼로 처리했어요` : `${w.waitNumber}번 웨이팅을 취소했어요`)
-              setPending(null)
-            },
-            onError,
-          })
-        }}
+        onConfirm={confirmPending}
       >
-        {pending && `${pending.waiting.waitNumber}번 · ${pending.waiting.customerName}님 · ${pending.waiting.partyCount}명`}
+        {pending && `${pending.waiting.waitingNumber}번 · ${pending.waiting.customerName}님 · ${pending.waiting.partySize}명`}
         <br />
         고객에게 알림이 전송되고 순번이 목록에서 사라져요.
+        {pending?.type === 'noShow' && (
+          <ChipGroup label="처리 사유" className={styles.sheetChips}>
+            {NO_SHOW_REASONS.map((r) => (
+              <Chip key={r.value} selected={noShowReason === r.value} onClick={() => setNoShowReason(r.value)}>
+                {r.label}
+              </Chip>
+            ))}
+          </ChipGroup>
+        )}
+        <Textarea
+          label={pending?.type === 'noShow' ? '상세 사유' : '취소 사유'}
+          placeholder={pending?.type === 'noShow' ? '예) 호출 후 10분 동안 응답 없음' : '예) 재료 소진으로 오늘 영업 마감'}
+          maxLength={REASON_MAX}
+          rows={3}
+          value={reasonText}
+          onChange={(e) => setReasonText(e.target.value)}
+        />
       </Dialog>
 
       <BottomSheet isOpen={settingOpen} onClose={() => setSettingOpen(false)} title="웨이팅 운영 설정">
@@ -216,17 +265,19 @@ export function OwnerWaitingsPage() {
             </Chip>
           ))}
         </ChipGroup>
-        <div className={styles.autoCall}>
-          <div>
-            <p className="t-body-15">착석 처리 후 다음 고객 자동 호출</p>
-            <p className="t-caption-13 text-tertiary">공석이 생기면 대기 1번 고객에게 바로 호출 알림을 보내요</p>
+        {isFeatureAvailable('waitingAutoCall') && (
+          <div className={styles.autoCall}>
+            <div>
+              <p className="t-body-15">착석 처리 후 다음 고객 자동 호출</p>
+              <p className="t-caption-13 text-tertiary">공석이 생기면 대기 1번 고객에게 바로 호출 알림을 보내요</p>
+            </div>
+            <Toggle
+              checked={settings.data?.autoCall ?? false}
+              label="다음 고객 자동 호출"
+              onChange={(autoCall) => settingMutations.update.mutate({ autoCall }, { onError })}
+            />
           </div>
-          <Toggle
-            checked={settings.data?.autoCall ?? false}
-            label="다음 고객 자동 호출"
-            onChange={(autoCall) => settingMutations.update.mutate({ autoCall }, { onError })}
-          />
-        </div>
+        )}
       </BottomSheet>
     </Page>
   )

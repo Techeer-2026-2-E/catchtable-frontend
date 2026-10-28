@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react'
 import { dayjs } from '@/shared/lib/dayjs'
 import { Avatar, ImagePlaceholder, StarRating } from '@/shared/ui'
-import type { Review } from '../model'
+import type { MyReview, StoreReview } from '../model'
 import styles from './ReviewItem.module.css'
 
 interface ReviewItemProps {
-  review: Review
-  /** author: 작성자 이름(매장 상세·점주) / store: 매장 이름(내 리뷰) */
-  heading?: 'author' | 'store'
+  /** 매장 리뷰(작성자 이름 표시) 또는 내 리뷰(매장 이름 표시) */
+  review: StoreReview | MyReview
   /** 점주 답글 자리를 대신 그릴 때 (점주 답글 작성 폼 등) */
   reply?: ReactNode
   actions?: ReactNode
@@ -15,20 +14,22 @@ interface ReviewItemProps {
 }
 
 /** 리뷰 한 건 — 매장 상세 · 내 리뷰 · 점주 리뷰 관리에서 공통 사용 */
-export function ReviewItem({ review, heading = 'author', reply, actions, className }: ReviewItemProps) {
+export function ReviewItem({ review, reply, actions, className }: ReviewItemProps) {
+  const isMine = 'storeName' in review
+  const title = isMine ? review.storeName : review.writerName
   const date = dayjs(review.createdAt)
   const when = date.isAfter(dayjs().subtract(7, 'day')) ? date.fromNow() : date.format('YYYY.M.D')
 
   return (
     <article className={`${styles.item} ${className ?? ''}`}>
       <header className={styles.head}>
-        {heading === 'author' ? (
-          <Avatar name={review.authorName} size={32} />
-        ) : (
+        {isMine ? (
           <ImagePlaceholder className={styles.thumb} radius={8} />
+        ) : (
+          <Avatar name={review.writerName} size={32} />
         )}
         <div className={styles.headText}>
-          <p className="t-label-15">{heading === 'author' ? review.authorName : review.storeName}</p>
+          <p className="t-label-15">{title}</p>
           <p className={styles.meta}>
             <StarRating value={review.rating} />
             <span className="t-caption-12 text-tertiary">
@@ -41,14 +42,8 @@ export function ReviewItem({ review, heading = 'author', reply, actions, classNa
 
       <p className={`${styles.content} t-body-14`}>{review.content}</p>
 
-      {review.imageUrls.length > 0 && (
-        <ul className={styles.photos} aria-label="첨부 사진">
-          {review.imageUrls.map((src, i) => (
-            <li key={i}>
-              <ImagePlaceholder src={src} alt={`첨부 사진 ${i + 1}`} className={styles.photo} radius={8} />
-            </li>
-          ))}
-        </ul>
+      {review.imageUrl && (
+        <ImagePlaceholder src={review.imageUrl} alt="첨부 사진" className={styles.photo} radius={8} />
       )}
 
       {reply ??

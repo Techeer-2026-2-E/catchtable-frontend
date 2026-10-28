@@ -2,10 +2,10 @@ import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { UserType } from '@/entities'
 import { useSignup } from '@/features/auth'
-import { ROUTES } from '@/shared/config'
+import { isFeatureAvailable, ROUTES } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { formatPhone } from '@/shared/lib/format'
-import { Button, Chip, ChipGroup, Page, TextField, toast, TopBar } from '@/shared/ui'
+import { Banner, Button, Chip, ChipGroup, Page, TextField, toast, TopBar } from '@/shared/ui'
 import styles from '../login/AuthPage.module.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -70,6 +70,7 @@ export function SignupPage() {
     <Page>
       <TopBar title="회원가입" />
       <form className={styles.container} onSubmit={submit} noValidate>
+        {!isFeatureAvailable('auth') && <Banner tone="info">회원가입은 준비 중이에요. 로그인 화면의 개발용 계정으로 둘러봐주세요.</Banner>}
         <div>
           <p className={styles.fieldLabel}>회원 유형</p>
           <ChipGroup label="회원 유형">
@@ -83,13 +84,7 @@ export function SignupPage() {
         </div>
         <TextField label="이름" autoComplete="name" placeholder="김캐치" {...bind('name')} />
         <TextField label="이메일" type="email" autoComplete="email" placeholder="catch@example.com" {...bind('email')} />
-        <TextField
-          label="비밀번호"
-          type="password"
-          autoComplete="new-password"
-          placeholder="8자 이상"
-          {...bind('password')}
-        />
+        <TextField label="비밀번호" type="password" autoComplete="new-password" placeholder="8자 이상" {...bind('password')} />
         <TextField
           label="비밀번호 확인"
           type="password"

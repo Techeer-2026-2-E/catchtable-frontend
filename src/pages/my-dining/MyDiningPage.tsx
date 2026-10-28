@@ -1,18 +1,19 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { CalendarX } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import {
-  ACTIVE_WAITING_STATUSES,
   getReservationDisplayStatus,
   RESERVATION_STATUS_LABEL,
   RESERVATION_STATUS_TONE,
   WAITING_STATUS_LABEL,
   WAITING_STATUS_TONE,
-  type Reservation,
-  type Waiting,
+  type HistoryItem,
+  type ReservationStatus,
+  type WaitingStatus,
 } from '@/entities'
-import { useCancelReservation, useReservations } from '@/features/reservation'
-import { useCancelWaiting, useWaitings } from '@/features/waiting'
+import { reservationKeys, useCancelReservation, useHistory } from '@/features/reservation'
+import { useCancelWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -21,50 +22,41 @@ import { Badge, Button, Card, Dialog, EmptyState, ErrorState, LoadingState, Page
 import styles from './MyDiningPage.module.css'
 
 type Tab = 'active' | 'past'
-type Item = { kind: 'reservation'; data: Reservation; at: string } | { kind: 'waiting'; data: Waiting; at: string }
-type CancelTarget = { kind: Item['kind']; id: number; label: string } | null
+type CancelTarget = { item: HistoryItem } | null
 
-const isActiveReservation = (r: Reservation) => r.status === 'CONFIRMED'
-const isActiveWaiting = (w: Waiting) => ACTIVE_WAITING_STATUSES.includes(w.status)
+/** 진행 중은 가까운 순, 지난 내역은 최근 순 — 예약은 방문 시각, 웨이팅은 접수 시각 기준 */
+const sortKey = (item: HistoryItem) => item.reservationStartAt ?? item.requestedAt
 
 /**
  * 기능명세「예약·웨이팅 목록 조회」「예약·웨이팅 취소」
- * GET /api/user/reservations · GET /api/user/waitings
+ * GET /api/user/reservations?status=ACTIVE|ENDED — 예약과 웨이팅을 함께 반환
  */
 export function MyDiningPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('active')
-  const reservations = useReservations()
-  const waitings = useWaitings()
+  const history = useHistory({ status: tab === 'active' ? 'ACTIVE' : 'ENDED' })
   const cancelReservation = useCancelReservation()
   const cancelWaiting = useCancelWaiting()
   const [cancelTarget, setCancelTarget] = useState<CancelTarget>(null)
 
-  const loading = reservations.isPending || waitings.isPending
-  const failed = reservations.isError || waitings.isError
-
-  const items: Item[] = [
-    ...(waitings.data ?? []).map((w) => ({ kind: 'waiting' as const, data: w, at: w.createdAt ?? '' })),
-    ...(reservations.data ?? []).map((r) => ({ kind: 'reservation' as const, data: r, at: r.reservationStartAt })),
-  ]
-    .filter((item) => {
-      const active = item.kind === 'reservation' ? isActiveReservation(item.data) : isActiveWaiting(item.data)
-      return tab === 'active' ? active : !active
-    })
-    // 진행 중은 가까운 순, 지난 내역은 최근 순
-    .sort((a, b) => (tab === 'active' ? a.at.localeCompare(b.at) : b.at.localeCompare(a.at)))
+  const items = [...(history.data ?? [])].sort((a, b) =>
+    tab === 'active' ? sortKey(a).localeCompare(sortKey(b)) : sortKey(b).localeCompare(sortKey(a)),
+  )
 
   const confirmCancel = () => {
     if (!cancelTarget) return
+    const { item } = cancelTarget
     const options = {
       onSuccess: () => {
-        toast(cancelTarget.kind === 'reservation' ? '예약을 취소했어요' : '웨이팅을 취소했어요')
+        queryClient.invalidateQueries({ queryKey: reservationKeys.all })
+        toast(item.type === 'RESERVATION' ? '예약을 취소했어요' : '웨이팅을 취소했어요')
         setCancelTarget(null)
       },
       onError: (e: unknown) => toast(getErrorMessage(e, '취소하지 못했어요')),
     }
-    if (cancelTarget.kind === 'reservation') cancelReservation.mutate(cancelTarget.id, options)
-    else cancelWaiting.mutate(cancelTarget.id, options)
+    if (item.type === 'RESERVATION') cancelReservation.mutate(item.id, options)
+    else cancelWaiting.mutate(item.id, options)
   }
 
   return (
@@ -79,15 +71,10 @@ export function MyDiningPage() {
         onChange={setTab}
       />
 
-      {loading ? (
+      {history.isPending ? (
         <LoadingState />
-      ) : failed ? (
-        <ErrorState
-          onRetry={() => {
-            reservations.refetch()
-            waitings.refetch()
-          }}
-        />
+      ) : history.isError ? (
+        <ErrorState onRetry={() => history.refetch()} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={<CalendarX />}
@@ -97,24 +84,20 @@ export function MyDiningPage() {
       ) : (
         <ul className={styles.list}>
           {items.map((item) =>
-            item.kind === 'reservation' ? (
+            item.type === 'RESERVATION' ? (
               <ReservationItem
-                key={`r-${item.data.reservationId}`}
-                reservation={item.data}
-                onOpen={() => navigate(paths.reservationDetail(item.data.reservationId))}
-                onReview={() => navigate(paths.reviewWrite(item.data.reservationId))}
-                onCancel={() =>
-                  setCancelTarget({ kind: 'reservation', id: item.data.reservationId, label: item.data.storeName })
-                }
+                key={`r-${item.id}`}
+                item={item}
+                onOpen={() => navigate(paths.reservationDetail(item.id))}
+                onReview={() => navigate(paths.reviewWrite(item.id))}
+                onCancel={() => setCancelTarget({ item })}
               />
             ) : (
               <WaitingItem
-                key={`w-${item.data.waitingId}`}
-                waiting={item.data}
-                onOpen={() => navigate(paths.waiting(item.data.waitingId))}
-                onCancel={() =>
-                  setCancelTarget({ kind: 'waiting', id: item.data.waitingId, label: item.data.storeName ?? '' })
-                }
+                key={`w-${item.id}`}
+                item={item}
+                onOpen={() => navigate(paths.waiting(item.id))}
+                onCancel={() => setCancelTarget({ item })}
               />
             ),
           )}
@@ -124,30 +107,32 @@ export function MyDiningPage() {
       <Dialog
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
-        title={cancelTarget?.kind === 'waiting' ? '웨이팅을 취소할까요?' : '예약을 취소할까요?'}
-        confirmLabel={cancelTarget?.kind === 'waiting' ? '웨이팅 취소' : '예약 취소'}
+        title={cancelTarget?.item.type === 'WAITING' ? '웨이팅을 취소할까요?' : '예약을 취소할까요?'}
+        confirmLabel={cancelTarget?.item.type === 'WAITING' ? '웨이팅 취소' : '예약 취소'}
         onConfirm={confirmCancel}
       >
-        {cancelTarget?.label} {cancelTarget?.kind === 'waiting' ? '웨이팅' : '예약'}이 취소돼요. 취소 후에는 되돌릴 수
-        없어요.
+        {cancelTarget?.item.storeName} {cancelTarget?.item.type === 'WAITING' ? '웨이팅' : '예약'}이 취소돼요. 취소
+        후에는 되돌릴 수 없어요.
       </Dialog>
     </Page>
   )
 }
 
 function ReservationItem({
-  reservation: r,
+  item,
   onOpen,
   onCancel,
   onReview,
 }: {
-  reservation: Reservation
+  item: HistoryItem
   onOpen: () => void
   onCancel: () => void
   onReview: () => void
 }) {
-  const display = getReservationDisplayStatus(r)
-  const upcoming = display === 'CONFIRMED' && dayjs(r.reservationStartAt).isAfter(dayjs())
+  const status = item.status as ReservationStatus
+  const display = getReservationDisplayStatus({ status })
+  const startAt = item.reservationStartAt ?? item.requestedAt
+  const upcoming = status === 'CONFIRMED' && dayjs(startAt).isAfter(dayjs())
   return (
     <Card as="li" className={styles.card}>
       <button type="button" className={styles.cardBody} onClick={onOpen}>
@@ -155,10 +140,9 @@ function ReservationItem({
           <Badge tone={RESERVATION_STATUS_TONE[display]}>{RESERVATION_STATUS_LABEL[display]}</Badge>
           <span className="t-caption-12 text-tertiary">예약</span>
         </div>
-        <p className="t-headline-16">{r.storeName}</p>
+        <p className="t-headline-16">{item.storeName}</p>
         <p className="t-caption-13 text-tertiary">
-          {dayjs(r.reservationStartAt).format('M/D(dd)')} {formatTime(r.reservationStartAt)} · {r.partySize}명
-          {r.tableTypeLabel && ` · ${r.tableTypeLabel}`}
+          {dayjs(startAt).format('M/D(dd)')} {formatTime(startAt)} · {item.partySize}명
         </p>
       </button>
       {upcoming && (
@@ -168,7 +152,7 @@ function ReservationItem({
           </Button>
         </div>
       )}
-      {r.status === 'COMPLETED' && !r.reviewed && (
+      {status === 'COMPLETED' && !item.reviewed && (
         <div className={styles.actions}>
           <Button variant="soft" size="S" onClick={onReview}>
             리뷰 쓰기
@@ -179,23 +163,23 @@ function ReservationItem({
   )
 }
 
-function WaitingItem({ waiting: w, onOpen, onCancel }: { waiting: Waiting; onOpen: () => void; onCancel: () => void }) {
-  const active = isActiveWaiting(w)
+function WaitingItem({ item, onOpen, onCancel }: { item: HistoryItem; onOpen: () => void; onCancel: () => void }) {
+  const status = item.status as WaitingStatus
   return (
     <Card as="li" className={styles.card}>
       <button type="button" className={styles.cardBody} onClick={onOpen}>
         <div className={styles.cardHead}>
-          <Badge tone={WAITING_STATUS_TONE[w.status]} solid={w.status === 'CALLED'}>
-            {w.status === 'WAITING' ? `대기 ${w.teamsAhead + 1}번째` : WAITING_STATUS_LABEL[w.status]}
+          <Badge tone={WAITING_STATUS_TONE[status]} solid={status === 'CALLED'}>
+            {WAITING_STATUS_LABEL[status]}
           </Badge>
           <span className="t-caption-12 text-tertiary">웨이팅</span>
         </div>
-        <p className="t-headline-16">{w.storeName}</p>
+        <p className="t-headline-16">{item.storeName}</p>
         <p className="t-caption-13 text-tertiary">
-          대기번호 {w.waitNumber}번{w.createdAt && ` · ${dayjs(w.createdAt).format('M/D HH:mm')} 접수`} · {w.partyCount}명
+          대기번호 {item.waitNumber}번 · {dayjs(item.requestedAt).format('M/D HH:mm')} 접수 · {item.partySize}명
         </p>
       </button>
-      {active && (
+      {item.active && (
         <div className={styles.actions}>
           <Button variant="soft" size="S" onClick={onCancel}>
             웨이팅 취소

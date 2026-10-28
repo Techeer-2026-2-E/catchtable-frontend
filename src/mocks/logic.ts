@@ -3,20 +3,25 @@
  * 자동 이용 완료 등)을 단순화해서 옮김. 응답 변환(presenter)도 여기서 담당
  */
 import type {
+  HistoryItem,
+  MyReview,
   NotificationMessage,
   NotificationType,
   OwnerReservation,
   OwnerWaiting,
   Reservation,
-  Review,
   Store,
   StoreDetail,
+  StoreReview,
   TableType,
   Waiting,
+  WaitingEndReason,
+  WaitingRegistration,
+  WaitingTermination,
 } from '@/entities'
 import { ACTIVE_WAITING_STATUSES, STORE_CATEGORY_LABEL, TABLE_TYPE_LABEL, toDayOfWeek } from '@/entities'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
-import { db, nextId, persist, type ReservationRow, type StoreRow, type TableRow, type WaitingRow } from './db'
+import { db, nextId, persist, type ReservationRow, type ReviewRow, type StoreRow, type TableRow, type WaitingRow } from './db'
 
 export const now = () => dayjs()
 export const nowIso = () => toIso(now())
@@ -62,7 +67,7 @@ function occupiedTableIds(storeId: number, start: dayjs.Dayjs, end: dayjs.Dayjs,
     if (overlaps(start, end, dayjs(r.reservationStartAt), dayjs(r.reservationEndAt))) ids.add(r.tableId)
   })
   db.holds.forEach((h) => {
-    if (h.storeId !== storeId || h.status !== 'HOLDING') return
+    if (h.storeId !== storeId || h.status !== 'PENDING_PAYMENT') return
     const store = findStore(storeId)!
     const hs = dayjs(h.reservationStartAt)
     if (overlaps(start, end, hs, hs.add(store.policy.reservationDurationMinutes, 'minute'))) ids.add(h.tableId)
@@ -152,14 +157,72 @@ export function subscribe(memberId: number, listener: Listener) {
   return () => listeners.get(memberId)?.delete(listener)
 }
 
-export function notify(memberId: number, type: NotificationType, targetId: number, title: string, message: string) {
+/** 백엔드 NotificationMessage.occurredAt 은 LocalDateTime (오프셋 없음) */
+const localNow = () => now().format('YYYY-MM-DDTHH:mm:ss')
+
+export function notify(
+  memberId: number,
+  type: NotificationType,
+  targetId: number,
+  title: string,
+  message: string,
+  payload: NotificationMessage['payload'] = null,
+) {
   const member = findMember(memberId)
   const category = type.startsWith('RESERVATION') ? 'reservation' : 'waiting'
   if (member && !member.notificationSettings[category]) return
-  const createdAt = nowIso()
-  db.notifications.push({ id: nextId('notification'), memberId, type, targetId, title, message, read: false, createdAt })
-  const payload: NotificationMessage = { eventId: crypto.randomUUID(), type, targetId, message, occurredAt: createdAt }
-  listeners.get(memberId)?.forEach((fn) => fn(payload))
+  // 순번 변경은 실시간으로만 보내고 알림함에는 쌓지 않음
+  if (type !== 'WAITING_POSITION_CHANGED') {
+    db.notifications.push({ id: nextId('notification'), memberId, type, targetId, title, message, read: false, createdAt: nowIso() })
+  }
+  const event: NotificationMessage = { eventId: crypto.randomUUID(), type, targetId, message, payload, occurredAt: localNow() }
+  listeners.get(memberId)?.forEach((fn) => fn(event))
+}
+
+/* ---------- 점주 실시간 구독 — 매장 대기 목록이 바뀌면 WAITING_CHANGED (targetId = 매장 id) ---------- */
+
+const ownerListeners = new Map<number, Set<Listener>>()
+
+export function subscribeOwner(storeId: number, listener: Listener) {
+  if (!ownerListeners.has(storeId)) ownerListeners.set(storeId, new Set())
+  ownerListeners.get(storeId)!.add(listener)
+  return () => ownerListeners.get(storeId)?.delete(listener)
+}
+
+/**
+ * 대기열이 바뀐 뒤 호출 — 점주에게 WAITING_CHANGED, 대기 중인 고객에게 WAITING_POSITION_CHANGED
+ * (백엔드 WaitingEventPublisher 와 같은 이벤트 이름)
+ */
+export function queueChanged(storeId: number) {
+  const event: NotificationMessage = {
+    eventId: crypto.randomUUID(),
+    type: 'WAITING_CHANGED',
+    targetId: storeId,
+    message: '대기 목록이 변경되었습니다.',
+    payload: null,
+    occurredAt: localNow(),
+  }
+  ownerListeners.get(storeId)?.forEach((fn) => fn(event))
+  activeQueue(storeId)
+    .filter((w) => w.status === 'WAITING')
+    .forEach((w) => {
+      const ahead = teamsAhead(w)
+      notify(w.memberId, 'WAITING_POSITION_CHANGED', w.waitingId, '대기 순번이 바뀌었어요', `현재 ${ahead + 1}번째 순서예요`, {
+        waitingId: w.waitingId,
+        currentPosition: ahead + 1,
+        teamsAhead: ahead,
+        status: w.status,
+      })
+    })
+}
+
+/** 웨이팅 종료 처리 (취소·노쇼·만료) */
+export function endWaiting(w: WaitingRow, status: 'CANCELED' | 'NO_SHOW', reason: WaitingEndReason, detail: string | null = null) {
+  w.status = status
+  w.endReason = reason
+  w.endDetail = detail
+  w.endedAt = nowIso()
+  w.updatedAt = w.endedAt
 }
 
 /* ------------------------------------------------------------------ */
@@ -181,7 +244,7 @@ export function tick() {
 
   // 선점 5분 만료
   db.holds.forEach((h) => {
-    if (h.status === 'HOLDING' && !dayjs(h.expiresAt).isAfter(current)) {
+    if (h.status === 'PENDING_PAYMENT' && !dayjs(h.expiresAt).isAfter(current)) {
       h.status = 'EXPIRED'
       changed = true
     }
@@ -190,11 +253,11 @@ export function tick() {
   // 호출 후 제한시간 초과 → 순번 만료
   db.waitings.forEach((w) => {
     if ((w.status === 'CALLED' || w.status === 'CONFIRMED') && w.callExpiresAt && !dayjs(w.callExpiresAt).isAfter(current)) {
-      w.status = 'EXPIRED'
-      w.updatedAt = toIso(current)
+      endWaiting(w, 'NO_SHOW', 'AUTO_EXPIRED')
       changed = true
       const store = findStore(w.storeId)
       notify(w.memberId, 'WAITING_EXPIRED', w.waitingId, '웨이팅 순번이 만료됐어요', `${store?.name} · 호출 후 제한시간이 지났어요`)
+      queueChanged(w.storeId)
     }
   })
 
@@ -227,6 +290,7 @@ export function advanceDemoQueues() {
     head.status = head.status === 'WAITING' ? 'CALLED' : 'SEATED'
     head.updatedAt = nowIso()
     changed = true
+    queueChanged(storeId)
   })
   if (changed) persist()
 }
@@ -244,7 +308,9 @@ export function callWaiting(w: WaitingRow) {
     w.waitingId,
     '입장 가능합니다!',
     `${store.name} 웨이팅 · ${store.waitingSettings.arrivalLimitMinutes}분 안에 도착 의사를 알려주세요`,
+    { status: w.status, waitNumber: w.waitNumber, storeName: store.name, calledAt: w.calledAt, expiresAt: w.callExpiresAt },
   )
+  queueChanged(w.storeId)
 }
 
 /* ------------------------------------------------------------------ */
@@ -284,7 +350,14 @@ export function toStore(row: StoreRow, distanceMeters?: number): Store {
   }
 }
 
-export const toStoreDetail = (row: StoreRow): StoreDetail => ({ ...toStore(row), businessHours: row.businessHours })
+export const toStoreDetail = (row: StoreRow): StoreDetail => ({
+  ...toStore(row),
+  description: row.description ?? null,
+  phone: row.phone ?? null,
+  imageUrl: row.imageUrl ?? null,
+  businessHours: row.businessHours,
+  menus: db.menus.filter((m) => m.storeId === row.id).map(({ storeId: _s, ...menu }) => menu),
+})
 
 export function toReservation(r: ReservationRow): Reservation {
   const table = tableOf(r.tableId)
@@ -336,51 +409,142 @@ export function toOwnerReservation(r: ReservationRow): OwnerReservation {
   }
 }
 
+/** GET /api/user/waitings/{id} — WaitingPositionResponse (+ [목 전용] 필드) */
 export function toWaiting(w: WaitingRow): Waiting {
   const active = ACTIVE_WAITING_STATUSES.includes(w.status)
-  const ahead = active ? teamsAhead(w) : 0
+  const ahead = active ? teamsAhead(w) : null
   return {
     waitingId: w.waitingId,
     storeId: w.storeId,
+    storeName: findStore(w.storeId)?.name ?? '',
+    waitingDate: dayjs(w.createdAt).format('YYYY-MM-DD'),
     waitNumber: w.waitNumber,
+    currentPosition: ahead == null ? null : ahead + 1,
+    teamsAhead: ahead,
     partyCount: w.partyCount,
     status: w.status,
-    teamsAhead: ahead,
-    storeName: findStore(w.storeId)?.name,
+    calledAt: w.calledAt,
+    expiresAt: w.callExpiresAt,
     seatPreference: w.seatPreference,
     createdAt: w.createdAt,
-    calledAt: w.calledAt,
-    callExpiresAt: w.callExpiresAt,
     deferRemaining: w.deferRemaining,
-    estimatedMinutes: active && w.status === 'WAITING' ? Math.max(1, ahead) * 4 : null,
+    estimatedMinutes: ahead != null && w.status === 'WAITING' ? Math.max(1, ahead) * 4 : null,
   }
 }
 
+/** POST /api/user/waitings — WaitingResponse */
+export const toWaitingRegistration = (w: WaitingRow): WaitingRegistration => ({
+  waitingId: w.waitingId,
+  storeId: w.storeId,
+  waitNumber: w.waitNumber,
+  partyCount: w.partyCount,
+  status: w.status,
+  teamsAhead: teamsAhead(w),
+})
+
+/** WaitingTerminationResponse */
+export const toWaitingTermination = (w: WaitingRow): WaitingTermination => ({
+  waitingId: w.waitingId,
+  status: w.status,
+  reason: w.endReason ?? 'CUSTOMER_CANCELED',
+  detail: w.endDetail ?? null,
+  endedAt: w.endedAt ?? w.updatedAt,
+})
+
+/** GET /api/owner/stores/{storeId}/waitings — OwnerWaitingResponse */
 export function toOwnerWaiting(w: WaitingRow): OwnerWaiting {
   const member = findMember(w.memberId)
   return {
-    ...toWaiting(w),
-    memberId: w.memberId,
+    id: w.waitingId,
+    storeId: w.storeId,
+    storeName: findStore(w.storeId)?.name ?? '',
+    waitingNumber: w.waitNumber,
+    partySize: w.partyCount,
+    status: w.status,
     customerName: member?.name ?? '',
-    customerPhone: member?.phone ?? '',
+    createdAt: w.createdAt,
+    compatibleTables: storeTables(w.storeId)
+      .filter((t) => fits(t, w.partyCount))
+      .map(({ id, tableNumber, minCapacity, capacity, status }) => ({ id, tableNumber, minCapacity, capacity, status })),
+    calledAt: w.calledAt,
+    callExpiresAt: w.callExpiresAt,
+    respondedAt: w.respondedAt ?? null,
+    arrivalIntent: w.status === 'CONFIRMED' ? 'COMING' : null,
     recallCount: w.recallCount,
+    seatPreference: w.seatPreference,
   }
 }
 
-export function toReview(r: (typeof db.reviews)[number]): Review {
+/** 예약·웨이팅 내역 — HistoryItemResponse */
+export function reservationHistoryItem(r: ReservationRow): HistoryItem {
+  return {
+    type: 'RESERVATION',
+    id: r.reservationId,
+    storeId: r.storeId,
+    storeName: findStore(r.storeId)?.name ?? '',
+    status: r.status,
+    active: r.status === 'PENDING_PAYMENT' || r.status === 'CONFIRMED',
+    partySize: r.partySize,
+    reservationStartAt: r.reservationStartAt,
+    reservationEndAt: r.reservationEndAt,
+    waitingDate: null,
+    waitNumber: null,
+    requestedAt: r.requestedAt,
+    reviewed: db.reviews.some((v) => v.reservationId === r.reservationId),
+  }
+}
+
+export function waitingHistoryItem(w: WaitingRow): HistoryItem {
+  return {
+    type: 'WAITING',
+    id: w.waitingId,
+    storeId: w.storeId,
+    storeName: findStore(w.storeId)?.name ?? '',
+    status: w.status,
+    active: ACTIVE_WAITING_STATUSES.includes(w.status),
+    partySize: w.partyCount,
+    reservationStartAt: null,
+    reservationEndAt: null,
+    waitingDate: dayjs(w.createdAt).format('YYYY-MM-DD'),
+    waitNumber: w.waitNumber,
+    requestedAt: w.createdAt,
+  }
+}
+
+/** 매장 리뷰 — StoreReviewResponse */
+export const toStoreReview = (r: ReviewRow): StoreReview => ({
+  reviewId: r.reviewId,
+  writerName: maskName(findMember(r.memberId)?.name ?? '고객'),
+  rating: r.rating,
+  content: r.content,
+  imageUrl: r.imageUrl,
+  createdAt: r.createdAt,
+  updatedAt: r.updatedAt,
+  reply: r.reply,
+})
+
+/** 내 리뷰 — MyReviewResponse */
+export function toMyReview(r: ReviewRow): MyReview {
+  const visit = db.reservations.find((x) => x.reservationId === r.reservationId)
   return {
     reviewId: r.reviewId,
     storeId: r.storeId,
     storeName: findStore(r.storeId)?.name ?? '',
-    reservationId: r.reservationId,
-    authorName: maskName(findMember(r.memberId)?.name ?? '고객'),
+    visitedAt: visit?.reservationStartAt ?? r.createdAt,
     rating: r.rating,
     content: r.content,
-    imageUrls: r.imageUrls,
+    imageUrl: r.imageUrl,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
     reply: r.reply,
   }
+}
+
+/** 페이지 자르기 — 백엔드 목록 응답(page·size·hasNext) 형식 */
+export function paginate<T>(items: T[], url: URL, defaultSize = 20) {
+  const page = Math.max(0, Number(url.searchParams.get('page') ?? 0))
+  const size = Math.max(1, Number(url.searchParams.get('size') ?? defaultSize))
+  return { items: items.slice(page * size, page * size + size), page, size, hasNext: (page + 1) * size < items.length }
 }
 
 /** 리뷰 작성자 이름 가리기 — 김캐치 → 김*치 */

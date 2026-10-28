@@ -3,7 +3,7 @@ import type { StoreCategory } from '@/entities'
 import { STORE_CATEGORY_LABEL } from '@/entities'
 import { dayjs } from '@/shared/lib/dayjs'
 import { db } from '../db'
-import { availability, distanceMeters, findStore, freeTables, storeStats, toReview, toStore, toStoreDetail, validateBookable } from '../logic'
+import { availability, distanceMeters, findStore, freeTables, paginate, toStore, toStoreReview, toStoreDetail, validateBookable } from '../logic'
 import { API, badRequest, before, notFound } from '../utils'
 
 const storeNotFound = () => notFound('STORE_NOT_FOUND', '매장을 찾을 수 없습니다')
@@ -105,21 +105,25 @@ export const storeHandlers = [
     return HttpResponse.json({ storeId: store.id, reservationStartAt: startAt, partySize, availableTableCount: count })
   }),
 
-  /** P2: 매장 리뷰 (노션 명세, 응답은 제안) */
+  /** 매장 리뷰 — StoreReviewListResponse (sort=LATEST|RATING, page, size) */
   http.get(`${API}/user/stores/:storeId/reviews`, async ({ params, request }) => {
     await before()
     const storeId = Number(params.storeId)
     if (!findStore(storeId)) return storeNotFound()
-    const sort = new URL(request.url).searchParams.get('sort')
+    const url = new URL(request.url)
+    const sort = url.searchParams.get('sort')
     const reviews = db.reviews
       .filter((r) => r.storeId === storeId)
-      .sort((a, b) => (sort === 'rating' ? b.rating - a.rating : 0) || b.createdAt.localeCompare(a.createdAt))
-    const counts: [number, number, number, number, number] = [0, 0, 0, 0, 0]
-    reviews.forEach((r) => (counts[r.rating - 1] += 1))
-    const stats = storeStats(storeId)
+      .sort((a, b) => (sort === 'RATING' ? b.rating - a.rating : 0) || b.createdAt.localeCompare(a.createdAt))
+    const average = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null
+    const { items, page, size, hasNext } = paginate(reviews, url)
     return HttpResponse.json({
-      summary: { averageRating: stats.rating, totalCount: stats.reviewCount, ratingCounts: counts },
-      reviews: reviews.map(toReview),
+      averageRating: average == null ? null : Math.round(average * 10) / 10,
+      reviewCount: reviews.length,
+      reviews: items.map(toStoreReview),
+      page,
+      size,
+      hasNext,
     })
   }),
 ]

@@ -3,15 +3,18 @@ import type {
   DayOfWeek,
   Menu,
   ReservationPolicy,
-  Review,
   SalesPeriod,
   SalesReport,
   Store,
   StoreCategory,
+  StoreDetail,
+  StoreReview,
+  StoreReviewList,
   StoreTable,
   TableStatus,
   TableType,
 } from '@/entities'
+import { env, isFeatureAvailable } from '@/shared/config'
 import { apiClient } from '@/shared/lib'
 
 /* ---------- 요청 타입 (백엔드 dev DTO) ---------- */
@@ -56,18 +59,38 @@ export interface CreateMenuRequest {
 }
 export type UpdateMenuRequest = Partial<CreateMenuRequest>
 
-/** [노션 명세] 매장 등록·수정 */
+/** [노션 명세] 매장 등록 — 백엔드 미구현 */
 export interface CreateStoreRequest {
   name: string
   category: StoreCategory
   address: string
   waitingAvailable: boolean
 }
-export type UpdateStoreRequest = Partial<CreateStoreRequest>
+
+/** 매장 기본 정보 수정 — StoreInfoUpdateRequest (보낸 필드만 수정) */
+export interface UpdateStoreRequest {
+  name?: string
+  category?: StoreCategory
+  address?: string
+  description?: string
+  /** 0X-XXXX-XXXX 또는 "" */
+  phone?: string
+  /** http(s) URL 또는 "" */
+  imageUrl?: string
+}
 
 export const ownerStoreApi = {
-  /* ---------- 매장 (노션 명세, 백엔드 미구현) ---------- */
-  getMyStores: async () => {
+  /* ---------- 매장 ---------- */
+  /**
+   * [노션 명세] 내 매장 목록 — 백엔드 미구현
+   * 실제 백엔드 연동 중에는 VITE_OWNER_STORE_IDS 의 매장을 고객용 상세 API 로 대신 조회 (임시)
+   */
+  getMyStores: async (): Promise<Store[]> => {
+    if (!isFeatureAvailable('ownerStoreList')) {
+      return Promise.all(
+        env.ownerStoreIds.map(async (id) => (await apiClient.get<StoreDetail>(`/user/stores/${id}`)).data),
+      )
+    }
     const { data } = await apiClient.get<Store[]>('/owner/stores')
     return data
   },
@@ -75,8 +98,9 @@ export const ownerStoreApi = {
     const { data } = await apiClient.post<Store>('/owner/stores', body)
     return data
   },
+  /** 매장 기본 정보 수정 — 백엔드 dev 구현, StoreInfoResponse 반환 */
   updateStore: async (storeId: number, body: UpdateStoreRequest) => {
-    const { data } = await apiClient.patch<Store>(`/owner/stores/${storeId}`, body)
+    const { data } = await apiClient.patch<StoreDetail>(`/owner/stores/${storeId}`, body)
     return data
   },
 
@@ -116,11 +140,11 @@ export const ownerStoreApi = {
     return data
   },
 
-  /* ---------- P2: 메뉴 (등록·수정 백엔드 dev 구현, 삭제는 노션 명세) ---------- */
-  /** 조회는 고객용 메뉴 API 를 같이 씀 */
+  /* ---------- 메뉴 (등록·수정 백엔드 dev 구현, 삭제는 노션 명세·미구현) ---------- */
+  /** 조회 API 가 따로 없어서 매장 상세의 menus 를 사용 */
   getMenus: async (storeId: number) => {
-    const { data } = await apiClient.get<Menu[]>(`/user/stores/${storeId}/menus`)
-    return data
+    const { data } = await apiClient.get<StoreDetail>(`/user/stores/${storeId}`)
+    return data.menus
   },
   createMenu: async (storeId: number, body: CreateMenuRequest) => {
     const { data } = await apiClient.post<Menu>(`/owner/stores/${storeId}/menus`, body)
@@ -130,23 +154,29 @@ export const ownerStoreApi = {
     const { data } = await apiClient.patch<Menu>(`/owner/stores/${storeId}/menus/${menuId}`, body)
     return data
   },
+  /** [노션 명세] 메뉴 삭제 — 백엔드 미구현 */
   deleteMenu: async (storeId: number, menuId: number) => {
     await apiClient.delete(`/owner/stores/${storeId}/menus/${menuId}`)
   },
 
   /* ---------- P2: 매출 (노션 명세, 응답은 제안) ---------- */
-  /* ---------- P2: 리뷰 관리 (노션 명세, 답글 삭제는 경로 제안) ---------- */
-  getReviews: async (storeId: number) => {
-    const { data } = await apiClient.get<Review[]>(`/owner/stores/${storeId}/reviews`)
+  /* ---------- P2: 리뷰 관리 (노션 명세·백엔드 미구현, 답글 삭제는 경로 제안) ---------- */
+  /** 점주 리뷰 목록 — 백엔드에 없으면 고객용 매장 리뷰(최근 50개, 답글 없음)로 대신 조회 */
+  getReviews: async (storeId: number): Promise<StoreReview[]> => {
+    if (!isFeatureAvailable('ownerReviews')) {
+      const { data } = await apiClient.get<StoreReviewList>(`/user/stores/${storeId}/reviews`, { params: { size: 50 } })
+      return data.reviews
+    }
+    const { data } = await apiClient.get<StoreReview[]>(`/owner/stores/${storeId}/reviews`)
     return data
   },
   /** 답글 작성·수정 — 이미 있으면 덮어씀 */
   replyReview: async (reviewId: number, content: string) => {
-    const { data } = await apiClient.post<Review>(`/user/reviews/${reviewId}/reply`, { content })
+    const { data } = await apiClient.post<StoreReview>(`/user/reviews/${reviewId}/reply`, { content })
     return data
   },
   deleteReply: async (reviewId: number) => {
-    const { data } = await apiClient.delete<Review>(`/user/reviews/${reviewId}/reply`)
+    const { data } = await apiClient.delete<StoreReview>(`/user/reviews/${reviewId}/reply`)
     return data
   },
 

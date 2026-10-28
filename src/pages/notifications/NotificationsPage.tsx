@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
-import { BellOff, BellRing, CalendarCheck, CalendarX, TimerOff, UserX } from 'lucide-react'
+import { BellOff, BellRing, CalendarCheck, CalendarClock, CalendarX, ListOrdered, TimerOff, UserX } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import type { Notification, NotificationType } from '@/entities'
-import { useNotifications, useReadNotification } from '@/features/notification'
-import { paths } from '@/shared/config'
+import { useLiveNotificationStore, useNotifications, useReadNotification } from '@/features/notification'
+import { isFeatureAvailable, paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Button, EmptyState, ErrorState, LoadingState, Page, TopBar } from '@/shared/ui'
+import { Banner, Button, EmptyState, ErrorState, LoadingState, Page, TopBar } from '@/shared/ui'
 import styles from './NotificationsPage.module.css'
 
 const ICON: Record<NotificationType, ReactNode> = {
@@ -14,21 +14,33 @@ const ICON: Record<NotificationType, ReactNode> = {
   WAITING_CANCELED: <UserX aria-hidden />,
   RESERVATION_CONFIRMED: <CalendarCheck aria-hidden />,
   RESERVATION_CANCELED: <CalendarX aria-hidden />,
+  RESERVATION_CHANGED: <CalendarClock aria-hidden />,
+  WAITING_CHANGED: <ListOrdered aria-hidden />,
+  WAITING_POSITION_CHANGED: <ListOrdered aria-hidden />,
 }
 
 /** 알림 종류에 따라 이동할 화면 — targetId 는 예약 id 또는 웨이팅 id */
 const linkOf = (n: Notification) =>
   n.type.startsWith('WAITING') ? paths.waiting(n.targetId) : paths.reservationDetail(n.targetId)
 
-/** 기능명세「예약·웨이팅 상태 변경 알림」 */
+/**
+ * 기능명세「예약·웨이팅 상태 변경 알림」
+ * 알림함 API 가 없는 백엔드에서는 이번 접속 중 실시간(SSE)으로 받은 알림만 보여줌
+ */
 export function NotificationsPage() {
   const navigate = useNavigate()
-  const { data: items = [], isPending, isError, refetch } = useNotifications()
+  const hasInbox = isFeatureAvailable('notificationInbox')
+  const inbox = useNotifications()
+  const live = useLiveNotificationStore((s) => s.items)
+  const items = hasInbox ? (inbox.data ?? []) : live
+  const isPending = hasInbox && inbox.isPending
+  const isError = hasInbox && inbox.isError
+  const refetch = inbox.refetch
   const { read, readAll } = useReadNotification()
   const unread = items.filter((n) => !n.read).length
 
   const open = (n: Notification) => {
-    if (!n.read) read.mutate(n.id)
+    if (!n.read && hasInbox) read.mutate(n.id)
     navigate(linkOf(n))
   }
 
@@ -46,6 +58,11 @@ export function NotificationsPage() {
           )
         }
       />
+      {!hasInbox && (
+        <div className={styles.notice}>
+          <Banner tone="info">알림함은 준비 중이에요. 지금 접속해 있는 동안 받은 실시간 알림만 보여요.</Banner>
+        </div>
+      )}
       {isPending ? (
         <LoadingState />
       ) : isError ? (
@@ -55,7 +72,7 @@ export function NotificationsPage() {
       ) : (
         <ul className={styles.list}>
           {items.map((n) => (
-            <li key={n.id}>
+            <li key={String(n.id)}>
               <button type="button" className={`${styles.item} ${n.read ? '' : styles.unread}`} onClick={() => open(n)}>
                 <span className={`${styles.icon} ${n.type === 'WAITING_CALLED' && !n.read ? styles.urgent : ''}`}>
                   {ICON[n.type] ?? <BellRing aria-hidden />}

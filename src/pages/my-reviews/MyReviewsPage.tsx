@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MessageSquareText } from 'lucide-react'
 import { useNavigate } from 'react-router'
-import { ReviewItem, type Review } from '@/entities'
+import { ReviewItem, type MyReview } from '@/entities'
 import { reservationKeys } from '@/features/reservation'
 import { useMyReviews, useReviewMutations, useWritableVisits } from '@/features/review'
 import { paths } from '@/shared/config'
@@ -21,7 +21,7 @@ export function MyReviewsPage() {
   const writable = useWritableVisits()
   const mine = useMyReviews()
   const { remove } = useReviewMutations()
-  const [deleting, setDeleting] = useState<Review | null>(null)
+  const [deleting, setDeleting] = useState<MyReview | null>(null)
 
   const confirmDelete = () => {
     if (!deleting) return
@@ -78,7 +78,6 @@ export function MyReviewsPage() {
             <Card as="li" key={review.reviewId}>
               <ReviewItem
                 review={review}
-                heading="store"
                 actions={
                   <>
                     <Button size="S" variant="soft" onClick={() => navigate(paths.reviewEdit(review.reviewId))}>

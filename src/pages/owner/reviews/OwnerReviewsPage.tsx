@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { MessageSquareText } from 'lucide-react'
 import { useParams } from 'react-router'
-import { ReviewItem, type Review } from '@/entities'
+import { ReviewItem, type StoreReview } from '@/entities'
 import { useOwnerReviews, useReviewReply } from '@/features/owner-store'
+import { isFeatureAvailable } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import {
+  Banner,
   BottomSheet,
   Button,
   Card,
@@ -33,7 +35,8 @@ const REPLY_MAX = 500
 
 /**
  * 기능명세「리뷰 관리」「리뷰 답글」 (P2)
- * GET /api/owner/stores/{storeId}/reviews · POST·DELETE /api/user/reviews/{reviewId}/reply
+ * [목 전용] GET /api/owner/stores/{storeId}/reviews · POST·DELETE /api/user/reviews/{reviewId}/reply
+ * 실제 백엔드에서는 매장 공개 리뷰(GET /api/user/stores/{storeId}/reviews)로 읽기만 하고 답글은 숨김
  */
 export function OwnerReviewsPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -41,9 +44,10 @@ export function OwnerReviewsPage() {
   const { data: reviews = [], isPending, isError, refetch } = useOwnerReviews(id)
   const { save, remove } = useReviewReply(id)
   const [filter, setFilter] = useState<Filter>('ALL')
-  const [editing, setEditing] = useState<Review | null>(null)
+  const [editing, setEditing] = useState<StoreReview | null>(null)
   const [draft, setDraft] = useState('')
-  const [deleting, setDeleting] = useState<Review | null>(null)
+  const [deleting, setDeleting] = useState<StoreReview | null>(null)
+  const canReply = isFeatureAvailable('ownerReviews')
   const onError = (e: unknown) => toast(getErrorMessage(e, '저장하지 못했어요'))
 
   const sorted = [...reviews].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -52,7 +56,7 @@ export function OwnerReviewsPage() {
   const count = (f: Filter) => (f === 'ALL' ? reviews.length : f === 'UNANSWERED' ? unanswered.length : reviews.length - unanswered.length)
   const average = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0
 
-  const openReply = (review: Review) => {
+  const openReply = (review: StoreReview) => {
     setDraft(review.reply?.content ?? '')
     setEditing(review)
   }
@@ -92,7 +96,11 @@ export function OwnerReviewsPage() {
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : reviews.length === 0 ? (
-        <EmptyState icon={<MessageSquareText />} title="아직 받은 리뷰가 없어요" description="이용을 마친 고객이 리뷰를 남기면 여기에 모여요" />
+        <EmptyState
+          icon={<MessageSquareText />}
+          title="아직 받은 리뷰가 없어요"
+          description="이용을 마친 고객이 리뷰를 남기면 여기에 모여요"
+        />
       ) : (
         <>
           <section className={styles.summary}>
@@ -103,21 +111,28 @@ export function OwnerReviewsPage() {
             </div>
             <RatingBars reviews={reviews} />
           </section>
-          {unanswered.length > 0 && (
+          {!canReply && (
+            <div className={styles.filters}>
+              <Banner tone="info">답글 기능은 준비 중이에요. 지금은 고객 리뷰를 확인만 할 수 있어요.</Banner>
+            </div>
+          )}
+          {canReply && unanswered.length > 0 && (
             <p className={styles.nudge}>
               답글을 기다리는 리뷰가 <strong>{unanswered.length}개</strong> 있어요
             </p>
           )}
 
-          <div className={styles.filters}>
-            <ChipGroup label="답변 상태">
-              {FILTERS.map((f) => (
-                <Chip key={f.value} size="S" selected={filter === f.value} onClick={() => setFilter(f.value)}>
-                  {f.label} {count(f.value)}
-                </Chip>
-              ))}
-            </ChipGroup>
-          </div>
+          {canReply && (
+            <div className={styles.filters}>
+              <ChipGroup label="답변 상태">
+                {FILTERS.map((f) => (
+                  <Chip key={f.value} size="S" selected={filter === f.value} onClick={() => setFilter(f.value)}>
+                    {f.label} {count(f.value)}
+                  </Chip>
+                ))}
+              </ChipGroup>
+            </div>
+          )}
 
           {list.length === 0 ? (
             <EmptyState title={filter === 'UNANSWERED' ? '모든 리뷰에 답글을 달았어요' : '답글을 단 리뷰가 없어요'} />
@@ -128,7 +143,7 @@ export function OwnerReviewsPage() {
                   <ReviewItem
                     review={review}
                     reply={
-                      review.reply ? (
+                      !canReply ? undefined : review.reply ? (
                         <div className={styles.reply}>
                           <div className={styles.replyHead}>
                             <p className="t-caption-12 text-brand">
@@ -173,7 +188,7 @@ export function OwnerReviewsPage() {
           <div className={styles.sheet}>
             <div className={styles.quote}>
               <p className={styles.quoteHead}>
-                <span className="t-label-13">{editing.authorName}</span>
+                <span className="t-label-13">{editing.writerName}</span>
                 <StarRating value={editing.rating} />
               </p>
               <p className="t-caption-13 text-secondary">{editing.content}</p>
@@ -199,14 +214,14 @@ export function OwnerReviewsPage() {
         cancelLabel="취소"
         onConfirm={confirmDelete}
       >
-        {deleting?.authorName}님 리뷰에 단 답글이 삭제돼요.
+        {deleting?.writerName}님 리뷰에 단 답글이 삭제돼요.
       </Dialog>
     </Page>
   )
 }
 
 /** 별점 분포 — 5점부터 1점까지 가로 막대 (단일 계열, 개수는 막대 옆 숫자로 표시) */
-function RatingBars({ reviews }: { reviews: Review[] }) {
+function RatingBars({ reviews }: { reviews: StoreReview[] }) {
   const counts = [5, 4, 3, 2, 1].map((star) => ({ star, count: reviews.filter((r) => r.rating === star).length }))
   const max = Math.max(...counts.map((c) => c.count), 1)
   return (

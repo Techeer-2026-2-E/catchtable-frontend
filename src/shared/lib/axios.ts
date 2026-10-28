@@ -1,5 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
-import { env } from '@/shared/config'
+import { env, isFeatureAvailable } from '@/shared/config'
 import { memberIdStorage, tokenStorage } from './tokenStorage'
 
 export const apiClient = axios.create({
@@ -48,7 +48,14 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const original = error.config as RetryConfig | undefined
 
-    if (error.response?.status !== 401 || !original || original._retry || original.url === REISSUE_URL) {
+    // 인증 API 가 없는 백엔드에서는 재발급을 시도하지 않음 (401 = X-Member-Id 누락)
+    if (
+      !isFeatureAvailable('auth') ||
+      error.response?.status !== 401 ||
+      !original ||
+      original._retry ||
+      original.url === REISSUE_URL
+    ) {
       return Promise.reject(error)
     }
 

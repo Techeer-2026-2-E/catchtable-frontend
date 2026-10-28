@@ -115,15 +115,26 @@ Figma「Design System」을 코드로 옮긴 것. 새 화면은 아래를 조합
 백엔드 API가 다 나오기 전까지 [MSW](https://mswjs.io) 목 서버가 `/api/*` 요청에 응답합니다.
 화면 코드는 실제 API와 똑같이 axios → React Query 훅을 거치므로, 백엔드가 준비되면 목을 끄기만 하면 됩니다.
 
-- **켜고 끄기**: 개발 서버(`npm run dev`)에서는 기본으로 켜져 있음. `.env` 에 `VITE_API_MOCKING=false` 면 실제 백엔드(프록시)로 요청
-  (빌드본에서 쓰려면 `VITE_API_MOCKING=true`)
+- **켜고 끄기**: 개발 서버(`npm run dev`)에서는 기본으로 켜져 있음. `.env` 의 `VITE_API_MOCKING` 으로 바꿈
+
+  | 값 | 요청 대상 | 화면 |
+  | --- | --- | --- |
+  | (없음) / `true` | 목 API | 모든 기능 (빌드본은 기본이 실제 백엔드라 `true` 필요) |
+  | `backend` | 목 API | 백엔드 dev 에 있는 기능만 — 실제 연동 미리보기 |
+  | `false` | 실제 백엔드 (Vite 프록시) | 백엔드 dev 에 있는 기능만 |
+
+- **백엔드에 없는 기능**: `src/shared/config/backendFeatures.ts` 의 `BACKEND_SUPPORTS` 에서 관리. 실제 연동에서는
+  해당 화면 입구를 숨기거나 "준비 중"으로 표시함. 백엔드에 API 가 생기면 값을 `true` 로 바꾸고 계약을 다시 대조
 - **데모 계정**: 로그인 화면의「고객으로 둘러보기 / 점주로 둘러보기」 버튼
-  (`catch@example.com` / `owner@example.com`, 비밀번호 `password1!`)
+  (목: `catch@example.com` / `owner@example.com`, 비밀번호 `password1!` ·
+  실제 연동: 로그인 API 가 없어 백엔드 `scripts/local-seed.sql` 의 회원 1·2 로 `X-Member-Id` 헤더를 보냄)
+- **점주 매장**: 실제 연동에서는 내 매장 목록 API 가 없어 `VITE_OWNER_STORE_IDS`(기본 `1`) 의 매장을 보여줌
 - **데이터**: `src/mocks/db.ts` 시드가 브라우저 localStorage 에 저장되어 새로고침해도 유지되고, 날짜가 바뀌면 다시 생성됨.
   초기화는 콘솔에서 `__mockDb.reset()`
 - **실시간**: 웨이팅 순번이 15초마다 앞당겨지고, 차례가 되면 호출 알림(SSE)이 옴. 호출 후 제한시간이 지나면 순번 만료
-- **계약 기준**: 백엔드 dev 구현 DTO > 노션 API 명세 > 제안 순. 백엔드에 아직 없는 필드는 타입에 `[목 전용]`,
-  명세에 없는 경로는 `경로 제안` 주석으로 표시해 두었음 → 백엔드와 맞출 목록
+- **계약 기준**: 백엔드 dev 구현 DTO > 노션 API 명세 > 제안 순. 백엔드에 아직 없는 필드·경로는 `[목 전용]` 주석으로
+  표시해 두었음 → 백엔드와 맞출 목록. 2026-10-29 백엔드 dev@7d32049 기준으로 맞춤
+  ([작업 기록](work-log/2026-10-29-backend-api-integration.md))
 
 | 폴더 | 내용 |
 | --- | --- |

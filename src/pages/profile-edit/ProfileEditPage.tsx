@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import type { Member } from '@/entities'
+import type { MemberProfile } from '@/entities'
 import { useAuthStore } from '@/features/auth'
 import { useMe, useUpdateMe } from '@/features/member'
 import { getErrorMessage } from '@/shared/lib'
@@ -24,7 +24,7 @@ export function ProfileEditPage() {
   )
 }
 
-function ProfileForm({ me }: { me: Member }) {
+function ProfileForm({ me }: { me: MemberProfile }) {
   const navigate = useNavigate()
   const { member, setMember } = useAuthStore()
   const update = useUpdateMe()

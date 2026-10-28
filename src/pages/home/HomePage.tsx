@@ -3,7 +3,7 @@ import { Bell, ChevronRight, LocateFixed, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
 import { StoreCard, type StoreCategory } from '@/entities'
 import { useCategories, useHomeStores } from '@/features/store-search'
-import { paths, ROUTES } from '@/shared/config'
+import { isFeatureAvailable, paths, ROUTES } from '@/shared/config'
 import { ErrorState, LoadingState, Page, SearchBar, Section, toast } from '@/shared/ui'
 import styles from './HomePage.module.css'
 
@@ -59,10 +59,12 @@ export function HomePage() {
           <MapPin aria-hidden />
           <span className="t-headline-16">{position ? '내 주변' : '전국'}</span>
         </button>
-        <button type="button" className={`${styles.locate} t-caption-13`} onClick={locate} disabled={locating}>
-          <LocateFixed aria-hidden />
-          {locating ? '위치 확인 중…' : '현재 위치로'}
-        </button>
+        {isFeatureAvailable('homeStores') && (
+          <button type="button" className={`${styles.locate} t-caption-13`} onClick={locate} disabled={locating}>
+            <LocateFixed aria-hidden />
+            {locating ? '위치 확인 중…' : '현재 위치로'}
+          </button>
+        )}
       </div>
 
       <Link to={ROUTES.SEARCH} className={styles.promo}>

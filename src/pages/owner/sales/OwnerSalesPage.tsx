@@ -3,6 +3,7 @@ import { ChartColumn, TrendingDown, TrendingUp } from 'lucide-react'
 import { useParams } from 'react-router'
 import type { SalesPeriod, SalesPoint } from '@/entities'
 import { useSales } from '@/features/owner-store'
+import { isFeatureAvailable } from '@/shared/config'
 import { formatPrice } from '@/shared/lib/format'
 import { Chip, ChipGroup, Divider, EmptyState, ErrorState, KPICard, LoadingState, Page, Section, TopBar } from '@/shared/ui'
 import styles from './OwnerSalesPage.module.css'
@@ -14,14 +15,26 @@ const PERIODS: { value: SalesPeriod; label: string; range: string; unit: string 
 ]
 
 /** 축·라벨용 짧은 금액 — 1.2만, 34만 */
-const compact = (n: number) =>
-  n >= 10_000 ? `${(n / 10_000).toFixed(n >= 100_000 ? 0 : 1).replace(/\.0$/, '')}만` : n.toLocaleString()
+const compact = (n: number) => (n >= 10_000 ? `${(n / 10_000).toFixed(n >= 100_000 ? 0 : 1).replace(/\.0$/, '')}만` : n.toLocaleString())
 
 /**
  * 기능명세「매출 관리」 (P2)
  * GET /api/owner/stores/{storeId}/sales?period= — 응답 필드는 제안 (SalesReport)
  */
 export function OwnerSalesPage() {
+  // 매출 API 는 백엔드 미구현 — 실제 연동에서는 안내만 보여줌
+  if (!isFeatureAvailable('sales')) {
+    return (
+      <Page>
+        <TopBar title="매출 관리" />
+        <EmptyState icon={<ChartColumn />} title="매출 조회는 준비 중이에요" description="결제 기능이 열리면 기간별 매출을 볼 수 있어요" />
+      </Page>
+    )
+  }
+  return <SalesReportView />
+}
+
+function SalesReportView() {
   const { storeId } = useParams<{ storeId: string }>()
   const [period, setPeriod] = useState<SalesPeriod>('DAY')
   const { data, isPending, isError, refetch } = useSales(Number(storeId), period)

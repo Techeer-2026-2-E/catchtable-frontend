@@ -15,19 +15,22 @@ export function RealtimeNotifications() {
   const member = useAuthStore((s) => s.member)
   const queryClient = useQueryClient()
 
+  // 이용 내역(GET /api/user/reservations?type=…)은 예약·웨이팅을 함께 보여주므로 두 쪽을 모두 갱신
+  const refreshAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: waitingKeys.all })
+    queryClient.invalidateQueries({ queryKey: reservationKeys.all })
+  }, [queryClient])
+
   const onMessage = useCallback(
     (message: NotificationMessage) => {
-      if (message.type.startsWith('WAITING')) {
-        queryClient.invalidateQueries({ queryKey: waitingKeys.all })
-      } else {
-        queryClient.invalidateQueries({ queryKey: reservationKeys.all })
-      }
-      // 내가 방금 한 예약의 확정 알림은 화면에서 이미 안내하므로 토스트 생략
-      if (message.type !== 'RESERVATION_CONFIRMED') toast(message.message)
+      refreshAll()
+      // 방금 한 예약의 확정은 화면에서 이미 안내하고, 순번 변경은 웨이팅 화면 숫자로 보여주므로 토스트 생략
+      if (message.type !== 'RESERVATION_CONFIRMED' && message.type !== 'WAITING_POSITION_CHANGED') toast(message.message)
     },
-    [queryClient],
+    [refreshAll],
   )
 
-  useNotificationStream(member?.userType === 'CUSTOMER' ? member.id : null, onMessage)
+  // 연결·재연결("connect") 때는 끊긴 동안 놓친 변화가 있을 수 있어 다시 조회 (서버가 이벤트를 재생하지 않음)
+  useNotificationStream(member?.userType === 'CUSTOMER' ? member.id : null, onMessage, refreshAll)
   return null
 }

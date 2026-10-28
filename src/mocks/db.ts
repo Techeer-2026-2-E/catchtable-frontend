@@ -15,11 +15,12 @@ import type {
   ReservationPolicy,
   ReservationStatus,
   CancellationActor,
-  Review,
+  ReviewReply,
   Store,
   StoreTable,
   TableType,
   UserType,
+  WaitingEndReason,
   WaitingSettings,
   WaitingStatus,
   NotificationSettings,
@@ -42,9 +43,12 @@ export interface MemberRow {
 
 export interface StoreRow extends Omit<Store, 'categoryName' | 'distanceMeters' | 'waitingTeams'> {
   ownerId: number
+  description?: string | null
+  phone?: string | null
+  imageUrl?: string | null
   policy: ReservationPolicy
   businessHours: BusinessHour[]
-  waitingSettings: WaitingSettings
+  waitingSettings: Omit<WaitingSettings, 'storeId'>
 }
 
 export interface TableRow extends StoreTable {
@@ -95,19 +99,37 @@ export interface WaitingRow {
   deferRemaining: number
   recallCount: number
   updatedAt: string
+  /** 고객이 도착 의사를 응답한 시각 */
+  respondedAt?: string | null
+  /** 종료 사유·상세·시각 (취소·노쇼·만료) */
+  endReason?: WaitingEndReason | null
+  endDetail?: string | null
+  endedAt?: string | null
 }
 
 export interface NotificationRow extends Notification {
   memberId: number
 }
 
-export interface ReviewRow extends Omit<Review, 'storeName' | 'authorName'> {
+export interface ReviewRow {
+  reviewId: number
+  storeId: number
   memberId: number
+  reservationId: number
+  rating: number
+  content: string
+  imageUrl: string | null
+  createdAt: string
+  updatedAt: string | null
+  /** [목 전용] 점주 답글 */
+  reply: ReviewReply | null
 }
 
-export interface HoldRow extends Omit<ReservationHold, 'serverTime' | 'remainingSeconds'> {
+/** 선점 — 백엔드처럼 holdId == reservationId (결제 승인 시 같은 id 로 예약 확정) */
+export interface HoldRow extends Omit<ReservationHold, 'serverTime' | 'remainingSeconds' | 'tableId' | 'depositAmount'> {
   memberId: number
   tableId: number
+  depositAmount: number
   createdAt: string
 }
 
@@ -159,7 +181,7 @@ const policy = (p: Partial<ReservationPolicy> = {}): ReservationPolicy => ({
   ...p,
 })
 
-const waitingSettings = (open: boolean): WaitingSettings => ({ open, arrivalLimitMinutes: 10, autoCall: false })
+const waitingSettings = (open: boolean): StoreRow['waitingSettings'] => ({ open, arrivalLimitMinutes: 10, autoCall: false })
 
 const notifyAll: NotificationSettings = { reservation: true, waiting: true, marketing: false }
 
@@ -200,6 +222,17 @@ function seed(): Db {
     { id: 7, ownerId: 3, name: '을지로 양꼬치', category: 'CHINESE', address: '서울 중구 을지로 150', region: '을지로', waitingAvailable: true, rating: 4.4, reviewCount: 0, priceRange: '저녁 2-3만원', maxPartySize: 8, depositAmount: 0, latitude: 37.5663, longitude: 126.9910, policy: policy(), businessHours: hours('16:00', '00:00'), waitingSettings: waitingSettings(true) },
     { id: 8, ownerId: 3, name: '트라토리아 몬티', category: 'WESTERN', address: '서울 용산구 이태원로 200', region: '이태원', waitingAvailable: false, rating: 4.7, reviewCount: 0, priceRange: '점심 2-3만원 · 저녁 4-6만원', maxPartySize: 6, depositAmount: 0, latitude: 37.5347, longitude: 126.9946, policy: policy(), businessHours: hours('11:30', '22:00', { closed: ['MONDAY'], breakTime: ['15:00', '17:30'] }), waitingSettings: waitingSettings(false) },
   ]
+
+  const STORE_DESCRIPTIONS: Record<number, string> = {
+    1: '제철 생선으로 매일 바뀌는 오마카세. 카운터 7석과 프라이빗 룸을 운영해요.',
+    2: '퇴근 후 혼자서도 편하게 들르는 꼬치 이자카야.',
+    4: '9찬 백반과 보쌈 정식을 내는 동네 한식당.',
+  }
+  stores.forEach((s) => {
+    s.description = STORE_DESCRIPTIONS[s.id] ?? null
+    s.phone = `02-${String(500 + s.id * 37).padStart(4, '0')}-${String(1000 + s.id * 211).padStart(4, '0')}`
+    s.imageUrl = null
+  })
 
   let tableId = 0
   const tableSet = (storeId: number, spec: [TableType, number, number][]): TableRow[] =>
@@ -366,7 +399,7 @@ function seed(): Db {
         reservationId: 0,
         rating,
         content,
-        imageUrls: [],
+        imageUrl: null,
         createdAt: iso(created),
         updatedAt: null,
         reply: i === 0 ? { content: '소중한 리뷰 감사합니다. 또 찾아주세요!', createdAt: iso(created.add(1, 'day')) } : null,
@@ -382,7 +415,7 @@ function seed(): Db {
     reservationId: montiVisit.reservationId,
     rating: 5,
     content: '트러플 파스타가 정말 맛있었어요. 창가 자리 추천합니다.',
-    imageUrls: [],
+    imageUrl: null,
     createdAt: iso(now.subtract(19, 'day')),
     updatedAt: null,
     reply: null,
@@ -426,7 +459,8 @@ function seed(): Db {
 /* 저장 / 불러오기                                                      */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = 'catchtable-mock-db-v2'
+// v3: 백엔드 응답 형식에 맞춰 레코드 구조가 바뀜 (리뷰 사진 1장, 웨이팅 종료 사유, 선점 상태)
+const STORAGE_KEY = 'catchtable-mock-db-v3'
 
 function load(): Db {
   try {

@@ -1,10 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Notification } from '@/entities'
+import { isFeatureAvailable } from '@/shared/config'
 import { notificationApi } from '../api/notificationApi'
 import { notificationKeys } from '../api/queryKeys'
 
+/** 알림함 — 백엔드에 목록 API 가 없으면 호출하지 않음 (실시간 알림은 SSE 로 따로 받음) */
 export function useNotifications(enabled = true) {
-  return useQuery({ queryKey: notificationKeys.list(), queryFn: notificationApi.getList, enabled })
+  return useQuery({
+    queryKey: notificationKeys.list(),
+    queryFn: notificationApi.getList,
+    enabled: enabled && isFeatureAvailable('notificationInbox'),
+  })
 }
 
 /** 하단 탭바 뱃지용 안 읽은 알림 수 */

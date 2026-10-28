@@ -5,8 +5,8 @@ import type { BadgeTone } from '@/shared/ui'
  * 시각은 모두 ISO OffsetDateTime 문자열 (예: 2026-10-03T18:00:00+09:00)
  */
 
-/** reservation.entity.ReservationStatus */
-export type ReservationStatus = 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+/** reservation.entity.ReservationStatus — 선점(결제 대기)도 같은 예약 행이라 PENDING_PAYMENT·EXPIRED 가 있음 */
+export type ReservationStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW' | 'EXPIRED'
 
 /** reservation.entity.CancellationActor */
 export type CancellationActor = 'CUSTOMER' | 'OWNER'
@@ -74,6 +74,8 @@ export const getReservationDisplayStatus = (r: {
 }): ReservationDisplayStatus => (r.status === 'CONFIRMED' && r.checkedInAt ? 'VISITED' : r.status)
 
 export const RESERVATION_STATUS_LABEL: Record<ReservationDisplayStatus, string> = {
+  PENDING_PAYMENT: '결제 대기',
+  EXPIRED: '선점 만료',
   CONFIRMED: '예약 확정',
   VISITED: '방문 중',
   COMPLETED: '이용 완료',
@@ -86,6 +88,8 @@ export const RESERVATION_STATUS_LABEL: Record<ReservationDisplayStatus, string> 
  * 진행 중인 상태만 brand, 예외(노쇼)만 danger, 나머지는 neutral
  */
 export const RESERVATION_STATUS_TONE: Record<ReservationDisplayStatus, BadgeTone> = {
+  PENDING_PAYMENT: 'primary',
+  EXPIRED: 'neutral',
   CONFIRMED: 'brand',
   VISITED: 'brand',
   COMPLETED: 'neutral',
@@ -95,18 +99,54 @@ export const RESERVATION_STATUS_TONE: Record<ReservationDisplayStatus, BadgeTone
 
 /* ---------- P2: 예약금 ---------- */
 
-/** 테이블 5분 임시 선점 — POST /api/user/reservations/holds (노션 P2 MOCK 계약 초안) */
+/**
+ * 테이블 5분 임시 선점 — POST·GET /api/user/reservations/holds (ReservationHoldResponse)
+ * 선점은 PENDING_PAYMENT 예약 자체라 holdId 와 reservationId 가 같음
+ */
 export interface ReservationHold {
   holdId: number
+  reservationId: number
   storeId: number
+  tableId: number | null
   reservationStartAt: string
+  reservationEndAt: string
   partySize: number
-  /** 결제할 예약금(원) */
-  depositAmount: number
-  status: 'HOLDING' | 'PAID' | 'RELEASED' | 'EXPIRED'
-  serverTime: string
+  /** PENDING_PAYMENT(선점 중) · CONFIRMED · CANCELLED(해제) · EXPIRED */
+  status: ReservationStatus
+  /** 생성 시점 + 5분. 재조회로 연장되지 않음 */
   expiresAt: string
+  /** 서버 현재 시각 — 로컬 시계 차이 보정용 */
+  serverTime: string
   remainingSeconds: number
+  /** [목 전용] 결제할 예약금(원) — 백엔드 선점 응답에는 금액이 없음 (예약금 설정·결제 계약 예정) */
+  depositAmount?: number
+}
+
+/* ---------- 예약·웨이팅 내역 — GET /api/user/reservations?type=&status= (HistoryItemResponse) ---------- */
+
+export type HistoryType = 'RESERVATION' | 'WAITING'
+/** ACTIVE = 진행 중, ENDED = 종료 */
+export type HistoryStatus = 'ACTIVE' | 'ENDED'
+
+export interface HistoryItem {
+  type: HistoryType
+  /** 예약 id 또는 웨이팅 id */
+  id: number
+  storeId: number
+  storeName: string
+  /** 예약은 ReservationStatus, 웨이팅은 WaitingStatus 값 (문자열) */
+  status: string
+  active: boolean
+  partySize: number
+  /** 예약만 */
+  reservationStartAt: string | null
+  reservationEndAt: string | null
+  /** 웨이팅만 */
+  waitingDate: string | null
+  waitNumber: number | null
+  requestedAt: string
+  /** [목 전용] 리뷰 작성 여부 — 백엔드 응답에 없음 (없으면 이용 완료 예약에 '리뷰 쓰기' 표시) */
+  reviewed?: boolean
 }
 
 /** 환불 예상액 — GET /api/user/reservations/{id}/refund-preview */

@@ -1,23 +1,48 @@
-import type { OwnerWaiting, WaitingSettings } from '@/entities'
+import type { OwnerWaiting, WaitingEndReason, WaitingSettings, WaitingStatus, WaitingTermination } from '@/entities'
+import { env } from '@/shared/config'
 import { apiClient } from '@/shared/lib'
 
-/**
- * 점주 웨이팅 운영 API — 노션 명세(owner-waitings) 경로 기준, 백엔드 미구현
- * 응답 필드는 제안 (OwnerWaiting, WaitingSettings)
+/*
+ * 점주 웨이팅 운영 API — 백엔드 dev 구현 (catchtable-backend dev@7d32049)
+ * 호출 재전송(recall)·순서 미루기(defer)는 [목 전용] — 백엔드 미구현
  */
+
+/** 운영 설정 변경 — WaitingPolicyRequest (autoCall 은 [목 전용]) */
+export interface UpdateWaitingSettingsRequest {
+  arrivalLimitMinutes?: number
+  autoCall?: boolean
+}
+
+/** 미응답·노쇼 처리 — OwnerWaitingNoShowRequest */
+export interface OwnerWaitingNoShowRequest {
+  reason: Extract<WaitingEndReason, 'NO_RESPONSE' | 'NO_SHOW'>
+  /** 공백 불가, 300자 이내 */
+  detail: string
+}
+
+/** POST /call 응답 — WaitingCallResponse */
+export interface WaitingCallResult {
+  waitingId: number
+  status: WaitingStatus
+  waitNumber: number
+  callCount: number
+  calledAt: string
+  expiresAt: string
+}
+
 export const ownerWaitingApi = {
-  /** 현재 대기 고객 목록 (진행 중 상태만) */
+  /** 오늘(한국 시간) 진행 중인 대기 고객 목록 */
   getList: async (storeId: number) => {
     const { data } = await apiClient.get<OwnerWaiting[]>(`/owner/stores/${storeId}/waitings`)
     return data
   },
-  /** [경로 제안] 운영 설정 조회 — 명세에는 PUT 만 있음 */
+  /** 운영 설정 조회 (접수 여부·도착 제한시간) */
   getSettings: async (storeId: number) => {
     const { data } = await apiClient.get<WaitingSettings>(`/owner/stores/${storeId}/waitings/settings`)
     return data
   },
-  /** 도착 제한시간·자동호출 설정 */
-  updateSettings: async (storeId: number, body: Partial<WaitingSettings>) => {
+  /** 도착 제한시간 변경 */
+  updateSettings: async (storeId: number, body: UpdateWaitingSettingsRequest) => {
     const { data } = await apiClient.put<WaitingSettings>(`/owner/stores/${storeId}/waitings/settings`, body)
     return data
   },
@@ -33,31 +58,39 @@ export const ownerWaitingApi = {
   },
   /** 고객 호출 */
   call: async (waitingId: number) => {
-    const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/call`)
+    const { data } = await apiClient.post<WaitingCallResult>(`/owner/waitings/${waitingId}/call`)
     return data
   },
-  /** [P2] 호출 재전송 — 도착 제한시간도 다시 시작 */
+  /** [목 전용] 호출 재전송 — 도착 제한시간도 다시 시작 */
   recall: async (waitingId: number) => {
     const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/recall`)
     return data
   },
-  /** 입장(착석) 처리 */
+  /** 입장(착석) 처리 — WaitingEnterResponse */
   enter: async (waitingId: number) => {
-    const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/enter`)
+    const { data } = await apiClient.post<{ waitingId: number; status: WaitingStatus; enteredAt: string }>(
+      `/owner/waitings/${waitingId}/enter`,
+    )
     return data
   },
-  /** 미응답·노쇼 처리 */
-  markNoShow: async (waitingId: number) => {
-    const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/no-show`)
+  /** 미응답·노쇼 처리 — 사유 필수, 종료 결과 반환 (상태 NO_SHOW) */
+  markNoShow: async ({ waitingId, body }: { waitingId: number; body: OwnerWaitingNoShowRequest }) => {
+    const { data } = await apiClient.post<WaitingTermination>(`/owner/waitings/${waitingId}/no-show`, body)
     return data
   },
-  /** 순번 연기 */
+  /** [목 전용] 순번 연기 */
   defer: async (waitingId: number) => {
     const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/defer`)
     return data
   },
-  /** 점주 취소 */
-  cancel: async (waitingId: number) => {
-    await apiClient.delete(`/owner/waitings/${waitingId}`)
+  /** 점주 취소 — 사유 필수(본문), 204 */
+  cancel: async ({ waitingId, reason }: { waitingId: number; reason: string }) => {
+    await apiClient.delete(`/owner/waitings/${waitingId}`, { data: { reason } })
   },
+  /**
+   * 점주 실시간 구독(SSE) — WAITING_CHANGED 가 오면 목록을 다시 조회
+   * EventSource 는 헤더를 못 붙여서 회원 id 를 쿼리로 전달
+   */
+  subscribeUrl: (storeId: number, memberId: number) =>
+    `${env.apiBaseUrl}/owner/stores/${storeId}/waitings/subscribe?memberId=${memberId}`,
 }

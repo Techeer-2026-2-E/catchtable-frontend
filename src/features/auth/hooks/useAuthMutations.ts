@@ -16,6 +16,20 @@ export function useLogin() {
   })
 }
 
+/** [개발용] 회원 id 로 식별 (실제 백엔드 연동 중, 인증 API 가 생기기 전) */
+export function useMemberLogin() {
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authApi.memberLogin,
+    onSuccess: ({ accessToken, member }) => {
+      queryClient.clear()
+      setAuth(accessToken, member)
+    },
+  })
+}
+
 export function useSignup() {
   return useMutation({ mutationFn: authApi.signup })
 }

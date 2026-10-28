@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NotificationSettings } from '@/entities'
+import { isFeatureAvailable } from '@/shared/config'
 import { memberApi, type UpdateMeRequest } from '../api/memberApi'
 import { memberKeys } from '../api/queryKeys'
 
@@ -15,9 +16,13 @@ export function useUpdateMe() {
   })
 }
 
-/** P2: 알림 수신 설정 */
+/** P2: 알림 수신 설정 — 백엔드에 없으면 호출하지 않음 */
 export function useNotificationSettings() {
-  return useQuery({ queryKey: memberKeys.notificationSettings(), queryFn: memberApi.getNotificationSettings })
+  return useQuery({
+    queryKey: memberKeys.notificationSettings(),
+    queryFn: memberApi.getNotificationSettings,
+    enabled: isFeatureAvailable('notificationSettings'),
+  })
 }
 
 export function useUpdateNotificationSettings() {

@@ -1,8 +1,20 @@
 import { http, HttpResponse } from 'msw'
 import type { TableType } from '@/entities'
+import { isFeatureAvailable } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
-import { db, nextId, type ReservationRow } from '../db'
-import { findStore, freeTables, notify, nowIso, toIso, toReservation, validateBookable, type BookableError } from '../logic'
+import { db, nextId, type HoldRow, type ReservationRow } from '../db'
+import {
+  findStore,
+  freeTables,
+  notify,
+  nowIso,
+  reservationHistoryItem,
+  toIso,
+  toReservation,
+  validateBookable,
+  waitingHistoryItem,
+  type BookableError,
+} from '../logic'
 import { API, badRequest, before, body, conflict, fail, memberIdOf, notFound, saved, unauthorized } from '../utils'
 
 const BOOKABLE_MESSAGE: Record<BookableError, string> = {
@@ -22,11 +34,13 @@ export function createConfirmedReservation(args: {
   partySize: number
   request?: string | null
   paymentId?: number | null
+  /** 선점에서 넘어온 경우 같은 id 사용 (백엔드: holdId == reservationId) */
+  reservationId?: number
 }): ReservationRow {
   const store = findStore(args.storeId)!
   const at = nowIso()
   const row: ReservationRow = {
-    reservationId: nextId('reservation'),
+    reservationId: args.reservationId ?? nextId('reservation'),
     storeId: args.storeId,
     memberId: args.memberId,
     tableId: args.tableId,
@@ -81,7 +95,8 @@ export const reservationHandlers = [
     const b = await body<{ storeId: number; reservationStartAt: string; partySize: number; preferredTableType?: TableType; request?: string }>(request)
     const picked = pickTable(Number(b.storeId), b.reservationStartAt, b.partySize, b.preferredTableType)
     if ('error' in picked) return picked.error
-    if ((picked.store.depositAmount ?? 0) > 0) {
+    // [목 전용] 예약금 매장은 선점 → 결제로만 예약 (백엔드 dev 는 예약금 개념이 없어 바로 생성)
+    if (isFeatureAvailable('depositPayment') && (picked.store.depositAmount ?? 0) > 0) {
       return fail(402, 'DEPOSIT_REQUIRED', '예약금이 있는 매장은 테이블 선점 후 결제해야 합니다.')
     }
     const row = createConfirmedReservation({
@@ -95,15 +110,26 @@ export const reservationHandlers = [
     return saved(HttpResponse.json(toReservation(row), { status: 201 }))
   }),
 
-  /** 예약 내역 (노션 "MOCK 계약 초안 / dev 미구현") — 최신순 */
+  /**
+   * 예약·웨이팅 내역 — HistoryController (?type=RESERVATION|WAITING&status=ACTIVE|ENDED, 없으면 전체)
+   * 진행 중 먼저(가까운 순), 종료는 최신순. 정렬 기준: 예약은 방문 시각, 웨이팅은 신청 시각
+   */
   http.get(`${API}/user/reservations`, async ({ request }) => {
     await before()
     const memberId = memberIdOf(request)
     if (!memberId) return unauthorized()
-    const list = db.reservations
-      .filter((r) => r.memberId === memberId)
-      .sort((a, b) => b.reservationStartAt.localeCompare(a.reservationStartAt))
-    return HttpResponse.json(list.map(toReservation))
+    const q = new URL(request.url).searchParams
+    const type = q.get('type')
+    const status = q.get('status')
+    const items = [
+      ...(type !== 'WAITING' ? db.reservations.filter((r) => r.memberId === memberId).map(reservationHistoryItem) : []),
+      ...(type !== 'RESERVATION' ? db.waitings.filter((w) => w.memberId === memberId).map(waitingHistoryItem) : []),
+    ].filter((item) => !status || item.active === (status === 'ACTIVE'))
+    const sortAt = (i: (typeof items)[number]) => (i.type === 'RESERVATION' ? i.reservationStartAt! : i.requestedAt)
+    items.sort((a, b) =>
+      a.active !== b.active ? (a.active ? -1 : 1) : a.active ? sortAt(a).localeCompare(sortAt(b)) : sortAt(b).localeCompare(sortAt(a)),
+    )
+    return HttpResponse.json(items)
   }),
 
   /* ---------- P2: 선점 (holds 가 :reservationId 보다 먼저 매칭되도록 위에 둠) ---------- */
@@ -115,15 +141,19 @@ export const reservationHandlers = [
     const picked = pickTable(Number(b.storeId), b.reservationStartAt, b.partySize, b.preferredTableType)
     if ('error' in picked) return picked.error
     const createdAt = dayjs()
-    const hold = {
-      holdId: nextId('hold'),
+    // 백엔드처럼 선점 id == 예약 id
+    const id = nextId('reservation')
+    const hold: HoldRow = {
+      holdId: id,
+      reservationId: id,
       memberId,
       storeId: picked.store.id,
       tableId: picked.table.id,
       reservationStartAt: toIso(picked.startAt),
+      reservationEndAt: toIso(picked.startAt.add(picked.store.policy.reservationDurationMinutes, 'minute')),
       partySize: b.partySize!,
       depositAmount: (picked.store.depositAmount ?? 0) * b.partySize!,
-      status: 'HOLDING' as const,
+      status: 'PENDING_PAYMENT',
       createdAt: toIso(createdAt),
       expiresAt: toIso(createdAt.add(5, 'minute')),
     }
@@ -141,7 +171,7 @@ export const reservationHandlers = [
     await before()
     const hold = db.holds.find((h) => h.holdId === Number(params.holdId) && h.memberId === memberIdOf(request))
     if (!hold) return notFound('HOLD_NOT_FOUND', '선점 정보를 찾을 수 없습니다.')
-    if (hold.status === 'HOLDING') hold.status = 'RELEASED'
+    if (hold.status === 'PENDING_PAYMENT') hold.status = 'CANCELLED'
     return saved(new HttpResponse(null, { status: 204 }))
   }),
 
@@ -169,13 +199,13 @@ export const reservationHandlers = [
     if (payment) {
       const refund = refundOf(r).refundAmount
       payment.canceledAmount = refund
-      payment.status = refund >= payment.amount ? 'CANCELED' : refund > 0 ? 'PARTIAL_CANCELED' : payment.status
+      payment.status = refund >= payment.amount ? 'REFUNDED' : refund > 0 ? 'PARTIAL_REFUNDED' : payment.status
     }
     notify(r.memberId, 'RESERVATION_CANCELED', r.reservationId, '예약이 취소됐어요', `${findStore(r.storeId)?.name} 예약을 취소했어요`)
     return saved(HttpResponse.json(toReservation(r)))
   }),
 
-  /** P2: 환불 예상액 */
+  /** [목 전용] 환불 예상액 */
   http.get(`${API}/user/reservations/:reservationId/refund-preview`, async ({ params, request }) => {
     await before()
     const r = db.reservations.find((x) => x.reservationId === Number(params.reservationId))
@@ -184,10 +214,11 @@ export const reservationHandlers = [
   }),
 ]
 
-function presentHold(h: (typeof db.holds)[number]) {
-  const { memberId: _m, tableId: _t, createdAt: _c, ...rest } = h
+/** ReservationHoldResponse (+ [목 전용] depositAmount) */
+function presentHold(h: HoldRow) {
+  const { memberId: _m, createdAt: _c, ...rest } = h
   const remaining = Math.max(0, dayjs(h.expiresAt).diff(dayjs(), 'second'))
-  return { ...rest, serverTime: nowIso(), remainingSeconds: h.status === 'HOLDING' ? remaining : 0 }
+  return { ...rest, serverTime: nowIso(), remainingSeconds: h.status === 'PENDING_PAYMENT' ? remaining : 0 }
 }
 
 /** 환불 규정 — 방문 1일 전까지 100%, 당일 50%, 시작 이후 0% */

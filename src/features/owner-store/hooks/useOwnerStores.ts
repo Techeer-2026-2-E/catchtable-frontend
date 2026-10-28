@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ReservationPolicy, Review, SalesPeriod } from '@/entities'
+import type { ReservationPolicy, SalesPeriod, StoreReview } from '@/entities'
 import {
   ownerStoreApi,
   type BusinessHourRequest,
@@ -7,6 +7,7 @@ import {
   type UpdateMenuRequest,
   type UpdateStoreRequest,
 } from '../api/ownerStoreApi'
+import { isFeatureAvailable } from '@/shared/config'
 import { ownerStoreKeys } from '../api/queryKeys'
 
 export function useMyStores() {
@@ -91,6 +92,7 @@ export function useSales(storeId: number, period: SalesPeriod) {
   return useQuery({
     queryKey: ownerStoreKeys.sales(storeId, period),
     queryFn: () => ownerStoreApi.getSales(storeId, { period }),
+    enabled: isFeatureAvailable('sales'),
   })
 }
 
@@ -102,8 +104,8 @@ export function useOwnerReviews(storeId: number) {
 /** 답글 저장·삭제 — 응답으로 받은 리뷰로 목록 캐시를 바로 갱신 */
 export function useReviewReply(storeId: number) {
   const queryClient = useQueryClient()
-  const replace = (review: Review) =>
-    queryClient.setQueryData<Review[]>(ownerStoreKeys.reviews(storeId), (list) =>
+  const replace = (review: StoreReview) =>
+    queryClient.setQueryData<StoreReview[]>(ownerStoreKeys.reviews(storeId), (list) =>
       list?.map((r) => (r.reviewId === review.reviewId ? review : r)),
     )
   return {

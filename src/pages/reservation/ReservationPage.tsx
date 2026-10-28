@@ -6,7 +6,7 @@ import { useAuthStore } from '@/features/auth'
 import { paymentApi } from '@/features/payment'
 import { reservationApi, ReservationDateTimeForm, useReservationForm, useReservationFormStore } from '@/features/reservation'
 import { useStoreDetail, useStoreMenus } from '@/features/store-detail'
-import { paths } from '@/shared/config'
+import { isFeatureAvailable, paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
 import { formatPhone, formatPrice, formatTime } from '@/shared/lib/format'
@@ -54,7 +54,8 @@ export function ReservationPage() {
     setStore(id)
   }, [id, setStore])
 
-  const depositPerPerson = store?.depositAmount ?? 0
+  // 예약금 결제(prepare·confirm)는 백엔드 미구현 → 실제 연동에서는 결제 없이 바로 예약 생성
+  const depositPerPerson = isFeatureAvailable('depositPayment') ? (store?.depositAmount ?? 0) : 0
   const deposit = useDeposit(depositPerPerson > 0 && step === 'confirm', id)
 
   if (isPending) {
@@ -97,9 +98,7 @@ export function ReservationPage() {
   }
 
   const summary =
-    form.date && form.time
-      ? `${dayjs(form.date).format('M월 D일 (dd)')} · ${formatTime(form.time)} · ${form.partySize}명`
-      : ''
+    form.date && form.time ? `${dayjs(form.date).format('M월 D일 (dd)')} · ${formatTime(form.time)} · ${form.partySize}명` : ''
 
   return (
     <Page
@@ -108,13 +107,9 @@ export function ReservationPage() {
           <div className={styles.confirmBar}>
             <div className={styles.confirmSummary}>
               <span className="t-caption-13 text-secondary">{summary}</span>
-              <span className="t-headline-16">예약금 {formatPrice(depositTotal)}</span>
+              {depositPerPerson > 0 && <span className="t-headline-16">예약금 {formatPrice(depositTotal)}</span>}
             </div>
-            <Button
-              fullWidth
-              onClick={submit}
-              disabled={reservation.isPending || (depositPerPerson > 0 && !deposit.hold)}
-            >
+            <Button fullWidth onClick={submit} disabled={reservation.isPending || (depositPerPerson > 0 && !deposit.hold)}>
               {reservation.isPending ? '예약 중…' : depositPerPerson > 0 ? `${formatPrice(depositTotal)} 결제하고 예약` : '예약하기'}
             </Button>
           </div>
@@ -310,7 +305,7 @@ function useDeposit(active: boolean, storeId: number) {
   // 화면을 떠나면 선점 해제
   useEffect(
     () => () => {
-      if (holdRef.current?.status === 'HOLDING') reservationApi.releaseHold(holdRef.current.holdId).catch(() => {})
+      if (holdRef.current?.status === 'PENDING_PAYMENT') reservationApi.releaseHold(holdRef.current.holdId).catch(() => {})
     },
     [],
   )
@@ -327,7 +322,11 @@ function useDeposit(active: boolean, storeId: number) {
     try {
       const order = await paymentApi.prepare(holdRef.current.holdId)
       // TODO(토스페이먼츠 연동): 결제창에서 받은 paymentKey 로 승인 요청
-      const result = await paymentApi.confirm({ paymentKey: `test_${Date.now()}`, orderId: order.orderId, amount: order.amount })
+      const result = await paymentApi.confirm({
+        paymentKey: `test_${Date.now()}`,
+        orderId: order.orderId,
+        amount: order.amount,
+      })
       holdRef.current = null
       setPaying(false)
       return result.reservationId
@@ -380,7 +379,9 @@ function HoldBanner({ hold, error, onRetry }: { hold: ReservationHold | null; er
       <strong className="text-accent">
         {mm}:{ss}
       </strong>
-      <span>{left > 0 ? '5분간 테이블이 임시로 선점돼요. 시간 내 결제를 완료해주세요.' : '선점 시간이 지났어요. 일시를 다시 골라주세요.'}</span>
+      <span>
+        {left > 0 ? '5분간 테이블이 임시로 선점돼요. 시간 내 결제를 완료해주세요.' : '선점 시간이 지났어요. 일시를 다시 골라주세요.'}
+      </span>
     </div>
   )
 }

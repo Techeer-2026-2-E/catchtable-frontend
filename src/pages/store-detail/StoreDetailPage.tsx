@@ -102,10 +102,7 @@ export function StoreDetailPage() {
       }
     >
       <div className={styles.hero}>
-        <TopBar
-          transparent
-          actions={<IconButton label="공유" icon={<Share2 />} onClick={() => toast('링크를 복사했어요')} />}
-        />
+        <TopBar transparent actions={<IconButton label="공유" icon={<Share2 />} onClick={() => toast('링크를 복사했어요')} />} />
         <ImagePlaceholder src={store.thumbnailUrl} alt={store.name} radius={0} className={styles.heroImage} />
       </div>
 
@@ -126,9 +123,7 @@ export function StoreDetailPage() {
           <li>
             <Clock aria-hidden />
             <span>
-              {todayHour
-                ? `오늘 ${hhmm(todayHour.openTime)}~${overnight ? '익일 ' : ''}${hhmm(todayHour.closingTime)}`
-                : '오늘 휴무'}
+              {todayHour ? `오늘 ${hhmm(todayHour.openTime)}~${overnight ? '익일 ' : ''}${hhmm(todayHour.closingTime)}` : '오늘 휴무'}
               {todayHour?.breakStartTime && todayHour.breakEndTime && (
                 <span className="text-tertiary">
                   {' '}
@@ -174,9 +169,7 @@ export function StoreDetailPage() {
                     onClick={() => setSheetOpen(true)}
                   >
                     <span className="t-label-13">{formatTime(slot.reservationStartAt)}</span>
-                    <span className="t-caption-12">
-                      {slot.available ? `${slot.availableTableCount}테이블 남음` : '마감'}
-                    </span>
+                    <span className="t-caption-12">{slot.available ? `${slot.availableTableCount}테이블 남음` : '마감'}</span>
                   </button>
                 ))}
               </div>
@@ -212,7 +205,7 @@ export function StoreDetailPage() {
       )}
 
       {(tab === 'home' || tab === 'review') && (
-        <Section title={`리뷰 ${reviews.data?.summary.totalCount ?? store.reviewCount ?? 0}`}>
+        <Section title={`리뷰 ${reviews.data?.reviewCount ?? store.reviewCount ?? 0}`}>
           {reviews.isPending ? (
             <LoadingState compact />
           ) : !reviews.data?.reviews.length ? (

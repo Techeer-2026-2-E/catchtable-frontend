@@ -58,3 +58,6 @@
   border-radius: 50%;
   background: var(--color-primary-default);
 }
+.notice {
+  padding: 0 var(--page-gutter) var(--space-8);
+}

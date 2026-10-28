@@ -30,9 +30,12 @@ interface AuthState {
   clearAuth: () => void
 }
 
+/** 토큰이 없어도 X-Member-Id 로 식별 중이면 로그인 상태 (백엔드에 인증 API 가 생기기 전) */
+const hasSession = () => !!tokenStorage.get() || !!memberIdStorage.get()
+
 export const useAuthStore = create<AuthState>((set) => ({
-  member: tokenStorage.get() ? loadMember() : null,
-  isAuthenticated: !!tokenStorage.get(),
+  member: hasSession() ? loadMember() : null,
+  isAuthenticated: hasSession(),
   setAuth: (accessToken, member) => {
     tokenStorage.set(accessToken)
     memberIdStorage.set(member.id)
