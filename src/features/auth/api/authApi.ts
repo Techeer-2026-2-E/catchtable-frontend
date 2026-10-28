@@ -46,8 +46,18 @@ export const authApi = {
    * [개발용] 회원 id 로 식별 — 백엔드 X-Member-Id 방식
    * MemberResponse 에 회원 유형이 없어서 호출하는 쪽이 고객/점주를 지정
    */
-  memberLogin: async ({ memberId, userType }: { memberId: number; userType: UserType }): Promise<LoginResponse> => {
+  memberLogin: async ({
+    memberId,
+    userType,
+    name,
+  }: {
+    memberId: number
+    userType: UserType
+    /** 점주용 표시 이름 — 백엔드 GET /user/members/me 는 고객만 허용(점주는 403 FORBIDDEN_MEMBER_TYPE) */
+    name: string
+  }): Promise<LoginResponse> => {
     memberIdStorage.set(memberId)
+    if (userType === 'OWNER') return { accessToken: '', member: { id: memberId, name, phone: '', userType } }
     const { data } = await apiClient.get<Member>('/user/members/me')
     return { accessToken: '', member: { ...data, userType } }
   },

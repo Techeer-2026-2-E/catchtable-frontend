@@ -13,8 +13,8 @@ const DEMO_ACCOUNTS = {
 
 /** 실제 백엔드 로컬 시드 회원 (catchtable-backend scripts/local-seed.sql) */
 const BACKEND_SEED_MEMBERS = {
-  customer: { memberId: 1, userType: 'CUSTOMER' },
-  owner: { memberId: 2, userType: 'OWNER' },
+  customer: { memberId: 1, userType: 'CUSTOMER', name: '목 고객' },
+  owner: { memberId: 2, userType: 'OWNER', name: '목 점주' },
 } as const
 
 /**
