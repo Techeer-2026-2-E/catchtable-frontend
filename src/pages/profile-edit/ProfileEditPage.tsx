@@ -5,7 +5,7 @@ import { useAuthStore } from '@/features/auth'
 import { useMe, useUpdateMe } from '@/features/member'
 import { getErrorMessage } from '@/shared/lib'
 import { formatPhone } from '@/shared/lib/format'
-import { Banner, Button, ErrorState, LoadingState, Page, TextField, toast, TopBar } from '@/shared/ui'
+import { Button, ErrorState, LoadingState, Page, TextField, toast, TopBar } from '@/shared/ui'
 import styles from './ProfileEditPage.module.css'
 
 const NAME_MAX = 50
@@ -60,10 +60,7 @@ function ProfileForm({ me }: { me: MemberProfile }) {
         value={phone}
         onChange={(e) => setPhone(formatPhone(e.target.value))}
         error={phone ? phoneError : undefined}
-        helperText="예약·웨이팅 알림을 받을 번호예요"
       />
-      {me.email && <TextField label="이메일" value={me.email} readOnly />}
-      <Banner tone="info">번호를 바꾸면 이후 예약·웨이팅 알림이 새 번호로 가요.</Banner>
       <Button fullWidth disabled={!!nameError || !!phoneError || !changed || update.isPending} onClick={save}>
         {update.isPending ? '저장 중…' : '저장'}
       </Button>

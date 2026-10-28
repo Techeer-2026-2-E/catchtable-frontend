@@ -42,10 +42,3 @@
 .sheetChips {
   margin-top: var(--space-16);
 }
-.autoCall {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
-  margin-top: var(--space-16);
-}

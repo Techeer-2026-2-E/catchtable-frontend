@@ -26,15 +26,6 @@ export interface Reservation {
   cancelledAt: string | null
   cancellationActor: CancellationActor | null
   cancellationReason: string | null
-  /* ----- [목 전용] 백엔드 응답에 추가 요청 필요 ----- */
-  /** 방문 확인 시각 — 있으면 "방문 중" */
-  checkedInAt?: string | null
-  /** 배정된 테이블 번호 (tableId 대신 화면 표시용) */
-  tableNumber?: number | null
-  /** 좌석 타입 라벨 (룸·홀·바) */
-  tableTypeLabel?: string | null
-  /** 리뷰 작성 여부 (P2) */
-  reviewed?: boolean
 }
 
 /** 점주용 — OwnerReservationResponse */
@@ -57,9 +48,6 @@ export interface OwnerReservation {
   noShowAt: string | null
   noShowByMemberId: number | null
   noShowReason: string | null
-  /* ----- [목 전용] ----- */
-  tableNumber?: number | null
-  tableTypeLabel?: string | null
 }
 
 /**
@@ -68,10 +56,8 @@ export interface OwnerReservation {
  */
 export type ReservationDisplayStatus = ReservationStatus | 'VISITED'
 
-export const getReservationDisplayStatus = (r: {
-  status: ReservationStatus
-  checkedInAt?: string | null
-}): ReservationDisplayStatus => (r.status === 'CONFIRMED' && r.checkedInAt ? 'VISITED' : r.status)
+export const getReservationDisplayStatus = (r: { status: ReservationStatus; checkedInAt?: string | null }): ReservationDisplayStatus =>
+  r.status === 'CONFIRMED' && r.checkedInAt ? 'VISITED' : r.status
 
 export const RESERVATION_STATUS_LABEL: Record<ReservationDisplayStatus, string> = {
   PENDING_PAYMENT: '결제 대기',
@@ -97,31 +83,6 @@ export const RESERVATION_STATUS_TONE: Record<ReservationDisplayStatus, BadgeTone
   NO_SHOW: 'danger',
 }
 
-/* ---------- P2: 예약금 ---------- */
-
-/**
- * 테이블 5분 임시 선점 — POST·GET /api/user/reservations/holds (ReservationHoldResponse)
- * 선점은 PENDING_PAYMENT 예약 자체라 holdId 와 reservationId 가 같음
- */
-export interface ReservationHold {
-  holdId: number
-  reservationId: number
-  storeId: number
-  tableId: number | null
-  reservationStartAt: string
-  reservationEndAt: string
-  partySize: number
-  /** PENDING_PAYMENT(선점 중) · CONFIRMED · CANCELLED(해제) · EXPIRED */
-  status: ReservationStatus
-  /** 생성 시점 + 5분. 재조회로 연장되지 않음 */
-  expiresAt: string
-  /** 서버 현재 시각 — 로컬 시계 차이 보정용 */
-  serverTime: string
-  remainingSeconds: number
-  /** [목 전용] 결제할 예약금(원) — 백엔드 선점 응답에는 금액이 없음 (예약금 설정·결제 계약 예정) */
-  depositAmount?: number
-}
-
 /* ---------- 예약·웨이팅 내역 — GET /api/user/reservations?type=&status= (HistoryItemResponse) ---------- */
 
 export type HistoryType = 'RESERVATION' | 'WAITING'
@@ -145,16 +106,4 @@ export interface HistoryItem {
   waitingDate: string | null
   waitNumber: number | null
   requestedAt: string
-  /** [목 전용] 리뷰 작성 여부 — 백엔드 응답에 없음 (없으면 이용 완료 예약에 '리뷰 쓰기' 표시) */
-  reviewed?: boolean
-}
-
-/** 환불 예상액 — GET /api/user/reservations/{id}/refund-preview */
-export interface RefundPreview {
-  reservationId: number
-  paidAmount: number
-  refundAmount: number
-  /** 적용된 환불 비율(%) */
-  refundRate: number
-  policyDescription: string
 }

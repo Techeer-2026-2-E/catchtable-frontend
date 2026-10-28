@@ -9,7 +9,7 @@ import {
   type ReservationDisplayStatus,
 } from '@/entities'
 import { useOwnerReservationActions, useOwnerReservations } from '@/features/owner-reservation'
-import { useMyStores, useReservationPolicy } from '@/features/owner-store'
+import { useReservationPolicy, useStoreTables } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPhone, formatTime } from '@/shared/lib/format'
@@ -61,7 +61,9 @@ export function OwnerReservationsPage() {
   const [pending, setPending] = useState<Pending>(null)
   const [reason, setReason] = useState('')
   const [changing, setChanging] = useState<OwnerReservation | null>(null)
-  const store = useMyStores().data?.find((s) => s.id === id)
+  const tables = useStoreTables(id).data
+  // 응답에는 tableId 만 있어서 테이블 목록(GET /owner/stores/{id}/tables)으로 번호를 찾음
+  const tableNumberOf = (tableId: number | null) => tables?.find((t) => t.id === tableId)?.tableNumber
 
   const { data = [], isPending, isError, refetch } = useOwnerReservations(id, date.format('YYYY-MM-DD'))
   const policy = useReservationPolicy(id).data
@@ -136,13 +138,11 @@ export function OwnerReservationsPage() {
                   <Badge tone={RESERVATION_STATUS_TONE[r.display]}>{RESERVATION_STATUS_LABEL[r.display]}</Badge>
                 </div>
                 <p className="t-caption-13 text-tertiary">
-                  {r.partySize}명 · {r.tableTypeLabel ?? '-'}
-                  {r.tableNumber ? ` · ${r.tableNumber}번 테이블` : ''} · {formatPhone(r.customerPhone)}
+                  {r.partySize}명{tableNumberOf(r.tableId) != null && ` · ${tableNumberOf(r.tableId)}번 테이블`} ·{' '}
+                  {formatPhone(r.customerPhone)}
                 </p>
                 {r.display === 'VISITED' && (
-                  <p className="t-caption-13 text-accent">
-                    {formatTime(r.reservationEndAt)}에 자동으로 이용 완료 처리돼요
-                  </p>
+                  <p className="t-caption-13 text-accent">{formatTime(r.reservationEndAt)}에 자동으로 이용 완료 처리돼요</p>
                 )}
                 {r.display === 'COMPLETED' && r.checkedInAt && (
                   <p className="t-caption-13 text-tertiary">
@@ -188,9 +188,7 @@ export function OwnerReservationsPage() {
                   </div>
                 )}
                 {r.display === 'CONFIRMED' && now.isBefore(noShowAvailableAt) && isToday && (
-                  <p className="t-caption-12 text-tertiary">
-                    노쇼 처리는 {noShowAvailableAt.format('HH:mm')}부터 가능해요
-                  </p>
+                  <p className="t-caption-12 text-tertiary">노쇼 처리는 {noShowAvailableAt.format('HH:mm')}부터 가능해요</p>
                 )}
               </Card>
             )
@@ -198,22 +196,13 @@ export function OwnerReservationsPage() {
         </ul>
       )}
 
-      {changing && (
-        <ChangeReservationSheet
-          key={changing.reservationId}
-          reservation={changing}
-          maxPartySize={store?.maxPartySize}
-          onClose={() => setChanging(null)}
-        />
-      )}
+      {changing && <ChangeReservationSheet key={changing.reservationId} reservation={changing} onClose={() => setChanging(null)} />}
 
       <Dialog
         isOpen={!!pending}
         onClose={() => setPending(null)}
         title={pending?.type === 'noShow' ? '노쇼로 처리할까요?' : '예약을 취소할까요?'}
-        confirmLabel={
-          cancel.isPending || noShow.isPending ? '처리 중…' : pending?.type === 'noShow' ? '노쇼 처리' : '예약 취소'
-        }
+        confirmLabel={cancel.isPending || noShow.isPending ? '처리 중…' : pending?.type === 'noShow' ? '노쇼 처리' : '예약 취소'}
         onConfirm={confirm}
       >
         {pending &&

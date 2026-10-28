@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Member } from '@/entities'
-import { memberIdStorage, tokenStorage } from '@/shared/lib'
+import { memberIdStorage } from '@/shared/lib'
 
 const MEMBER_KEY = 'member'
 
@@ -25,33 +25,23 @@ const saveMember = (member: Member | null) => {
 interface AuthState {
   member: Member | null
   isAuthenticated: boolean
-  setAuth: (accessToken: string, member: Member) => void
   setMember: (member: Member) => void
   clearAuth: () => void
 }
 
-/** 토큰이 없어도 X-Member-Id 로 식별 중이면 로그인 상태 (백엔드에 인증 API 가 생기기 전) */
-const hasSession = () => !!tokenStorage.get() || !!memberIdStorage.get()
+const initial = memberIdStorage.get() ? loadMember() : null
 
 export const useAuthStore = create<AuthState>((set) => ({
-  member: hasSession() ? loadMember() : null,
-  isAuthenticated: hasSession(),
-  setAuth: (accessToken, member) => {
-    tokenStorage.set(accessToken)
+  member: initial,
+  isAuthenticated: !!initial,
+  setMember: (member) => {
     memberIdStorage.set(member.id)
     saveMember(member)
     set({ member, isAuthenticated: true })
   },
-  setMember: (member) => {
-    saveMember(member)
-    set({ member })
-  },
   clearAuth: () => {
-    tokenStorage.clear()
+    memberIdStorage.clear()
     saveMember(null)
     set({ member: null, isAuthenticated: false })
   },
 }))
-
-// 토큰 재발급 실패 시(shared/lib/axios) 로그아웃 처리
-window.addEventListener('auth:logout', () => useAuthStore.getState().clearAuth())

@@ -73,3 +73,63 @@ MSW 핸들러·시드도 위 응답 형식으로 바꿨다 (localStorage 키 `ca
 - 백엔드에 생기면 플래그를 켜고 계약 재대조: 인증, 알림함·설정, 탈퇴, 홈(주변·인기, `latitude`/`longitude` 쿼리), 점주 매장 목록, 메뉴 삭제·사진·품절, 매출, 점주 리뷰·답글, 작성 가능 방문, 사진 업로드, 웨이팅 미루기·재호출, 예약금 결제·환불 예상액.
 - 백엔드 선점 응답에 예약금 금액이 없다 (`depositAmount`는 목 전용).
 - 이 브랜치는 이슈 번호 없이 만들었다. 팀 규칙대로 이슈를 만들면 브랜치 이름·PR 본문에 연결한다.
+
+---
+
+## 후속 (2026-10-29): 백엔드에 없는 요소 삭제
+
+- 기준: 백엔드 `dev@7da9c1d` (앞 기록의 `7d32049` 이후 코드 변경 없음, 문서만 추가됨)
+- 사용자 결정: 회원가입은 삭제하고 로그인은 시작 회원 선택만 남김. 목 API 는 남기되 백엔드 계약만.
+
+### 판단
+
+- 앞 단계의 기능 플래그(`BACKEND_SUPPORTS`)와 `VITE_API_MOCKING=backend` 모드를 없앴다. 백엔드가 보내지 않는 값, 백엔드로 보내지 않는 입력은 화면·타입·API·목에서 모두 지웠다.
+- 백엔드 값으로 계산만 하는 표시는 남겼다: 홈의 "웨이팅 가능한 매장"(`waitingAvailable`), 점주 예약 목록의 테이블 번호(`tableId` → 테이블 목록).
+- 점주 리뷰 화면은 매장 공개 리뷰 API 로 읽기만 한다 (`GET /api/user/stores/{id}/reviews`).
+- 리뷰 내용 10자 이상 같은 프런트 자체 규칙은 백엔드 기준(공백 불가·1000자)으로 바꿨다.
+
+### 삭제한 것
+
+| 영역 | 삭제 |
+| --- | --- |
+| 인증 | 회원가입 화면, 이메일·비밀번호 로그인, 소셜 로그인 버튼, 토큰 저장·재발급 → 시작 화면에 「고객으로 시작 / 점주로 시작」만 |
+| 홈·검색 | 위치(현재 위치·주변 매장), 프로모션 배너, 키워드 검색, 정렬(평점·리뷰순), 웨이팅 가능 필터 |
+| 매장 | 평점·리뷰 수·지역·가격대·최대 인원·예약금·웨이팅 팀 수·썸네일·좌표, 저장(하트)·공유 버튼, 메뉴 사진·품절 |
+| 예약 | 테이블 타입·메뉴·방문 목적·요청사항 선택, 예약금 결제·선점 흐름, 환불 예상액, 좌석 표시 → 날짜·시간·인원 → 확인 2단계 |
+| 웨이팅 | 좌석 조건, 예상 대기시간, 현재 대기 팀 수(신청 전), 고객 "조금 늦어요", 점주 호출 재전송·순서 미루기·자동 호출 |
+| 리뷰 | 작성 가능 방문 목록, 사진 첨부, 점주 답글·답변 필터·별점 분포 |
+| MY·알림 | 알림 수신 설정, 결제수단 관리, 회원 탈퇴, 알림함 목록·읽음·안 읽은 수 배지 (접속 중 실시간 알림 목록만 남김) |
+| 점주 | 매출 관리 화면, 매장 등록 버튼, 메뉴 삭제, 테이블 공간 타입, 테이블 번호·인원 수정(백엔드는 운영 상태만 수정), 예약금 표시 |
+| 공통 | `payment` 엔티티·feature, `backendFeatures.ts`, `tokenStorage`, 이미지 리사이즈 유틸 |
+
+### 백엔드에 있지만 프런트가 쓰지 않는 것
+
+| 종류 | 백엔드 API·필드 | 비고 |
+| --- | --- | --- |
+| API | `GET /api/user/stores/{storeId}/tables?reservationStartAt&partySize` | 특정 시각 잔여 테이블 수 — availability 슬롯으로 대신 표시 |
+| API | `POST /api/user/reservations/holds`, `GET·DELETE /holds/{holdId}` | 5분 선점 — 결제 승인 API 가 없어 화면에서 뺌 |
+| API | `GET /api/user/payments`, `GET /api/user/payments/{paymentId}` | 결제 내역·상세 |
+| API | `PATCH /api/owner/stores/{storeId}` | 매장 정보 수정 (이름·카테고리·주소·설명·전화·이미지 URL) |
+| API | `GET /api/owner/reservations/{reservationId}` | 점주 예약 단건 — 목록으로 처리 |
+| 요청 | 매장 리뷰 `sort=RATING`, `page` | 최신순 첫 페이지만 |
+| 요청 | 내 리뷰 `page` | 첫 50개만 |
+| 요청 | 이용 내역 `type=RESERVATION\|WAITING` | `status` 만 사용 |
+| 요청 | 점주 예약 목록 `status` | 날짜만 보내고 화면에서 탭으로 나눔 |
+| 요청 | 리뷰 작성·수정 `imageUrl` | 업로드 API 가 없음 |
+| 응답 | 매장 상세 `description`, `phone` | 화면에 표시하지 않음 |
+| 응답 | 매장 리뷰 `averageRating`, `hasNext` | 평균은 점주 리뷰 화면에서만 표시 |
+| 응답 | 예약 `tableId`·`confirmedAt`, 점주 예약 `memberId`·`checkedInByMemberId`·`noShowAt`·`noShowByMemberId`·`cancelledAt` | |
+| 응답 | 점주 웨이팅 `compatibleTables`·`respondedAt`·`arrivalIntent`·`storeName`, 고객 웨이팅 `calledAt` | |
+| 응답 | 호출 `callCount`·`expiresAt`, 종료 `reason`·`detail`·`endedAt`, 호출 응답 `respondedAt`·`expiresAt`, 리뷰 작성 결과 | 성공 후 목록·상세를 다시 조회 |
+| 응답 | SSE `payload` (호출 시각·만료 시각, 순번) | 알림이 오면 다시 조회만 함 |
+| 응답 | 오류 `code` | `message` 만 표시 |
+
+### 검증 (후속)
+
+| 확인한 내용 | 실제 명령 또는 방법·환경 | 결과·근거 |
+| --- | --- | --- |
+| 린트 | `npm run lint` | 통과 |
+| 타입·빌드 | `npm run build` | 통과 |
+| 목 모드 화면 | Playwright(Chromium) — 고객: 홈·검색·매장 상세·마이다이닝·웨이팅·알림·MY·웨이팅 신청·예약(확인 → 완료). 점주: 매장 목록·매장·웨이팅·예약·테이블·메뉴·리뷰·정책·영업시간 | 페이지 오류·4xx 없음 |
+
+실제 백엔드 연동은 이번 후속에서 다시 돌리지 않았다 (사용자가 앞 단계에서 로컬 확인).

@@ -111,8 +111,7 @@ export function MyDiningPage() {
         confirmLabel={cancelTarget?.item.type === 'WAITING' ? '웨이팅 취소' : '예약 취소'}
         onConfirm={confirmCancel}
       >
-        {cancelTarget?.item.storeName} {cancelTarget?.item.type === 'WAITING' ? '웨이팅' : '예약'}이 취소돼요. 취소
-        후에는 되돌릴 수 없어요.
+        {cancelTarget?.item.storeName} {cancelTarget?.item.type === 'WAITING' ? '웨이팅' : '예약'}이 취소돼요. 취소 후에는 되돌릴 수 없어요.
       </Dialog>
     </Page>
   )
@@ -152,7 +151,7 @@ function ReservationItem({
           </Button>
         </div>
       )}
-      {status === 'COMPLETED' && !item.reviewed && (
+      {status === 'COMPLETED' && (
         <div className={styles.actions}>
           <Button variant="soft" size="S" onClick={onReview}>
             리뷰 쓰기

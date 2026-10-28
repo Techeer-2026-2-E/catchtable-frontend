@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { ArrowLeft, CalendarDays, ChevronDown, SearchX, X } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, CalendarDays, SearchX, X } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from '@/entities'
 import { useAvailability } from '@/features/reservation'
@@ -7,23 +7,9 @@ import { useStoreSearch } from '@/features/store-search'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
-import {
-  BottomSheet,
-  Button,
-  Calendar,
-  Chip,
-  ChipGroup,
-  EmptyState,
-  ErrorState,
-  IconButton,
-  LoadingState,
-  Page,
-  SearchBar,
-} from '@/shared/ui'
+import { BottomSheet, Button, Calendar, Chip, ChipGroup, EmptyState, ErrorState, IconButton, LoadingState, Page } from '@/shared/ui'
 import styles from './SearchPage.module.css'
 
-type Sort = 'recommend' | 'rating' | 'review'
-const SORT_LABEL: Record<Sort, string> = { recommend: '추천순', rating: '평점 높은순', review: '리뷰 많은순' }
 const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
 const TIMES = ['11:30', '12:00', '12:30', '13:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00']
 
@@ -31,9 +17,7 @@ const TIMES = ['11:30', '12:00', '12:30', '13:00', '17:30', '18:00', '18:30', '1
 export function SearchPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [keyword, setKeyword] = useState(searchParams.get('q') ?? '')
-  const [sort, setSort] = useState<Sort>('recommend')
-  const [sheet, setSheet] = useState<'sort' | 'condition' | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   // 시트 안에서 고르는 값과 실제 적용된 조건을 분리 — "적용" 을 눌러야 검색
   const [draft, setDraft] = useState<{ date: string | null; time: string | null; partySize: number }>({
     date: null,
@@ -43,7 +27,6 @@ export function SearchPage() {
   const [condition, setCondition] = useState<typeof draft | null>(null)
 
   const category = searchParams.get('category') as StoreCategory | null
-  const waitingOnly = searchParams.get('waiting') === '1'
 
   const updateParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(searchParams)
@@ -52,22 +35,18 @@ export function SearchPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const { data, isPending, isError, refetch, isFetching } = useStoreSearch({
-    keyword,
+  const {
+    data: results,
+    isPending,
+    isError,
+    refetch,
+    isFetching,
+  } = useStoreSearch({
     category: category ?? undefined,
-    waitingAvailable: waitingOnly || undefined,
     date: condition?.date ?? undefined,
     time: condition?.time ?? undefined,
     partySize: condition?.partySize,
   })
-
-  // 정렬은 화면에서 (백엔드 조건에 정렬 없음)
-  const results = useMemo(() => {
-    const list = [...(data ?? [])]
-    if (sort === 'rating') list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    if (sort === 'review') list.sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0))
-    return list
-  }, [data, sort])
 
   const conditionLabel = condition?.date
     ? `${dayjs(condition.date).format('M.D(dd)')} ${condition.time ?? ''} · ${condition.partySize}명`
@@ -79,13 +58,8 @@ export function SearchPage() {
     <Page>
       <header className={styles.header}>
         <IconButton label="뒤로 가기" icon={<ArrowLeft />} onClick={() => navigate(-1)} />
-        <SearchBar
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && updateParam('q', keyword.trim() || null)}
-          autoFocus={!category}
-        />
-        <button type="button" className={styles.condition} onClick={() => setSheet('condition')}>
+        <h1 className={`${styles.title} t-headline-16`}>매장 찾기</h1>
+        <button type="button" className={styles.condition} onClick={() => setSheetOpen(true)}>
           <CalendarDays aria-hidden />
           <span>{conditionLabel}</span>
         </button>
@@ -93,12 +67,6 @@ export function SearchPage() {
 
       <div className={styles.filters}>
         <ChipGroup scroll label="검색 필터">
-          <Chip size="S" onClick={() => setSheet('sort')} rightIcon={<ChevronDown />}>
-            {SORT_LABEL[sort]}
-          </Chip>
-          <Chip size="S" selected={waitingOnly} onClick={() => updateParam('waiting', waitingOnly ? null : '1')}>
-            웨이팅 가능
-          </Chip>
           {(Object.entries(STORE_CATEGORY_LABEL) as [StoreCategory, string][]).map(([code, label]) => {
             const selected = category === code
             return (
@@ -126,7 +94,7 @@ export function SearchPage() {
             매장 {results.length}곳{isFetching && ' · 검색 중'}
           </p>
           {results.length === 0 ? (
-            <EmptyState icon={<SearchX />} title="조건에 맞는 매장이 없어요" description="검색어나 필터를 바꿔보세요" />
+            <EmptyState icon={<SearchX />} title="조건에 맞는 매장이 없어요" description="카테고리나 날짜·인원 조건을 바꿔보세요" />
           ) : (
             <ul className={styles.results}>
               {results.map((store) => (
@@ -150,29 +118,9 @@ export function SearchPage() {
         </>
       )}
 
-      <BottomSheet isOpen={sheet === 'sort'} onClose={() => setSheet(null)} title="정렬">
-        <div className={styles.sortList} role="radiogroup">
-          {(Object.keys(SORT_LABEL) as Sort[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={sort === key}
-              className={styles.sortItem}
-              onClick={() => {
-                setSort(key)
-                setSheet(null)
-              }}
-            >
-              {SORT_LABEL[key]}
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
-
       <BottomSheet
-        isOpen={sheet === 'condition'}
-        onClose={() => setSheet(null)}
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
         title="날짜·시간·인원"
         footer={
           <>
@@ -181,7 +129,7 @@ export function SearchPage() {
               onClick={() => {
                 setDraft({ date: null, time: null, partySize: 2 })
                 setCondition(null)
-                setSheet(null)
+                setSheetOpen(false)
               }}
             >
               초기화
@@ -189,7 +137,7 @@ export function SearchPage() {
             <Button
               onClick={() => {
                 setCondition(draft)
-                setSheet(null)
+                setSheetOpen(false)
               }}
               disabled={!draft.date || !draft.time}
             >
@@ -224,17 +172,7 @@ export function SearchPage() {
  * 매장 카드 아래 예약 가능 시간 — 기능명세「예약 가능 시간·잔여 테이블 조회」
  * GET /api/user/stores/{storeId}/availability
  */
-function AvailableTimes({
-  store,
-  date,
-  partySize,
-  onSelect,
-}: {
-  store: Store
-  date: string
-  partySize: number
-  onSelect: () => void
-}) {
+function AvailableTimes({ store, date, partySize, onSelect }: { store: Store; date: string; partySize: number; onSelect: () => void }) {
   const { data, isPending } = useAvailability(store.id, date, partySize)
   const open = data?.slots.filter((s) => s.available) ?? []
   const label = dayjs(date).isSame(dayjs(), 'day') ? '오늘' : dayjs(date).format('M/D(dd)')

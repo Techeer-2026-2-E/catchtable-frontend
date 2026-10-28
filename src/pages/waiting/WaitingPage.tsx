@@ -3,7 +3,7 @@ import { BellRing } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router'
 import { ACTIVE_WAITING_STATUSES, WAITING_STATUS_LABEL, WAITING_STATUS_TONE } from '@/entities'
 import { useWaitingActions, useWaitingDetail } from '@/features/waiting'
-import { isFeatureAvailable, paths, ROUTES } from '@/shared/config'
+import { paths, ROUTES } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { Badge, Banner, Button, Dialog, Divider, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
@@ -21,7 +21,7 @@ export function WaitingPage() {
   const id = Number(waitingId)
   const navigate = useNavigate()
   const { data: waiting, isPending, isError, refetch } = useWaitingDetail(id)
-  const { accept, defer, cancel } = useWaitingActions(id)
+  const { accept, cancel } = useWaitingActions(id)
   const [cancelOpen, setCancelOpen] = useState(false)
   const remaining = useRemainingSeconds(waiting?.expiresAt ?? null)
 
@@ -81,22 +81,6 @@ export function WaitingPage() {
                 도착했어요
               </Button>
             )}
-            {isFeatureAvailable('waitingDefer') && (waiting.deferRemaining ?? 0) > 0 && (
-              <Button
-                size="M"
-                variant="soft"
-                className={styles.flex}
-                disabled={defer.isPending}
-                onClick={() =>
-                  defer.mutate(undefined, {
-                    onSuccess: () => toast('조금 늦는다고 알렸어요. 도착 시간이 5분 늘어났어요'),
-                    onError,
-                  })
-                }
-              >
-                조금 늦어요
-              </Button>
-            )}
           </div>
         </section>
       )}
@@ -111,10 +95,7 @@ export function WaitingPage() {
             <p className={styles.position}>
               <span className="t-display-28">{waiting.currentPosition ?? (waiting.teamsAhead ?? 0) + 1}</span>번째
             </p>
-            <p className="t-body-14 text-secondary">
-              앞에 {waiting.teamsAhead ?? 0}팀
-              {waiting.estimatedMinutes != null && ` · 예상 대기 약 ${waiting.estimatedMinutes}분`}
-            </p>
+            <p className="t-body-14 text-secondary">앞에 {waiting.teamsAhead ?? 0}팀</p>
           </>
         )}
         {called && (
@@ -151,18 +132,6 @@ export function WaitingPage() {
           <dd>{waiting.partyCount}명</dd>
           <dt>날짜</dt>
           <dd>{dayjs(waiting.waitingDate).format('M월 D일 (dd)')}</dd>
-          {waiting.seatPreference !== undefined && (
-            <>
-              <dt>좌석 조건</dt>
-              <dd>{waiting.seatPreference ?? '상관없음'}</dd>
-            </>
-          )}
-          {waiting.createdAt && (
-            <>
-              <dt>접수 시각</dt>
-              <dd>{dayjs(waiting.createdAt).format('HH:mm')}</dd>
-            </>
-          )}
         </dl>
       </Section>
       {isActive && (

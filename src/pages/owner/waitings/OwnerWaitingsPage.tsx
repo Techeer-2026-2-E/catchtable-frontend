@@ -11,7 +11,6 @@ import {
   useWaitingSettings,
   useWaitingSettingsMutations,
 } from '@/features/owner-waiting'
-import { isFeatureAvailable } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import {
@@ -45,9 +44,9 @@ const REASON_MAX = 300
 
 /**
  * 기능명세「웨이팅 접수 시작·종료」「현재 대기 고객 목록」「웨이팅 고객 호출」「웨이팅 착석 처리」
- * 「웨이팅 미응답·노쇼 처리」「점주 웨이팅 취소」「호출 도착 제한시간 설정」「순번 미루기」「호출 재전송(P2)」
+ * 「웨이팅 미응답·노쇼 처리」「점주 웨이팅 취소」「호출 도착 제한시간 설정」
  * GET /api/owner/stores/{storeId}/waitings + 실시간 구독(SSE, WAITING_CHANGED) · POST /api/owner/waitings/{id}/{call|enter|no-show}
- * DELETE /api/owner/waitings/{id} (사유 필수) · 호출 재전송·순서 미루기·자동 호출은 [목 전용]
+ * DELETE /api/owner/waitings/{id} (사유 필수)
  */
 export function OwnerWaitingsPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -112,8 +111,7 @@ export function OwnerWaitingsPage() {
         <div>
           <p className="t-headline-16">{open ? '웨이팅 접수 중' : '웨이팅 접수 마감'}</p>
           <button type="button" className="t-caption-13 text-tertiary" onClick={() => setSettingOpen(true)}>
-            호출 후 도착 제한시간 {arrivalLimit}분{isFeatureAvailable('waitingAutoCall') && settings.data?.autoCall && ' · 자동 호출'} ·{' '}
-            <u>변경</u>
+            호출 후 도착 제한시간 {arrivalLimit}분 · <u>변경</u>
           </button>
         </div>
         <Toggle
@@ -141,9 +139,8 @@ export function OwnerWaitingsPage() {
         <EmptyState icon={<UsersRound />} title="대기 중인 고객이 없어요" />
       ) : (
         <ul className={styles.list}>
-          {active.map((w, index) => {
+          {active.map((w) => {
             const called = w.status === 'CALLED' || w.status === 'CONFIRMED'
-            const isLast = index === active.length - 1
             return (
               <Card as="li" key={w.id} className={styles.card}>
                 <div className={styles.head}>
@@ -156,9 +153,7 @@ export function OwnerWaitingsPage() {
                 </div>
                 <p className="t-caption-13 text-tertiary">
                   {w.createdAt && `접수 ${dayjs(w.createdAt).format('HH:mm')}`}
-                  {w.seatPreference && ` · ${w.seatPreference}`}
                   {called && w.calledAt && ` · 호출 ${dayjs(w.calledAt).format('HH:mm')}`}
-                  {!!w.recallCount && ` (재호출 ${w.recallCount}회)`}
                   {called && w.callExpiresAt && <ArrivalCountdown expiresAt={w.callExpiresAt} />}
                 </p>
                 <div className={styles.actions}>
@@ -172,16 +167,6 @@ export function OwnerWaitingsPage() {
                       >
                         착석 처리
                       </Button>
-                      {w.status === 'CALLED' && isFeatureAvailable('waitingRecall') && (
-                        <Button
-                          size="S"
-                          variant="soft"
-                          disabled={actions.recall.isPending}
-                          onClick={() => run(actions.recall, w, '호출을 다시 보냈어요')}
-                        >
-                          호출 재전송
-                        </Button>
-                      )}
                       <Button size="S" variant="ghost" onClick={() => openPending('noShow', w)}>
                         미응답 노쇼
                       </Button>
@@ -196,16 +181,6 @@ export function OwnerWaitingsPage() {
                       >
                         호출
                       </Button>
-                      {!isLast && isFeatureAvailable('waitingRecall') && (
-                        <Button
-                          size="S"
-                          variant="soft"
-                          disabled={actions.defer.isPending}
-                          onClick={() => run(actions.defer, w, `${w.waitingNumber}번 순서를 한 칸 미뤘어요`)}
-                        >
-                          순서 미루기
-                        </Button>
-                      )}
                       <Button size="S" variant="ghost" onClick={() => openPending('cancel', w)}>
                         웨이팅 취소
                       </Button>
@@ -265,19 +240,6 @@ export function OwnerWaitingsPage() {
             </Chip>
           ))}
         </ChipGroup>
-        {isFeatureAvailable('waitingAutoCall') && (
-          <div className={styles.autoCall}>
-            <div>
-              <p className="t-body-15">착석 처리 후 다음 고객 자동 호출</p>
-              <p className="t-caption-13 text-tertiary">공석이 생기면 대기 1번 고객에게 바로 호출 알림을 보내요</p>
-            </div>
-            <Toggle
-              checked={settings.data?.autoCall ?? false}
-              label="다음 고객 자동 호출"
-              onChange={(autoCall) => settingMutations.update.mutate({ autoCall }, { onError })}
-            />
-          </div>
-        )}
       </BottomSheet>
     </Page>
   )

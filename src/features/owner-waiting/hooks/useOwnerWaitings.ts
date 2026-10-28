@@ -55,12 +55,8 @@ export function useOwnerWaitingActions(storeId: number) {
 
   return {
     call: useMutation({ mutationFn: ownerWaitingApi.call, onSuccess }),
-    /** [목 전용] */
-    recall: useMutation({ mutationFn: ownerWaitingApi.recall, onSuccess }),
     enter: useMutation({ mutationFn: ownerWaitingApi.enter, onSuccess }),
     noShow: useMutation({ mutationFn: ownerWaitingApi.markNoShow, onSuccess }),
-    /** [목 전용] */
-    defer: useMutation({ mutationFn: ownerWaitingApi.defer, onSuccess }),
     cancel: useMutation({ mutationFn: ownerWaitingApi.cancel, onSuccess }),
   }
 }

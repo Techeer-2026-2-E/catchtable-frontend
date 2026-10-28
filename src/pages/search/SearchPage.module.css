@@ -8,6 +8,9 @@
   padding: var(--space-8) var(--space-8) var(--space-8) var(--space-8);
   background: var(--color-bg-canvas);
 }
+.title {
+  flex: 1;
+}
 .condition {
   display: inline-flex;
   flex-shrink: 0;
@@ -66,19 +69,6 @@
   border-radius: var(--radius-8);
   background: var(--color-bg-subtle);
   color: var(--color-text-tertiary);
-}
-.sortList {
-  display: flex;
-  flex-direction: column;
-}
-.sortItem {
-  height: 3.25rem;
-  text-align: left;
-  font-size: 0.9375rem;
-}
-.sortItem[aria-checked='true'] {
-  font-weight: 600;
-  color: var(--color-text-brand);
 }
 .sheetLabel {
   margin: var(--space-20) 0 var(--space-12);

@@ -38,7 +38,7 @@ src/
 │   └── App.tsx
 │
 ├── pages/                      # 라우트 단위 화면
-│   ├── home/                   # 메인 (주변·인기 매장)
+│   ├── home/                   # 메인 (카테고리·매장 목록)
 │   ├── search/                 # 매장 검색 / 조건별 목록
 │   ├── store-detail/           # 매장 상세
 │   ├── reservation/            # 예약하기 (날짜·인원·시간)
@@ -46,7 +46,7 @@ src/
 │   ├── waiting/                # 내 웨이팅 (실시간 순번)
 │   ├── mypage/                 # 예약·웨이팅 내역, 회원정보
 │   ├── notifications/
-│   ├── login/ · signup/ · not-found/
+│   ├── login/(시작 화면) · not-found/
 │   └── owner/                  # 점주
 │       ├── dashboard/          # 내 매장 목록
 │       ├── store/              # 매장 정보·영업시간·예약 정책
@@ -55,14 +55,13 @@ src/
 │       └── waitings/           # 웨이팅 운영
 │
 ├── features/                   # 도메인별 핵심 로직 (api / hooks / store / components)
-│   ├── auth/                   # /api/user/auth — 로그인·회원가입·RequireAuth
+│   ├── auth/                   # 시작 회원 선택(X-Member-Id)·RequireAuth
 │   ├── member/                 # /api/user/members/me
-│   ├── store-search/           # /api/user/stores, /categories, /search
+│   ├── store-search/           # /api/user/stores, /categories
 │   ├── store-detail/           # /api/user/stores/{storeId}
 │   ├── reservation/            # /api/user/reservations — 예약 폼 스토어, 가능 시간 조회
-│   ├── waiting/                # /api/user/waitings — useWaitingSSE (실시간 순번)
-│   ├── payment/                # /api/user/payments (토스페이먼츠 가결제, P2)
-│   ├── notification/           # /api/user/notifications
+│   ├── waiting/                # /api/user/waitings
+│   ├── notification/           # /api/user/notifications/subscribe (SSE)
 │   ├── owner-store/            # /api/owner/stores — 매장·테이블 관리
 │   ├── owner-reservation/      # /api/owner/reservations
 │   └── owner-waiting/          # /api/owner/waitings
@@ -112,35 +111,25 @@ Figma「Design System」을 코드로 옮긴 것. 새 화면은 아래를 조합
 
 ### 목 API (MSW)
 
-백엔드 API가 다 나오기 전까지 [MSW](https://mswjs.io) 목 서버가 `/api/*` 요청에 응답합니다.
-화면 코드는 실제 API와 똑같이 axios → React Query 훅을 거치므로, 백엔드가 준비되면 목을 끄기만 하면 됩니다.
+[MSW](https://mswjs.io) 목 서버가 `/api/*` 요청에 응답합니다. **백엔드 dev 에 있는 API·필드만** 같은 형식으로 흉내 내므로,
+백엔드를 켜지 않고도 화면을 확인할 수 있고 `VITE_API_MOCKING=false` 로 바꾸면 그대로 실제 백엔드에 붙습니다.
 
-- **켜고 끄기**: 개발 서버(`npm run dev`)에서는 기본으로 켜져 있음. `.env` 의 `VITE_API_MOCKING` 으로 바꿈
-
-  | 값 | 요청 대상 | 화면 |
-  | --- | --- | --- |
-  | (없음) / `true` | 목 API | 모든 기능 (빌드본은 기본이 실제 백엔드라 `true` 필요) |
-  | `backend` | 목 API | 백엔드 dev 에 있는 기능만 — 실제 연동 미리보기 |
-  | `false` | 실제 백엔드 (Vite 프록시) | 백엔드 dev 에 있는 기능만 |
-
-- **백엔드에 없는 기능**: `src/shared/config/backendFeatures.ts` 의 `BACKEND_SUPPORTS` 에서 관리. 실제 연동에서는
-  해당 화면 입구를 숨기거나 "준비 중"으로 표시함. 백엔드에 API 가 생기면 값을 `true` 로 바꾸고 계약을 다시 대조
-- **데모 계정**: 로그인 화면의「고객으로 둘러보기 / 점주로 둘러보기」 버튼
-  (목: `catch@example.com` / `owner@example.com`, 비밀번호 `password1!` ·
-  실제 연동: 로그인 API 가 없어 백엔드 `scripts/local-seed.sql` 의 회원 1·2 로 `X-Member-Id` 헤더를 보냄)
-- **점주 매장**: 실제 연동에서는 내 매장 목록 API 가 없어 `VITE_OWNER_STORE_IDS`(기본 `1`) 의 매장을 보여줌
+- **켜고 끄기**: 개발 서버(`npm run dev`)에서는 기본으로 켜져 있음. `.env` 에 `VITE_API_MOCKING=false` 면 실제 백엔드(Vite 프록시)로 요청
+  (빌드본에서 목을 쓰려면 `VITE_API_MOCKING=true`)
+- **시작 계정**: 백엔드에 로그인·회원가입 API 가 없어 시작 화면의「고객으로 시작 / 점주로 시작」이 회원 1·2 의 id 를
+  `X-Member-Id` 헤더로 보냄 (백엔드 `scripts/local-seed.sql` 과 같은 id, 운영 인증 아님)
+- **점주 매장**: 내 매장 목록 API 가 없어 `VITE_OWNER_STORE_IDS` 의 매장을 보여줌 (기본: 실제 백엔드 `1`, 목 API `2,4`)
 - **데이터**: `src/mocks/db.ts` 시드가 브라우저 localStorage 에 저장되어 새로고침해도 유지되고, 날짜가 바뀌면 다시 생성됨.
   초기화는 콘솔에서 `__mockDb.reset()`
 - **실시간**: 웨이팅 순번이 15초마다 앞당겨지고, 차례가 되면 호출 알림(SSE)이 옴. 호출 후 제한시간이 지나면 순번 만료
-- **계약 기준**: 백엔드 dev 구현 DTO > 노션 API 명세 > 제안 순. 백엔드에 아직 없는 필드·경로는 `[목 전용]` 주석으로
-  표시해 두었음 → 백엔드와 맞출 목록. 2026-10-29 백엔드 dev@7d32049 기준으로 맞춤
+- **계약 기준**: 백엔드 dev 구현 DTO. 백엔드에 없는 기능·필드는 화면과 목에서 뺐음
   ([작업 기록](work-log/2026-10-29-backend-api-integration.md))
 
 | 폴더 | 내용 |
 | --- | --- |
 | `src/mocks/db.ts` | 시드 데이터 · 저장 |
 | `src/mocks/logic.ts` | 예약 가능 시간 계산, 순번, 알림, 자동 이용 완료·만료 같은 서버 로직 |
-| `src/mocks/handlers/*` | 도메인별 핸들러 (auth, stores, reservations, payments, waitings, notifications, reviews, owner) |
+| `src/mocks/handlers/*` | 도메인별 핸들러 (members, stores, reservations, waitings, notifications, reviews, owner) |
 
 ### 상태 관리
 

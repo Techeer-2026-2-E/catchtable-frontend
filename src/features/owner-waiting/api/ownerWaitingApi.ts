@@ -4,13 +4,11 @@ import { apiClient } from '@/shared/lib'
 
 /*
  * 점주 웨이팅 운영 API — 백엔드 dev 구현 (catchtable-backend dev@7d32049)
- * 호출 재전송(recall)·순서 미루기(defer)는 [목 전용] — 백엔드 미구현
  */
 
-/** 운영 설정 변경 — WaitingPolicyRequest (autoCall 은 [목 전용]) */
+/** 운영 설정 변경 — WaitingPolicyRequest */
 export interface UpdateWaitingSettingsRequest {
-  arrivalLimitMinutes?: number
-  autoCall?: boolean
+  arrivalLimitMinutes: number
 }
 
 /** 미응답·노쇼 처리 — OwnerWaitingNoShowRequest */
@@ -61,11 +59,6 @@ export const ownerWaitingApi = {
     const { data } = await apiClient.post<WaitingCallResult>(`/owner/waitings/${waitingId}/call`)
     return data
   },
-  /** [목 전용] 호출 재전송 — 도착 제한시간도 다시 시작 */
-  recall: async (waitingId: number) => {
-    const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/recall`)
-    return data
-  },
   /** 입장(착석) 처리 — WaitingEnterResponse */
   enter: async (waitingId: number) => {
     const { data } = await apiClient.post<{ waitingId: number; status: WaitingStatus; enteredAt: string }>(
@@ -78,11 +71,6 @@ export const ownerWaitingApi = {
     const { data } = await apiClient.post<WaitingTermination>(`/owner/waitings/${waitingId}/no-show`, body)
     return data
   },
-  /** [목 전용] 순번 연기 */
-  defer: async (waitingId: number) => {
-    const { data } = await apiClient.post<OwnerWaiting>(`/owner/waitings/${waitingId}/defer`)
-    return data
-  },
   /** 점주 취소 — 사유 필수(본문), 204 */
   cancel: async ({ waitingId, reason }: { waitingId: number; reason: string }) => {
     await apiClient.delete(`/owner/waitings/${waitingId}`, { data: { reason } })
@@ -91,6 +79,5 @@ export const ownerWaitingApi = {
    * 점주 실시간 구독(SSE) — WAITING_CHANGED 가 오면 목록을 다시 조회
    * EventSource 는 헤더를 못 붙여서 회원 id 를 쿼리로 전달
    */
-  subscribeUrl: (storeId: number, memberId: number) =>
-    `${env.apiBaseUrl}/owner/stores/${storeId}/waitings/subscribe?memberId=${memberId}`,
+  subscribeUrl: (storeId: number, memberId: number) => `${env.apiBaseUrl}/owner/stores/${storeId}/waitings/subscribe?memberId=${memberId}`,
 }

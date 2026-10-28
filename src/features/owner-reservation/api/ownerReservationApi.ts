@@ -19,10 +19,6 @@ export const ownerReservationApi = {
     const { data } = await apiClient.get<OwnerReservation[]>(`/owner/stores/${storeId}/reservations`, { params })
     return data
   },
-  getDetail: async (reservationId: number) => {
-    const { data } = await apiClient.get<OwnerReservation>(`/owner/reservations/${reservationId}`)
-    return data
-  },
   cancel: async (reservationId: number, body: OwnerReservationActionRequest) => {
     const { data } = await apiClient.post<OwnerReservation>(`/owner/reservations/${reservationId}/cancel`, body)
     return data

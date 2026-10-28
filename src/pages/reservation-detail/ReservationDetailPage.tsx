@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { CalendarCheck, MapPin } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { getReservationDisplayStatus, RESERVATION_STATUS_LABEL, RESERVATION_STATUS_TONE } from '@/entities'
-import { useCancelReservation, useRefundPreview, useReservationDetail } from '@/features/reservation'
+import { useCancelReservation, useReservationDetail } from '@/features/reservation'
 import { useStoreDetail } from '@/features/store-detail'
 import { paths, ROUTES } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import { formatPrice, formatTime } from '@/shared/lib/format'
-import { Badge, Banner, Button, Dialog, Divider, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { formatTime } from '@/shared/lib/format'
+import { Badge, Button, Dialog, Divider, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
 import styles from './ReservationDetailPage.module.css'
 
 /** 예약 상세 — GET /api/user/reservations/{id}, 취소 POST /{id}/cancel */
@@ -20,7 +20,6 @@ export function ReservationDetailPage() {
   const store = useStoreDetail(reservation?.storeId ?? NaN)
   const cancel = useCancelReservation()
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const refund = useRefundPreview(Number(reservationId), confirmOpen)
   const justCreated = !!state?.justCreated
 
   if (isPending || isError) {
@@ -90,11 +89,6 @@ export function ReservationDetailPage() {
           <dd>{when}</dd>
           <dt>인원</dt>
           <dd>{reservation.partySize}명</dd>
-          <dt>좌석</dt>
-          <dd>
-            {reservation.tableTypeLabel ?? '-'}
-            {reservation.tableNumber ? ` · ${reservation.tableNumber}번 테이블 (자동 배정)` : ' · 방문 시 자동 배정'}
-          </dd>
           {reservation.status === 'CANCELLED' && (
             <>
               <dt>취소</dt>
@@ -113,11 +107,6 @@ export function ReservationDetailPage() {
           {store.data?.address ?? '-'}
         </p>
       </Section>
-      {cancelable && (
-        <Section>
-          <Banner tone="info">방문 당일 취소나 노쇼는 이후 예약이 제한될 수 있어요.</Banner>
-        </Section>
-      )}
 
       <Dialog
         isOpen={confirmOpen}
@@ -127,13 +116,6 @@ export function ReservationDetailPage() {
         onConfirm={doCancel}
       >
         {when} · {reservation.partySize}명 예약이 취소돼요. 취소 후에는 되돌릴 수 없어요.
-        {!!refund.data?.paidAmount && (
-          <>
-            <br />
-            예약금 {formatPrice(refund.data.paidAmount)} 중 {formatPrice(refund.data.refundAmount)}(
-            {refund.data.refundRate}%)이 환불돼요.
-          </>
-        )}
       </Dialog>
     </Page>
   )

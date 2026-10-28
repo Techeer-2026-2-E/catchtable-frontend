@@ -7,13 +7,10 @@ import { lazy } from 'react'
  */
 export const HomePage = lazy(() => import('@/pages/home').then((m) => ({ default: m.HomePage })))
 export const LoginPage = lazy(() => import('@/pages/login').then((m) => ({ default: m.LoginPage })))
-export const SignupPage = lazy(() => import('@/pages/signup').then((m) => ({ default: m.SignupPage })))
 export const SearchPage = lazy(() => import('@/pages/search').then((m) => ({ default: m.SearchPage })))
 export const StoreDetailPage = lazy(() => import('@/pages/store-detail').then((m) => ({ default: m.StoreDetailPage })))
 export const ReservationPage = lazy(() => import('@/pages/reservation').then((m) => ({ default: m.ReservationPage })))
-export const ReservationDetailPage = lazy(() =>
-  import('@/pages/reservation-detail').then((m) => ({ default: m.ReservationDetailPage })),
-)
+export const ReservationDetailPage = lazy(() => import('@/pages/reservation-detail').then((m) => ({ default: m.ReservationDetailPage })))
 export const WaitingApplyPage = lazy(() => import('@/pages/waiting-apply').then((m) => ({ default: m.WaitingApplyPage })))
 export const WaitingPage = lazy(() => import('@/pages/waiting').then((m) => ({ default: m.WaitingPage })))
 export const MyDiningPage = lazy(() => import('@/pages/my-dining').then((m) => ({ default: m.MyDiningPage })))
@@ -33,5 +30,4 @@ export const OwnerPolicyPage = lazy(() => owner().then((m) => ({ default: m.Owne
 export const OwnerReservationsPage = lazy(() => owner().then((m) => ({ default: m.OwnerReservationsPage })))
 export const OwnerWaitingsPage = lazy(() => owner().then((m) => ({ default: m.OwnerWaitingsPage })))
 export const OwnerMenusPage = lazy(() => owner().then((m) => ({ default: m.OwnerMenusPage })))
-export const OwnerSalesPage = lazy(() => owner().then((m) => ({ default: m.OwnerSalesPage })))
 export const OwnerReviewsPage = lazy(() => owner().then((m) => ({ default: m.OwnerReviewsPage })))

@@ -44,14 +44,14 @@ export interface NotificationMessage {
   occurredAt: string
 }
 
-/** 알림 목록 항목 — GET /api/user/notifications (노션 명세, 응답 필드는 제안) */
+/** 화면에 보여줄 실시간 알림 — NotificationMessage 를 받아 만든 값 (알림함 API 는 백엔드에 없음) */
 export interface Notification {
-  id: number
+  /** eventId */
+  id: string
   type: NotificationType
   targetId: number
   title: string
   message: string
-  read: boolean
   createdAt: string
 }
 

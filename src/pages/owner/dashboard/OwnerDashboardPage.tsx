@@ -1,13 +1,13 @@
-import { ChevronRight, LogOut, Plus } from 'lucide-react'
+import { ChevronRight, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { STORE_CATEGORY_LABEL } from '@/entities'
 import { useAuthStore, useLogout } from '@/features/auth'
 import { useMyStores } from '@/features/owner-store'
 import { paths, ROUTES } from '@/shared/config'
-import { Button, EmptyState, ErrorState, IconButton, ImagePlaceholder, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { EmptyState, ErrorState, IconButton, LoadingState, Page, Section, TopBar } from '@/shared/ui'
 import styles from './OwnerDashboardPage.module.css'
 
-/** 점주 — 내 매장 목록 */
+/** 점주 — 내 매장 목록 (점주 매장 목록 API 가 없어 VITE_OWNER_STORE_IDS 의 매장) */
 export function OwnerDashboardPage() {
   const owner = useAuthStore((s) => s.member)
   const logout = useLogout()
@@ -22,9 +22,12 @@ export function OwnerDashboardPage() {
         large
         actions={
           <IconButton
-            label="로그아웃"
+            label="다른 회원으로 시작"
             icon={<LogOut />}
-            onClick={() => logout.mutate(undefined, { onSettled: () => navigate(ROUTES.HOME, { replace: true }) })}
+            onClick={() => {
+              logout()
+              navigate(ROUTES.LOGIN, { replace: true })
+            }}
           />
         }
       />
@@ -32,12 +35,11 @@ export function OwnerDashboardPage() {
       <Section>
         {isPending && <LoadingState compact />}
         {isError && <ErrorState onRetry={() => refetch()} />}
-        {stores?.length === 0 && <EmptyState title="등록된 매장이 없어요" description="매장을 등록하고 예약·웨이팅을 받아보세요" />}
+        {stores?.length === 0 && <EmptyState title="연결된 매장이 없어요" description=".env 의 VITE_OWNER_STORE_IDS 를 확인해주세요" />}
         <ul className={styles.list}>
           {stores?.map((store) => (
             <li key={store.id}>
               <Link to={paths.ownerStore(store.id)} className={styles.store}>
-                <ImagePlaceholder src={store.thumbnailUrl} className={styles.thumb} radius={8} />
                 <div className={styles.text}>
                   <p className="t-headline-16">{store.name}</p>
                   <p className="t-caption-13 text-tertiary">
@@ -49,9 +51,6 @@ export function OwnerDashboardPage() {
             </li>
           ))}
         </ul>
-        <Button variant="soft" fullWidth leftIcon={<Plus />} onClick={() => toast('매장 등록은 준비 중이에요')}>
-          매장 등록
-        </Button>
       </Section>
     </Page>
   )

@@ -50,15 +50,6 @@ export interface Waiting {
   calledAt: string | null
   /** 호출 응답·입장 제한 시각 */
   expiresAt: string | null
-  /* ----- [목 전용] 백엔드 응답에 없음 ----- */
-  /** 좌석 조건 */
-  seatPreference?: string | null
-  /** 접수 시각 */
-  createdAt?: string
-  /** 순번 미루기 남은 횟수 (백엔드 미구현) */
-  deferRemaining?: number
-  /** 예상 대기시간(분) — 보류 */
-  estimatedMinutes?: number | null
 }
 
 /** 종료 결과 — 고객 취소·점주 노쇼 응답 (WaitingTerminationResponse) */
@@ -87,11 +78,6 @@ export interface OwnerWaiting {
   /** 고객이 도착 의사를 응답한 시각 */
   respondedAt: string | null
   arrivalIntent: 'COMING' | null
-  /* ----- [목 전용] ----- */
-  /** 호출 재전송 횟수 */
-  recallCount?: number
-  /** 좌석 조건 */
-  seatPreference?: string | null
 }
 
 /** 점주 웨이팅 운영 설정 — GET·PUT /settings, POST /open·/close 응답 (WaitingPolicyResponse) */
@@ -101,8 +87,6 @@ export interface WaitingSettings {
   open: boolean
   /** 호출 후 도착 제한시간(분) */
   arrivalLimitMinutes: number
-  /** [목 전용] 공석 시 다음 고객 자동 호출 */
-  autoCall?: boolean
 }
 
 export const WAITING_STATUS_LABEL: Record<WaitingStatus, string> = {
