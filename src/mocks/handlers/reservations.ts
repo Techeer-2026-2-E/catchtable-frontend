@@ -59,7 +59,7 @@ export function createConfirmedReservation(args: {
     args.memberId,
     'RESERVATION_CONFIRMED',
     row.reservationId,
-    `${store.name} · ${args.startAt.format('M/D(dd) HH:mm')} · ${args.partySize}명`,
+    `${store.name} ${args.startAt.format('M/D(dd) HH:mm')}, ${args.partySize}명`,
   )
   return row
 }

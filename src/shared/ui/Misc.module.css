@@ -91,15 +91,16 @@
   color: var(--color-icon-disabled);
 }
 
-/* ---------- Card — 장부 한 줄 (목록 안에서 위아래 선으로 구분) ---------- */
+/* ---------- Card — 둥근 흰 블록 (여러 개를 나열할 때) ---------- */
 .card {
-  padding: var(--space-16) 0;
-  border-bottom: 1px solid var(--color-border-default);
-  background: transparent;
+  padding: var(--space-16);
+  border: 1px solid var(--card-border, var(--color-border-default));
+  border-radius: var(--radius-16);
+  background: var(--color-bg-surface);
 }
 .cardSelected {
-  box-shadow: inset 3px 0 0 var(--color-primary-default);
-  padding-left: var(--space-12);
+  border-color: var(--color-primary-default);
+  box-shadow: 0 0 0 1px var(--color-primary-default);
 }
 
 /* ---------- Ticket — 번호표 (양옆 홈 + 절취선) ---------- */
@@ -147,21 +148,21 @@
   border-top-color: var(--color-border-strong);
 }
 
-/* ---------- StatLine — 장부 한 줄 요약 수치 ---------- */
+/* ---------- StatLine — 요약 수치 블록 (칸 사이 세로선) ---------- */
 .statLine {
   display: flex;
-  border-top: 1px solid var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border-default);
+  margin: 0;
+  padding: var(--space-12) 0;
+  border-radius: var(--radius-16);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-default);
 }
 .stat {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-12) 0 var(--space-12) var(--space-12);
-}
-.stat:first-child {
-  padding-left: 0;
+  padding: 0 var(--space-16);
 }
 .stat + .stat {
   border-left: 1px solid var(--color-border-default);

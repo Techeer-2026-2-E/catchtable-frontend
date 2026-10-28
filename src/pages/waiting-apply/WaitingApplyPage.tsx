@@ -32,7 +32,7 @@ export function WaitingApplyPage() {
       { storeId: store.id, partyCount: partySize },
       {
         onSuccess: (waiting) => {
-          toast(`대기번호 ${waiting.waitNumber}번 · 앞에 ${waiting.teamsAhead}팀`)
+          toast(`대기번호 ${waiting.waitNumber}번, 앞에 ${waiting.teamsAhead}팀`)
           navigate(paths.waiting(waiting.waitingId), { replace: true })
         },
         onError: (e) => toast(getErrorMessage(e, '웨이팅을 신청하지 못했어요')),

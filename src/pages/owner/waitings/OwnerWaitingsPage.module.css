@@ -23,8 +23,10 @@
   font-weight: 600;
 }
 .list {
-  margin: var(--space-12) var(--page-gutter) var(--space-24);
-  border-top: 1px solid var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--page-gutter) var(--space-24);
 }
 /* 대기열 한 줄 — 왼쪽 대기번호 열 */
 .card {

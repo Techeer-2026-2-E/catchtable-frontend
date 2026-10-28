@@ -1,14 +1,16 @@
-/* ---------- 조건 한 줄 ---------- */
+/* ---------- 상단 — 흰 바탕 (제목, 조건, 카테고리) ---------- */
+.head {
+  background: var(--color-bg-canvas);
+}
 .condition {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-12);
   width: calc(100% - var(--page-gutter) * 2);
   margin: 0 var(--page-gutter);
-  padding: var(--space-12) 0;
-  border-top: 1px solid var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
   text-align: left;
 }
 .condition svg {
@@ -17,11 +19,18 @@
   height: 1.25rem;
   color: var(--color-icon-subtle);
 }
+.conditionIcon {
+  color: var(--color-icon-default);
+}
 .conditionValue {
   display: flex;
-  gap: var(--space-16);
-  font-size: 1.0625rem;
-  line-height: 1.5rem;
+  flex: 1;
+  gap: var(--space-12);
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+}
+.condition > span:not(.conditionValue) {
+  flex: 1;
 }
 .conditionValue strong {
   font-weight: 600;
@@ -33,6 +42,7 @@
   overflow-x: auto;
   gap: var(--space-20);
   padding: var(--space-16) var(--page-gutter) 0;
+  border-bottom: 1px solid var(--color-border-default);
   scrollbar-width: none;
 }
 .category {
@@ -52,7 +62,11 @@
 /* ---------- 결과 ---------- */
 .results {
   padding: 0 var(--page-gutter) var(--space-32);
-  border-top: 1px solid var(--color-border-default);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 }
 .count {
   padding: var(--space-12) 0 var(--space-4);
@@ -60,8 +74,8 @@
 .slots {
   display: flex;
   gap: var(--space-8);
-  margin: 0 calc(var(--page-gutter) * -1);
-  padding: 0 var(--page-gutter);
+  margin: 0 calc(var(--space-16) * -1);
+  padding: 0 var(--space-16);
   overflow-x: auto;
   scrollbar-width: none;
 }

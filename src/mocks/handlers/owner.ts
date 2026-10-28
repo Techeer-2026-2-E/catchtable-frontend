@@ -129,7 +129,7 @@ const storeHandlers = [
         return badRequest('영업 시작 시각과 종료 시각이 같을 수 없습니다.', 'INVALID_BUSINESS_HOUR')
       }
       if (!!h.breakStartTime !== !!h.breakEndTime || (h.breakStartTime && h.breakEndTime && h.breakStartTime >= h.breakEndTime)) {
-        return badRequest('브레이크타임은 시작·종료를 함께 입력하고 영업시간 안에 있어야 합니다.', 'INVALID_BREAK_TIME')
+        return badRequest('브레이크타임은 시작과 종료를 함께 입력하고 영업시간 안에 있어야 합니다.', 'INVALID_BREAK_TIME')
       }
     }
     own.store.businessHours = b.businessHours.map((h) => ({
@@ -238,7 +238,7 @@ const reservationHandlers = [
     r.cancelledAt = nowIso()
     r.cancellationActor = 'OWNER'
     r.cancellationReason = reason.trim()
-    notify(r.memberId, 'RESERVATION_CANCELED', r.reservationId, `${own.store.name} 사정으로 예약이 취소됐어요 · ${reason.trim()}`)
+    notify(r.memberId, 'RESERVATION_CANCELED', r.reservationId, `${own.store.name} 사정으로 예약이 취소됐어요. 사유: ${reason.trim()}`)
     return saved(HttpResponse.json(toOwnerReservation(r)))
   }),
 
@@ -300,7 +300,7 @@ const reservationHandlers = [
       r.memberId,
       'RESERVATION_CHANGED',
       r.reservationId,
-      `${own.store.name} · ${startAt.format('M/D(dd) HH:mm')} · ${partySize}명으로 변경됐어요`,
+      `${own.store.name} 예약이 ${startAt.format('M/D(dd) HH:mm')}, ${partySize}명으로 변경됐어요`,
     )
     return saved(HttpResponse.json(toOwnerReservation(r)))
   }),
@@ -420,7 +420,7 @@ const waitingHandlers = [
     if (b.reason !== 'NO_RESPONSE' && b.reason !== 'NO_SHOW') return badRequest('처리 사유를 선택해주세요.')
     if (!b.detail?.trim() || b.detail.length > 300) return badRequest('상세 사유는 1~300자로 입력해주세요.')
     endWaiting(found.w, 'NO_SHOW', b.reason, b.detail.trim())
-    notify(found.w.memberId, 'WAITING_EXPIRED', found.w.waitingId, `${found.store.name} · 호출에 응답이 없어 순번이 만료됐어요`)
+    notify(found.w.memberId, 'WAITING_EXPIRED', found.w.waitingId, `${found.store.name} 호출에 응답이 없어 순번이 만료됐어요`)
     queueChanged(found.store.id)
     return saved(HttpResponse.json(toWaitingTermination(found.w)))
   }),

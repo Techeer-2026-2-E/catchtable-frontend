@@ -125,7 +125,7 @@ function ReviewForm({ target, review, reservationId }: { target: Target; review?
             <p className="t-headline-16">{target.storeName}</p>
             <p className="t-caption-13 text-tertiary">
               {dayjs(target.visitedAt).format('M/D(dd) HH:mm')} 방문
-              {target.partySize && ` · ${target.partySize}명`}
+              {target.partySize && `, ${target.partySize}명`}
             </p>
           </div>
         </div>

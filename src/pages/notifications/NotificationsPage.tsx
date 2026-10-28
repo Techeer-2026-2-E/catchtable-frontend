@@ -34,7 +34,7 @@ export function NotificationsPage() {
     <Page>
       <TopBar title="알림" leading="none" large />
       {items.length === 0 ? (
-        <EmptyState icon={<BellOff />} title="새 알림이 없어요" description="접속해 있는 동안 예약·웨이팅 상태가 바뀌면 알려드릴게요" />
+        <EmptyState icon={<BellOff />} title="새 알림이 없어요" description="접속해 있는 동안 예약이나 웨이팅 상태가 바뀌면 알려드릴게요" />
       ) : (
         <ul className={styles.list}>
           {items.map((n) => (

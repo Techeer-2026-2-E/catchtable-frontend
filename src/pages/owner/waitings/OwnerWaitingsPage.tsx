@@ -195,7 +195,7 @@ export function OwnerWaitingsPage() {
       <Dialog
         isOpen={!!pending}
         onClose={() => setPending(null)}
-        title={pending?.type === 'noShow' ? '미응답·노쇼로 처리할까요?' : '웨이팅을 취소할까요?'}
+        title={pending?.type === 'noShow' ? '미응답 노쇼로 처리할까요?' : '웨이팅을 취소할까요?'}
         confirmLabel={pending?.type === 'noShow' ? '노쇼 처리' : '웨이팅 취소'}
         onConfirm={confirmPending}
       >
@@ -222,7 +222,7 @@ export function OwnerWaitingsPage() {
       </Dialog>
 
       <BottomSheet isOpen={settingOpen} onClose={() => setSettingOpen(false)} title="웨이팅 운영 설정">
-        <p className="t-body-14 text-secondary">호출 후 이 시간 안에 응답·도착하지 않으면 순번이 만료돼요.</p>
+        <p className="t-body-14 text-secondary">호출 후 이 시간 안에 응답하거나 도착하지 않으면 순번이 만료돼요.</p>
         <ChipGroup label="도착 제한시간" className={styles.sheetChips}>
           {ARRIVAL_OPTIONS.map((m) => (
             <Chip

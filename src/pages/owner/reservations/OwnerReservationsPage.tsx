@@ -209,7 +209,7 @@ export function OwnerReservationsPage() {
         onConfirm={confirm}
       >
         {pending &&
-          `${formatTime(pending.reservation.reservationStartAt)} ${pending.reservation.customerName}님 · ${pending.reservation.partySize}명`}
+          `${formatTime(pending.reservation.reservationStartAt)} ${pending.reservation.customerName}님, ${pending.reservation.partySize}명`}
         <br />
         {pending?.type === 'noShow'
           ? '노쇼 처리하면 테이블이 다시 예약 가능 상태가 돼요.'

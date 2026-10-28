@@ -66,7 +66,7 @@ export function EmptyState({ icon, title, description }: { icon?: ReactNode; tit
   )
 }
 
-/** 장부 한 줄 — 목록 안에서 아래 선으로 구분. selected 시 왼쪽 노랑 막대 */
+/** 둥근 흰 블록 — 여러 항목을 나열할 때. 회색 바탕(Page muted) 위에서는 테두리 없이 */
 export function Card({
   children,
   selected = false,
@@ -151,7 +151,7 @@ export function Ticket({
   )
 }
 
-/** 요약 수치 한 줄 — 장부 머리처럼 위 굵은 선, 칸 사이 세로선 */
+/** 요약 수치 블록 — 칸 사이 세로선 */
 export function StatLine({ items }: { items: { label: string; value: ReactNode; unit?: string }[] }) {
   return (
     <dl className={styles.statLine}>

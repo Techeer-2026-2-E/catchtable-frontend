@@ -5,16 +5,11 @@
   height: var(--topbar-height);
   padding: 0 var(--space-8) 0 var(--page-gutter);
 }
-.logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--color-primary-default);
+.brand {
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-text-on-primary);
+  letter-spacing: -0.02em;
+  color: var(--color-text-brand);
 }
 .bell {
   display: inline-flex;
@@ -28,95 +23,91 @@
   height: 1.5rem;
 }
 
-/* ---------- 언제, 몇 명 ---------- */
-.finder {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-16);
-  padding: var(--space-8) var(--page-gutter) var(--space-24);
-  border-bottom: 1px solid var(--color-border-default);
+/* ---------- 검색바 ---------- */
+.searchWrap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: var(--space-4) var(--page-gutter) var(--space-12);
+  background: var(--color-bg-canvas);
 }
-.days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: var(--space-4);
-}
-.day {
+.search {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-8) 0;
-  border-radius: var(--radius-12);
-  color: var(--color-text-secondary);
-}
-.dayNumber {
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.5rem;
-  color: var(--color-text-primary);
-}
-.day[aria-checked='true'] {
-  background: var(--color-secondary-default);
-  color: var(--color-text-on-secondary);
-}
-.day[aria-checked='true'] .dayNumber {
-  color: inherit;
-}
-.times {
-  display: flex;
-  overflow-x: auto;
   gap: var(--space-8);
-  scrollbar-width: none;
-}
-.time {
-  flex-shrink: 0;
-  height: 2.25rem;
-  padding: 0 var(--space-12);
-  border: 1px solid var(--color-border-default);
+  height: 3.25rem;
+  padding: 0 var(--space-16);
+  border: 2px solid var(--color-text-primary);
   border-radius: var(--radius-full);
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: var(--color-text-tertiary);
+  font-size: 0.9375rem;
 }
-.time[aria-checked='true'] {
-  border-color: var(--color-secondary-default);
-  background: var(--color-secondary-default);
-  color: var(--color-text-on-secondary);
-}
-.party {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.search svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-icon-default);
 }
 
-/* ---------- 카테고리 ---------- */
+/* ---------- 음식 종류 ---------- */
 .categories {
-  display: flex;
-  overflow-x: auto;
-  gap: var(--space-20);
-  padding: var(--space-16) var(--page-gutter);
-  border-bottom: 1px solid var(--color-border-default);
-  scrollbar-width: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--space-16);
+  padding: var(--space-12) var(--page-gutter) var(--space-20);
 }
 .category {
-  flex-shrink: 0;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  color: var(--color-text-primary);
+}
+.categoryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-16);
+  background: var(--color-secondary-soft);
+  font-size: 1.75rem;
 }
 
-/* ---------- 매장 목록 ---------- */
-.group {
-  padding: var(--space-24) var(--page-gutter) 0;
+/* ---------- 추천 ---------- */
+.section {
+  padding: var(--space-24) 0 var(--space-8);
 }
-.groupTitle {
+.sectionHead {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-8);
-  padding-bottom: var(--space-8);
-  border-bottom: 1px solid var(--color-text-primary);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: 0 var(--page-gutter) var(--space-12);
+}
+.sectionTitle {
+  padding: 0 var(--page-gutter) var(--space-12);
+}
+.more {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+.more svg {
+  width: 1rem;
+  height: 1rem;
+}
+.shelf {
+  display: flex;
+  overflow-x: auto;
+  gap: var(--space-12);
+  padding: 0 var(--page-gutter) var(--space-16);
+  scrollbar-width: none;
 }
 .list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-8);
+  padding: 0 var(--page-gutter) var(--space-24);
 }

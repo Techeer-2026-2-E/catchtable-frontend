@@ -213,7 +213,7 @@ export function tick() {
       endWaiting(w, 'NO_SHOW', 'AUTO_EXPIRED')
       changed = true
       const store = findStore(w.storeId)
-      notify(w.memberId, 'WAITING_EXPIRED', w.waitingId, `${store?.name} · 호출 후 제한시간이 지났어요`)
+      notify(w.memberId, 'WAITING_EXPIRED', w.waitingId, `${store?.name} 호출 후 제한시간이 지났어요`)
       queueChanged(w.storeId)
     }
   })
@@ -263,7 +263,7 @@ export function callWaiting(w: WaitingRow) {
     w.memberId,
     'WAITING_CALLED',
     w.waitingId,
-    `${store.name} 웨이팅 · ${store.waitingSettings.arrivalLimitMinutes}분 안에 도착 의사를 알려주세요`,
+    `${store.name} 입장 차례예요. ${store.waitingSettings.arrivalLimitMinutes}분 안에 도착을 알려주세요`,
     { status: w.status, waitNumber: w.waitNumber, storeName: store.name, calledAt: w.calledAt, expiresAt: w.callExpiresAt },
   )
   queueChanged(w.storeId)

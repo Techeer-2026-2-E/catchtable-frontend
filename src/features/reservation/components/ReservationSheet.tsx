@@ -34,7 +34,7 @@ export function ReservationSheet({ storeId, isOpen, onClose, maxPartySize, openD
     }
   }, [isOpen, storeId, initialDate, setStore, setDate])
 
-  const summary = date && time ? `${dayjs(date).format('M월 D일 (dd)')} · ${formatTime(time)} · ${partySize}명` : null
+  const summary = date && time ? `${dayjs(date).format('M월 D일 (dd)')} ${formatTime(time)}, ${partySize}명` : null
 
   return (
     <BottomSheet

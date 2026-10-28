@@ -28,7 +28,7 @@ export function ReviewItem({ review, actions, className }: ReviewItemProps) {
             <StarRating value={review.rating} />
             <span className="t-caption-12 text-tertiary">
               {when}
-              {isMine && review.updatedAt && ' · 수정됨'}
+              {isMine && review.updatedAt && ', 수정됨'}
             </span>
           </p>
         </div>

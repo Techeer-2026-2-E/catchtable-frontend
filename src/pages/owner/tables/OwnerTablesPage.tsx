@@ -57,7 +57,7 @@ export function OwnerTablesPage() {
     >
       <TopBar title="테이블별 수용 인원 설정" />
       <p className={styles.summary}>
-        운영 중 <strong>{active.length}개</strong> 테이블 · 최대 <strong>{totalCapacity}명</strong> 동시 수용
+        운영 중 <strong>{active.length}개</strong> 테이블, 최대 <strong>{totalCapacity}명</strong> 동시 수용
       </p>
 
       {isPending ? (

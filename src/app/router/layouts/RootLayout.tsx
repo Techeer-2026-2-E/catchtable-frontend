@@ -7,7 +7,7 @@ import styles from './Layout.module.css'
 import { PageFallback } from './PageFallback'
 
 /** 하단 탭바를 보여줄 탭 메인 화면 */
-const TAB_ROUTES: string[] = [ROUTES.HOME, ROUTES.MY_DINING, ROUTES.MYPAGE, ROUTES.NOTIFICATIONS]
+const TAB_ROUTES: string[] = [ROUTES.HOME, ROUTES.SEARCH, ROUTES.MY_DINING, ROUTES.MYPAGE, ROUTES.NOTIFICATIONS]
 
 /** 고객용 공통 레이아웃 — 414 폭 모바일 프레임 + 하단 탭바 */
 export function RootLayout() {

@@ -34,7 +34,7 @@ export function MyPage() {
 
       <Divider thick />
       <p className={`${styles.groupTitle} t-caption-13 text-tertiary`}>계정</p>
-      <ListItem icon={<UserRound />} title="이름 · 연락처 설정" to={ROUTES.PROFILE_EDIT} />
+      <ListItem icon={<UserRound />} title="이름, 연락처 설정" to={ROUTES.PROFILE_EDIT} />
       <ListItem icon={<Star />} title="리뷰 관리" value={reviews.data ? `${reviews.data.length}개` : undefined} to={ROUTES.MY_REVIEWS} />
       <Divider thick />
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, SearchX } from 'lucide-react'
+import { CalendarDays, ChevronDown, SearchX } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from '@/entities'
 import { useAvailability } from '@/features/reservation'
@@ -53,38 +53,41 @@ export function SearchPage() {
   const slotPartySize = condition?.partySize ?? 2
 
   return (
-    <Page>
-      <TopBar title="빈자리 찾기" />
+    <Page muted>
+      <div className={styles.head}>
+        <TopBar title="빈자리 찾기" leading="none" large />
 
-      <button type="button" className={styles.condition} onClick={() => setSheetOpen(true)} aria-label="날짜·시간·인원 바꾸기">
-        {condition ? (
-          <span className={`${styles.conditionValue} tnum`}>
-            <strong>{dayjs(condition.date).format('M월 D일 (dd)')}</strong>
-            <strong>{formatTime(condition.time)}</strong>
-            <strong>{condition.partySize}명</strong>
-          </span>
-        ) : (
-          <span className="t-body-15 text-secondary">날짜·시간·인원을 골라 빈자리만 보기</span>
-        )}
-        <ChevronDown aria-hidden />
-      </button>
-
-      <nav className={styles.categories} aria-label="카테고리">
-        <button type="button" aria-pressed={!category} className={styles.category} onClick={() => setParams({ category: null })}>
-          전체
+        <button type="button" className={styles.condition} onClick={() => setSheetOpen(true)} aria-label="날짜, 시간, 인원 바꾸기">
+          <CalendarDays aria-hidden className={styles.conditionIcon} />
+          {condition ? (
+            <span className={`${styles.conditionValue} tnum`}>
+              <strong>{dayjs(condition.date).format('M월 D일 (dd)')}</strong>
+              <strong>{formatTime(condition.time)}</strong>
+              <strong>{condition.partySize}명</strong>
+            </span>
+          ) : (
+            <span className="t-body-15 text-secondary">날짜, 시간, 인원을 고르고 빈자리 찾기</span>
+          )}
+          <ChevronDown aria-hidden />
         </button>
-        {(Object.entries(STORE_CATEGORY_LABEL) as [StoreCategory, string][]).map(([code, label]) => (
-          <button
-            key={code}
-            type="button"
-            aria-pressed={category === code}
-            className={styles.category}
-            onClick={() => setParams({ category: category === code ? null : code })}
-          >
-            {label}
+
+        <nav className={styles.categories} aria-label="카테고리">
+          <button type="button" aria-pressed={!category} className={styles.category} onClick={() => setParams({ category: null })}>
+            전체
           </button>
-        ))}
-      </nav>
+          {(Object.entries(STORE_CATEGORY_LABEL) as [StoreCategory, string][]).map(([code, label]) => (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={category === code}
+              className={styles.category}
+              onClick={() => setParams({ category: category === code ? null : code })}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       {isPending ? (
         <LoadingState />
@@ -93,12 +96,12 @@ export function SearchPage() {
       ) : (
         <section className={styles.results}>
           <p className={`${styles.count} t-caption-13 text-tertiary tnum`} aria-live="polite">
-            {condition ? '예약 가능한 매장' : '매장'} {results.length}곳{isFetching && ', 찾는 중'}
+            {condition ? '예약 가능한 매장' : '전체 매장'} {results.length}곳{isFetching && ', 찾는 중'}
           </p>
           {results.length === 0 ? (
             <EmptyState icon={<SearchX />} title="조건에 맞는 매장이 없어요" description="다른 날짜나 시간으로 다시 찾아보세요" />
           ) : (
-            <ul>
+            <ul className={styles.list}>
               {results.map((store) => (
                 <li key={store.id}>
                   <StoreCard

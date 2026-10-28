@@ -1,6 +1,7 @@
 .list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-8);
   padding: var(--space-4) var(--page-gutter) var(--space-24);
 }
 .item {

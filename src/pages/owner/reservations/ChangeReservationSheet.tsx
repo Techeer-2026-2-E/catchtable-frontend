@@ -67,15 +67,15 @@ export function ChangeReservationSheet({
             : !time
               ? '시간을 선택해주세요'
               : unchanged
-                ? '바꿀 날짜·시간·인원을 선택해주세요'
-                : `${dayjs(date).format('M/D(dd)')} ${formatTime(time)} · ${partySize}명으로 변경`}
+                ? '바꿀 날짜, 시간, 인원을 선택해주세요'
+                : `${dayjs(date).format('M/D(dd)')} ${formatTime(time)}, ${partySize}명으로 변경`}
         </Button>
       }
     >
       <div className={styles.body}>
         <p className={styles.current}>
-          <span className="text-tertiary">현재</span> {original.format('M/D(dd)')} {formatTime(reservation.reservationStartAt)} ·{' '}
-          {reservation.partySize}명 · {reservation.customerName}님
+          <span className="text-tertiary">현재</span> {original.format('M/D(dd)')} {formatTime(reservation.reservationStartAt)},{' '}
+          {reservation.partySize}명, {reservation.customerName}님
         </p>
 
         <div className={styles.row}>
@@ -138,9 +138,7 @@ export function ChangeReservationSheet({
                     onClick={() => setTime(t)}
                   >
                     <span className="t-label-13">{formatTime(t)}</span>
-                    <span className={styles.slotMeta}>
-                      {mine ? '현재' : available ? `${slot.availableTableCount}테이블` : '마감'}
-                    </span>
+                    <span className={styles.slotMeta}>{mine ? '현재' : available ? `${slot.availableTableCount}테이블` : '마감'}</span>
                   </button>
                 )
               })}

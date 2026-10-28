@@ -3,6 +3,13 @@
   flex-direction: column;
   min-height: 100%;
 }
+.muted {
+  flex: 1;
+  background: var(--color-bg-muted);
+  /* 회색 바탕 위 흰 블록은 테두리 없이 */
+  --card-border: transparent;
+  --ticket-cutout: var(--color-bg-muted);
+}
 .content {
   flex: 1;
 }
@@ -46,5 +53,6 @@
   background: var(--color-border-default);
 }
 .thick {
-  margin: var(--space-8) var(--page-gutter);
+  height: 0.5rem;
+  background: var(--color-bg-muted);
 }

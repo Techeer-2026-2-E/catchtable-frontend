@@ -100,7 +100,7 @@ export function ReservationPage() {
             <dd>인원에 맞는 자리로 매장이 배정해요</dd>
           </dl>
           <Button variant="ghost" size="S" onClick={() => setStep('datetime')}>
-            날짜·시간 바꾸기
+            날짜, 시간 바꾸기
           </Button>
         </section>
       )}
