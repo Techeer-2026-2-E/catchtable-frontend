@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { StartAsButtons } from '@/features/auth'
+import { StartAsButtons, useAuthStore } from '@/features/auth'
 import { ROUTES } from '@/shared/config'
 import { Page, TopBar } from '@/shared/ui'
 import styles from './AuthPage.module.css'
@@ -10,6 +10,7 @@ import styles from './AuthPage.module.css'
  */
 export function LoginPage() {
   const navigate = useNavigate()
+  const member = useAuthStore((s) => s.member)
 
   return (
     <Page>
@@ -22,6 +23,12 @@ export function LoginPage() {
           <h1 className="t-title-20">캐치테이블</h1>
           <p className="t-body-14 text-secondary">줄 서지 말고, 예약하고 기다리세요</p>
         </div>
+        {member && (
+          <p className="t-body-14 text-secondary">
+            지금 {member.name}님({member.userType === 'OWNER' ? '점주' : '고객'})으로 이용 중이에요. 다른 회원으로 바꾸려면 아래에서
+            골라주세요.
+          </p>
+        )}
         <div className={styles.actions}>
           <StartAsButtons />
         </div>

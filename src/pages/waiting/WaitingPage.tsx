@@ -118,7 +118,7 @@ export function WaitingPage() {
         ) : (
           status !== 'SEATED' && (
             <Button variant="outline" fullWidth onClick={() => navigate(paths.waitingApply(waiting.storeId))}>
-              다시 줄 서기
+              다시 웨이팅 신청
             </Button>
           )
         )}

@@ -107,7 +107,7 @@ export function OwnerWaitingsPage() {
       <TopBar title="웨이팅 현황 관리" />
 
       <div className={styles.control}>
-        <p className="t-headline-16">{open ? '줄 서기 받는 중' : '줄 서기 마감'}</p>
+        <p className="t-headline-16">{open ? '웨이팅 받는 중' : '웨이팅 마감'}</p>
         <Toggle
           checked={open}
           label="웨이팅 접수"

@@ -61,7 +61,7 @@ export function StoreTags({ store }: { store: Store }) {
   if (!store.waitingAvailable) return null
   return (
     <span className={styles.tags}>
-      <Badge tone="primary">줄 서기 가능</Badge>
+      <Badge tone="primary">웨이팅 가능</Badge>
     </span>
   )
 }

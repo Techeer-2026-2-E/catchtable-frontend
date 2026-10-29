@@ -74,7 +74,7 @@ export function MyDiningPage() {
       ) : history.isError ? (
         <ErrorState onRetry={() => history.refetch()} />
       ) : groups.length === 0 ? (
-        <EmptyState icon={<CalendarX />} title="아직 내역이 없어요" description="마음에 드는 매장을 찾아 예약하거나 줄 서 보세요" />
+        <EmptyState icon={<CalendarX />} title="아직 내역이 없어요" description="마음에 드는 매장을 찾아 예약하거나 웨이팅해 보세요" />
       ) : (
         <div className={styles.groups}>
           {groups.map(({ day, items }) => (

@@ -13,7 +13,7 @@ const TONIGHT = { time: '19:00', partySize: 2 }
 
 /**
  * 홈 — 검색바, 음식 종류, 식당 추천
- * 추천은 백엔드가 주는 값으로만 구성 (줄 서기 가능, 오늘 저녁 빈자리). 거리순·인기순은 위치·평점 API 가 생기면 추가
+ * 추천은 백엔드가 주는 값으로만 구성 (웨이팅 가능, 오늘 저녁 빈자리). 거리순·인기순은 위치·평점 API 가 생기면 추가
  */
 export function HomePage() {
   const today = dayjs().format('YYYY-MM-DD')
@@ -34,7 +34,7 @@ export function HomePage() {
       <div className={styles.searchWrap}>
         <Link to={ROUTES.SEARCH} className={styles.search}>
           <Search aria-hidden />
-          <span>날짜와 인원으로 빈자리 찾기</span>
+          <span>식당 이름으로 검색</span>
         </Link>
       </div>
 
@@ -59,7 +59,7 @@ export function HomePage() {
         <EmptyState title="등록된 매장이 없어요" />
       ) : (
         <>
-          <Shelf title="지금 바로 줄 설 수 있어요" description="원격으로 줄 서고 차례가 되면 알림을 받아요" stores={waitingNow} />
+          <Shelf title="지금 웨이팅 가능해요" description="원격으로 웨이팅하고 차례가 되면 알림을 받아요" stores={waitingNow} />
           <Shelf
             title="오늘 저녁 7시, 2명 자리 있어요"
             description="지금 바로 예약할 수 있는 매장이에요"

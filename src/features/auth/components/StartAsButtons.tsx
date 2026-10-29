@@ -22,8 +22,11 @@ export function StartAsButtons() {
   const run = (who: keyof typeof SEED_MEMBERS) =>
     startAs.mutate(SEED_MEMBERS[who], {
       onSuccess: () => {
-        const fallback = who === 'owner' ? ROUTES.OWNER : ROUTES.HOME
-        navigate(location.state?.from?.pathname ?? fallback, { replace: true })
+        // 돌아갈 화면이 고른 회원 유형과 맞을 때만 돌아감 (점주는 점주 화면, 고객은 고객 화면)
+        const from = location.state?.from?.pathname
+        const isOwnerPath = !!from?.startsWith(ROUTES.OWNER)
+        const back = from && (who === 'owner') === isOwnerPath ? from : null
+        navigate(back ?? (who === 'owner' ? ROUTES.OWNER : ROUTES.HOME), { replace: true })
       },
       onError: (e) => toast(getErrorMessage(e, '회원 정보를 불러오지 못했어요. 백엔드가 켜져 있는지 확인해주세요')),
     })
