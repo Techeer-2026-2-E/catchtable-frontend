@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ACTIVE_WAITING_STATUSES, type Waiting } from '@/entities'
+import { ACTIVE_WAITING_STATUSES } from '@/entities'
 import { waitingKeys } from '../api/queryKeys'
 import { waitingApi } from '../api/waitingApi'
 
@@ -11,37 +11,25 @@ export function useWaitingDetail(waitingId: number) {
     queryKey: waitingKeys.detail(waitingId),
     queryFn: () => waitingApi.getDetail(waitingId),
     enabled: Number.isFinite(waitingId),
-    refetchInterval: (query) =>
-      query.state.data && ACTIVE_WAITING_STATUSES.includes(query.state.data.status) ? POLLING_MS : false,
+    refetchInterval: (query) => (query.state.data && ACTIVE_WAITING_STATUSES.includes(query.state.data.status) ? POLLING_MS : false),
   })
-}
-
-export function useWaitings() {
-  return useQuery({ queryKey: waitingKeys.list(), queryFn: waitingApi.getList })
 }
 
 export function useRegisterWaiting() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: waitingApi.register,
-    onSuccess: (waiting) => {
-      queryClient.setQueryData(waitingKeys.detail(waiting.waitingId), waiting)
-      queryClient.invalidateQueries({ queryKey: waitingKeys.list() })
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: waitingKeys.all }),
   })
 }
 
+/** 응답이 상세 형식과 달라서 성공하면 상세를 다시 조회 */
 export function useWaitingActions(waitingId: number) {
   const queryClient = useQueryClient()
-  const update = (waiting: Waiting) => {
-    queryClient.setQueryData(waitingKeys.detail(waitingId), waiting)
-    queryClient.invalidateQueries({ queryKey: waitingKeys.list() })
-  }
   const invalidate = () => queryClient.invalidateQueries({ queryKey: waitingKeys.all })
 
   return {
-    accept: useMutation({ mutationFn: () => waitingApi.accept(waitingId), onSuccess: update }),
-    defer: useMutation({ mutationFn: () => waitingApi.defer(waitingId), onSuccess: update }),
+    accept: useMutation({ mutationFn: () => waitingApi.accept(waitingId), onSuccess: invalidate }),
     cancel: useMutation({ mutationFn: () => waitingApi.cancel(waitingId), onSuccess: invalidate }),
   }
 }

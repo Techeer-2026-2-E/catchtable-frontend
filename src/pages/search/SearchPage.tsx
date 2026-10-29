@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { ArrowLeft, CalendarDays, ChevronDown, SearchX, X } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarDays, ChevronDown, SearchX } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from '@/entities'
 import { useAvailability } from '@/features/reservation'
@@ -15,105 +15,117 @@ import {
   ChipGroup,
   EmptyState,
   ErrorState,
-  IconButton,
   LoadingState,
   Page,
   SearchBar,
+  Stepper,
+  TopBar,
 } from '@/shared/ui'
 import styles from './SearchPage.module.css'
 
-type Sort = 'recommend' | 'rating' | 'review'
-const SORT_LABEL: Record<Sort, string> = { recommend: '추천순', rating: '평점 높은순', review: '리뷰 많은순' }
-const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
 const TIMES = ['11:30', '12:00', '12:30', '13:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00']
+type Condition = { date: string; time: string; partySize: number }
 
-/** 조건별 매장 검색 — GET /api/user/stores (category · date+time · partySize) */
+/** URL(?date&time&party)에 담긴 조건 — 홈에서 고른 조건으로 바로 들어올 수 있음 */
+const readCondition = (params: URLSearchParams): Condition | null => {
+  const date = params.get('date')
+  const time = params.get('time')
+  if (!date || !time) return null
+  return { date, time, partySize: Number(params.get('party')) || 2 }
+}
+
+/**
+ * 매장 검색 — GET /api/user/stores (category, date+time, partySize)
+ * 이름 검색은 백엔드 조건에 없어서 받은 목록을 화면에서 거름
+ */
 export function SearchPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [keyword, setKeyword] = useState(searchParams.get('q') ?? '')
-  const [sort, setSort] = useState<Sort>('recommend')
-  const [sheet, setSheet] = useState<'sort' | 'condition' | null>(null)
-  // 시트 안에서 고르는 값과 실제 적용된 조건을 분리 — "적용" 을 눌러야 검색
-  const [draft, setDraft] = useState<{ date: string | null; time: string | null; partySize: number }>({
-    date: null,
-    time: null,
-    partySize: 2,
-  })
-  const [condition, setCondition] = useState<typeof draft | null>(null)
-
+  const condition = readCondition(searchParams)
   const category = searchParams.get('category') as StoreCategory | null
-  const waitingOnly = searchParams.get('waiting') === '1'
+  const [keyword, setKeyword] = useState(searchParams.get('q') ?? '')
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [draft, setDraft] = useState<Condition>(() => condition ?? { date: dayjs().format('YYYY-MM-DD'), time: '19:00', partySize: 2 })
 
-  const updateParam = (key: string, value: string | null) => {
+  const setParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams)
-    if (value) next.set(key, value)
-    else next.delete(key)
+    Object.entries(patch).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)))
     setSearchParams(next, { replace: true })
   }
 
-  const { data, isPending, isError, refetch, isFetching } = useStoreSearch({
-    keyword,
+  const {
+    data: all,
+    isPending,
+    isError,
+    refetch,
+    isFetching,
+  } = useStoreSearch({
     category: category ?? undefined,
-    waitingAvailable: waitingOnly || undefined,
-    date: condition?.date ?? undefined,
-    time: condition?.time ?? undefined,
+    date: condition?.date,
+    time: condition?.time,
     partySize: condition?.partySize,
   })
+  const query = keyword.trim().toLowerCase()
+  const results = query ? all?.filter((store) => store.name.toLowerCase().includes(query)) : all
 
-  // 정렬은 화면에서 (백엔드 조건에 정렬 없음)
-  const results = useMemo(() => {
-    const list = [...(data ?? [])]
-    if (sort === 'rating') list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    if (sort === 'review') list.sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0))
-    return list
-  }, [data, sort])
-
-  const conditionLabel = condition?.date
-    ? `${dayjs(condition.date).format('M.D(dd)')} ${condition.time ?? ''} · ${condition.partySize}명`
-    : '날짜·인원'
   const slotDate = condition?.date ?? dayjs().format('YYYY-MM-DD')
   const slotPartySize = condition?.partySize ?? 2
 
   return (
-    <Page>
-      <header className={styles.header}>
-        <IconButton label="뒤로 가기" icon={<ArrowLeft />} onClick={() => navigate(-1)} />
-        <SearchBar
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && updateParam('q', keyword.trim() || null)}
-          autoFocus={!category}
-        />
-        <button type="button" className={styles.condition} onClick={() => setSheet('condition')}>
-          <CalendarDays aria-hidden />
-          <span>{conditionLabel}</span>
-        </button>
-      </header>
+    <Page muted>
+      <div className={styles.head}>
+        <TopBar title="검색" leading="none" large />
+        <div className={styles.searchRow}>
+          <SearchBar
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onBlur={() => setParams({ q: keyword.trim() || null })}
+            onKeyDown={(e) => e.key === 'Enter' && setParams({ q: keyword.trim() || null })}
+            placeholder="식당 이름으로 검색"
+            autoFocus={!category && !condition}
+          />
+        </div>
+        <div className={styles.filters}>
+          <button
+            type="button"
+            className={styles.filter}
+            aria-pressed={!!condition}
+            onClick={() => setSheetOpen(true)}
+            aria-label="날짜, 시간, 인원으로 빈자리만 보기"
+          >
+            <CalendarDays aria-hidden />
+            {condition ? (
+              <span className="tnum">
+                {dayjs(condition.date).format('M/D(dd)')} {formatTime(condition.time)}, {condition.partySize}명
+              </span>
+            ) : (
+              <span>날짜, 시간, 인원</span>
+            )}
+            <ChevronDown aria-hidden />
+          </button>
+          {condition && (
+            <button type="button" className={styles.clear} onClick={() => setParams({ date: null, time: null, party: null })}>
+              조건 지우기
+            </button>
+          )}
+        </div>
 
-      <div className={styles.filters}>
-        <ChipGroup scroll label="검색 필터">
-          <Chip size="S" onClick={() => setSheet('sort')} rightIcon={<ChevronDown />}>
-            {SORT_LABEL[sort]}
-          </Chip>
-          <Chip size="S" selected={waitingOnly} onClick={() => updateParam('waiting', waitingOnly ? null : '1')}>
-            웨이팅 가능
-          </Chip>
-          {(Object.entries(STORE_CATEGORY_LABEL) as [StoreCategory, string][]).map(([code, label]) => {
-            const selected = category === code
-            return (
-              <Chip
-                key={code}
-                size="S"
-                selected={selected}
-                onClick={() => updateParam('category', selected ? null : code)}
-                rightIcon={selected ? <X aria-label="해제" /> : undefined}
-              >
-                {label}
-              </Chip>
-            )
-          })}
-        </ChipGroup>
+        <nav className={styles.categories} aria-label="카테고리">
+          <button type="button" aria-pressed={!category} className={styles.category} onClick={() => setParams({ category: null })}>
+            전체
+          </button>
+          {(Object.entries(STORE_CATEGORY_LABEL) as [StoreCategory, string][]).map(([code, label]) => (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={category === code}
+              className={styles.category}
+              onClick={() => setParams({ category: category === code ? null : code })}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {isPending ? (
@@ -121,79 +133,65 @@ export function SearchPage() {
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : (
-        <>
-          <p className={`${styles.count} t-caption-13 text-tertiary`} aria-live="polite">
-            매장 {results.length}곳{isFetching && ' · 검색 중'}
+        <section className={styles.results}>
+          <p className={`${styles.count} t-caption-13 text-tertiary tnum`} aria-live="polite">
+            {condition ? '예약 가능한 매장' : '매장'} {results?.length ?? 0}곳{isFetching && ', 찾는 중'}
           </p>
-          {results.length === 0 ? (
-            <EmptyState icon={<SearchX />} title="조건에 맞는 매장이 없어요" description="검색어나 필터를 바꿔보세요" />
+          {!results?.length ? (
+            <EmptyState
+              icon={<SearchX />}
+              title={query ? `'${keyword.trim()}' 매장이 없어요` : '조건에 맞는 매장이 없어요'}
+              description={query ? '이름을 다시 확인하거나 다른 이름으로 찾아보세요' : '다른 날짜나 시간으로 다시 찾아보세요'}
+            />
           ) : (
-            <ul className={styles.results}>
+            <ul className={styles.list}>
               {results.map((store) => (
                 <li key={store.id}>
                   <StoreCard
                     store={store}
                     to={paths.storeDetail(store.id)}
                     footer={
-                      <AvailableTimes
-                        store={store}
-                        date={slotDate}
-                        partySize={slotPartySize}
-                        onSelect={() => navigate(`${paths.storeDetail(store.id)}?date=${slotDate}`)}
-                      />
+                      condition && (
+                        <AvailableTimes
+                          store={store}
+                          date={slotDate}
+                          partySize={slotPartySize}
+                          onSelect={() => navigate(`${paths.storeDetail(store.id)}?date=${slotDate}`)}
+                        />
+                      )
                     }
                   />
                 </li>
               ))}
             </ul>
           )}
-        </>
+        </section>
       )}
 
-      <BottomSheet isOpen={sheet === 'sort'} onClose={() => setSheet(null)} title="정렬">
-        <div className={styles.sortList} role="radiogroup">
-          {(Object.keys(SORT_LABEL) as Sort[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={sort === key}
-              className={styles.sortItem}
-              onClick={() => {
-                setSort(key)
-                setSheet(null)
-              }}
-            >
-              {SORT_LABEL[key]}
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
-
       <BottomSheet
-        isOpen={sheet === 'condition'}
-        onClose={() => setSheet(null)}
-        title="날짜·시간·인원"
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="언제, 몇 명이 가세요?"
         footer={
           <>
+            {condition && (
+              <Button
+                variant="soft"
+                onClick={() => {
+                  setParams({ date: null, time: null, party: null })
+                  setSheetOpen(false)
+                }}
+              >
+                조건 지우기
+              </Button>
+            )}
             <Button
-              variant="soft"
               onClick={() => {
-                setDraft({ date: null, time: null, partySize: 2 })
-                setCondition(null)
-                setSheet(null)
+                setParams({ date: draft.date, time: draft.time, party: String(draft.partySize) })
+                setSheetOpen(false)
               }}
             >
-              초기화
-            </Button>
-            <Button
-              onClick={() => {
-                setCondition(draft)
-                setSheet(null)
-              }}
-              disabled={!draft.date || !draft.time}
-            >
-              적용
+              이 조건으로 찾기
             </Button>
           </>
         }
@@ -207,48 +205,39 @@ export function SearchPage() {
             </Chip>
           ))}
         </ChipGroup>
-        <p className={`${styles.sheetLabel} t-headline-16`}>인원</p>
-        <ChipGroup scroll label="인원">
-          {PARTY_SIZES.map((n) => (
-            <Chip key={n} selected={draft.partySize === n} onClick={() => setDraft({ ...draft, partySize: n })}>
-              {n}명
-            </Chip>
-          ))}
-        </ChipGroup>
+        <div className={styles.sheetParty}>
+          <span className="t-headline-16">인원</span>
+          <Stepper
+            value={draft.partySize}
+            onChange={(partySize) => setDraft({ ...draft, partySize })}
+            min={1}
+            max={20}
+            unit="명"
+            label="인원"
+          />
+        </div>
       </BottomSheet>
     </Page>
   )
 }
 
 /**
- * 매장 카드 아래 예약 가능 시간 — 기능명세「예약 가능 시간·잔여 테이블 조회」
+ * 매장 줄 아래 예약 가능 시간 — 기능명세「예약 가능 시간·잔여 테이블 조회」
  * GET /api/user/stores/{storeId}/availability
  */
-function AvailableTimes({
-  store,
-  date,
-  partySize,
-  onSelect,
-}: {
-  store: Store
-  date: string
-  partySize: number
-  onSelect: () => void
-}) {
+function AvailableTimes({ store, date, partySize, onSelect }: { store: Store; date: string; partySize: number; onSelect: () => void }) {
   const { data, isPending } = useAvailability(store.id, date, partySize)
   const open = data?.slots.filter((s) => s.available) ?? []
   const label = dayjs(date).isSame(dayjs(), 'day') ? '오늘' : dayjs(date).format('M/D(dd)')
 
   if (isPending) return <div className={styles.slotsSkeleton} aria-hidden />
-  if (open.length === 0) {
-    return <p className={`${styles.noSlot} t-caption-13`}>{label} 예약 가능한 시간이 없어요</p>
-  }
+  if (open.length === 0) return <p className="t-caption-13 text-tertiary">{label}은 예약 가능한 시간이 없어요</p>
   return (
     <div className={styles.slots} aria-label={`${label} 예약 가능 시간`}>
-      {open.slice(0, 5).map((slot) => (
-        <button key={slot.reservationStartAt} type="button" className={styles.slot} onClick={onSelect}>
-          <span className="t-label-13">{formatTime(slot.reservationStartAt)}</span>
-          <span className="t-caption-12">{slot.availableTableCount}테이블</span>
+      {open.slice(0, 6).map((slot) => (
+        <button key={slot.reservationStartAt} type="button" className={`${styles.slot} tnum`} onClick={onSelect}>
+          {formatTime(slot.reservationStartAt)}
+          <span className={styles.slotCount}>{slot.availableTableCount}</span>
         </button>
       ))}
     </div>

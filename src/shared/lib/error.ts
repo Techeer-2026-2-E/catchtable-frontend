@@ -13,5 +13,4 @@ export const getErrorMessage = (error: unknown, fallback = '잠시 후 다시 �
   return fallback
 }
 
-export const getErrorCode = (error: unknown) =>
-  isAxiosError<ErrorBody>(error) ? error.response?.data?.code : undefined
+export const getErrorCode = (error: unknown) => (isAxiosError<ErrorBody>(error) ? error.response?.data?.code : undefined)

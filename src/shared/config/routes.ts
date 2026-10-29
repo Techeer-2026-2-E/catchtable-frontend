@@ -2,7 +2,6 @@
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  SIGNUP: '/signup',
   SEARCH: '/search',
   STORE_DETAIL: '/stores/:storeId',
   RESERVATION: '/stores/:storeId/reservation',
@@ -28,7 +27,6 @@ export const ROUTES = {
   OWNER_RESERVATIONS: '/owner/stores/:storeId/reservations',
   OWNER_WAITINGS: '/owner/stores/:storeId/waitings',
   OWNER_MENUS: '/owner/stores/:storeId/menus',
-  OWNER_SALES: '/owner/stores/:storeId/sales',
   OWNER_REVIEWS: '/owner/stores/:storeId/reviews',
 } as const
 
@@ -49,6 +47,5 @@ export const paths = {
   ownerReservations: (storeId: Id) => `/owner/stores/${storeId}/reservations`,
   ownerWaitings: (storeId: Id) => `/owner/stores/${storeId}/waitings`,
   ownerMenus: (storeId: Id) => `/owner/stores/${storeId}/menus`,
-  ownerSales: (storeId: Id) => `/owner/stores/${storeId}/sales`,
   ownerReviews: (storeId: Id) => `/owner/stores/${storeId}/reviews`,
 }

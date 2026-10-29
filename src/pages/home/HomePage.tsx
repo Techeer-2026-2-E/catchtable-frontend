@@ -1,135 +1,112 @@
-import { useState } from 'react'
-import { Bell, ChevronRight, LocateFixed, MapPin } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Bell, ChevronRight, Search } from 'lucide-react'
 import { Link } from 'react-router'
-import { StoreCard, type StoreCategory } from '@/entities'
-import { useCategories, useHomeStores } from '@/features/store-search'
+import { CATEGORY_EMOJI, StoreCard, type Store } from '@/entities'
+import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
-import { ErrorState, LoadingState, Page, SearchBar, Section, toast } from '@/shared/ui'
+import { dayjs } from '@/shared/lib/dayjs'
+import { Divider, EmptyState, ErrorState, LoadingState, Page } from '@/shared/ui'
 import styles from './HomePage.module.css'
 
-const CATEGORY_EMOJI: Record<StoreCategory, string> = {
-  KOREAN: '🍚',
-  JAPANESE: '🍣',
-  CHINESE: '🥟',
-  WESTERN: '🍝',
-  CAFE: '☕',
-  BAR: '🍶',
-  ETC: '🍽️',
-}
+/** 오늘 저녁 추천 기준 — 7시, 2명 */
+const TONIGHT = { time: '19:00', partySize: 2 }
 
-type Position = { latitude: number; longitude: number }
-
+/**
+ * 홈 — 검색바, 음식 종류, 식당 추천
+ * 추천은 백엔드가 주는 값으로만 구성 (웨이팅 가능, 오늘 저녁 빈자리). 거리순·인기순은 위치·평점 API 가 생기면 추가
+ */
 export function HomePage() {
-  const [position, setPosition] = useState<Position | null>(null)
-  const [locating, setLocating] = useState(false)
+  const today = dayjs().format('YYYY-MM-DD')
   const { data: categories } = useCategories()
-  const { data, isPending, isError, refetch } = useHomeStores(position)
-
-  /** 현재 위치로 주변 매장 보기 (P2 주변 매장) — 권한 거부 시 안내 */
-  const locate = () => {
-    if (!navigator.geolocation) return toast('이 브라우저에서는 위치를 확인할 수 없어요')
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setPosition({ latitude: coords.latitude, longitude: coords.longitude })
-        setLocating(false)
-      },
-      () => {
-        setLocating(false)
-        toast('위치 권한을 허용하면 주변 매장을 볼 수 있어요')
-      },
-      { timeout: 8000 },
-    )
-  }
+  const all = useStoreSearch({})
+  const tonight = useStoreSearch({ date: today, time: TONIGHT.time, partySize: TONIGHT.partySize })
+  const waitingNow = all.data?.filter((s) => s.waitingAvailable) ?? []
+  const tonightLink = `${ROUTES.SEARCH}?date=${today}&time=${TONIGHT.time}&party=${TONIGHT.partySize}`
 
   return (
     <Page>
       <header className={styles.header}>
-        <span className={styles.logo} aria-label="캐치테이블">
-          C
-        </span>
-        <SearchBar to={ROUTES.SEARCH} placeholder="줄서기·예약 매장을 검색해 보세요" />
+        <span className={styles.brand}>캐치테이블</span>
         <Link to={ROUTES.NOTIFICATIONS} className={styles.bell} aria-label="알림">
           <Bell aria-hidden />
         </Link>
       </header>
-
-      <div className={styles.location}>
-        <button type="button" className={styles.locationButton}>
-          <MapPin aria-hidden />
-          <span className="t-headline-16">{position ? '내 주변' : '전국'}</span>
-        </button>
-        <button type="button" className={`${styles.locate} t-caption-13`} onClick={locate} disabled={locating}>
-          <LocateFixed aria-hidden />
-          {locating ? '위치 확인 중…' : '현재 위치로'}
-        </button>
+      <div className={styles.searchWrap}>
+        <Link to={ROUTES.SEARCH} className={styles.search}>
+          <Search aria-hidden />
+          <span>식당 이름으로 검색</span>
+        </Link>
       </div>
 
-      <Link to={ROUTES.SEARCH} className={styles.promo}>
-        <div>
-          <p className="t-caption-13 text-accent">이번 주 예약금 0원</p>
-          <p className="t-title-18">
-            오늘 저녁,
-            <br />
-            기다림 없이 바로 예약
-          </p>
-        </div>
-        <span className={styles.promoLink}>
-          둘러보기 <ChevronRight aria-hidden />
-        </span>
-      </Link>
-
-      <nav className={styles.categories} aria-label="카테고리">
-        {(categories ?? []).map(({ code, name: label }) => (
+      <nav className={styles.categories} aria-label="음식 종류">
+        {(categories ?? []).map(({ code, name }) => (
           <Link key={code} to={`${ROUTES.SEARCH}?category=${code}`} className={styles.category}>
             <span className={styles.categoryIcon} aria-hidden>
               {CATEGORY_EMOJI[code]}
             </span>
-            <span className="t-caption-12">{label}</span>
+            <span className="t-caption-13">{name}</span>
           </Link>
         ))}
       </nav>
 
-      {isPending ? (
+      <Divider thick />
+
+      {all.isPending ? (
         <LoadingState compact />
-      ) : isError ? (
-        <ErrorState onRetry={() => refetch()} />
+      ) : all.isError ? (
+        <ErrorState onRetry={() => all.refetch()} />
+      ) : all.data.length === 0 ? (
+        <EmptyState title="등록된 매장이 없어요" />
       ) : (
         <>
-          {data.nearby.length > 0 && (
-            <Section title="내 주변 매장">
-              <div className={styles.horizontal}>
-                {data.nearby.map((store) => (
-                  <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} variant="compact" />
-                ))}
-              </div>
-            </Section>
-          )}
-
-          <Section
-            title="지금 바로 웨이팅"
-            action={
-              <Link to={`${ROUTES.SEARCH}?waiting=1`} className="t-caption-13 text-tertiary">
-                전체보기
-              </Link>
-            }
-          >
-            <div className={styles.horizontal}>
-              {data.waitingNow.map((store) => (
-                <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} variant="compact" />
+          <Shelf title="지금 웨이팅 가능해요" description="원격으로 웨이팅하고 차례가 되면 알림을 받아요" stores={waitingNow} />
+          <Shelf
+            title="오늘 저녁 7시, 2명 자리 있어요"
+            description="지금 바로 예약할 수 있는 매장이에요"
+            stores={tonight.data ?? []}
+            more={tonightLink}
+          />
+          <Divider thick />
+          <section className={styles.section}>
+            <h2 className={`${styles.sectionTitle} t-title-18`}>모든 매장</h2>
+            <ul className={styles.list}>
+              {all.data.map((store) => (
+                <li key={store.id}>
+                  <StoreCard store={store} to={paths.storeDetail(store.id)} />
+                </li>
               ))}
-            </div>
-          </Section>
-
-          <Section title="지금 인기 있는 매장">
-            <div className={styles.list}>
-              {data.popular.map((store) => (
-                <StoreCard key={store.id} store={store} to={paths.storeDetail(store.id)} />
-              ))}
-            </div>
-          </Section>
+            </ul>
+          </section>
         </>
       )}
     </Page>
+  )
+}
+
+/** 가로로 넘기는 추천 줄 */
+function Shelf({ title, description, stores, more }: { title: string; description: ReactNode; stores: Store[]; more?: string }) {
+  if (stores.length === 0) return null
+  return (
+    <section className={styles.section}>
+      <div className={styles.sectionHead}>
+        <div>
+          <h2 className="t-title-18">{title}</h2>
+          <p className="t-caption-13 text-tertiary">{description}</p>
+        </div>
+        {more && (
+          <Link to={more} className={`${styles.more} t-body-14`}>
+            전체보기
+            <ChevronRight aria-hidden />
+          </Link>
+        )}
+      </div>
+      <ul className={styles.shelf}>
+        {stores.map((store) => (
+          <li key={store.id}>
+            <StoreCard store={store} to={paths.storeDetail(store.id)} variant="compact" />
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

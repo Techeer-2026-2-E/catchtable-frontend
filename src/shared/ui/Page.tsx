@@ -8,13 +8,15 @@ interface PageProps {
   bottom?: ReactNode
   /** 본문 좌우 여백 16 적용 여부 */
   padded?: boolean
+  /** 연한 회색 바탕 — 흰색 블록(Card)을 여러 개 놓는 화면 (검색, 마이다이닝) */
+  muted?: boolean
   className?: string
 }
 
 /** 화면 뼈대 — 414 기준 모바일 레이아웃, 하단 CTA 고정 */
-export function Page({ children, bottom, padded = false, className }: PageProps) {
+export function Page({ children, bottom, padded = false, muted = false, className }: PageProps) {
   return (
-    <div className={cn(styles.page, bottom != null && styles.hasBottom)}>
+    <div className={cn(styles.page, bottom != null && styles.hasBottom, muted && styles.muted)}>
       <main className={cn(styles.content, padded && styles.padded, className)}>{children}</main>
       {bottom != null && <div className={styles.bottom}>{bottom}</div>}
     </div>
@@ -46,7 +48,7 @@ export function Section({
   )
 }
 
-/** 섹션 사이 8px 회색 구분 영역 */
+/** 구분선 — thick 은 섹션 사이 굵은 회색 띠 (홈·MY 처럼 선으로 나누는 화면) */
 export function Divider({ thick = false }: { thick?: boolean }) {
   return <hr className={cn(styles.divider, thick && styles.thick)} />
 }

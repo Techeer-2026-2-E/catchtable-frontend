@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import type { ReservationPolicy } from '@/entities'
-import { useMyStores, useReplaceReservationPolicy, useReservationPolicy } from '@/features/owner-store'
+import { useReplaceReservationPolicy, useReservationPolicy } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
-import { formatPrice } from '@/shared/lib/format'
 import { Banner, Button, Chip, ChipGroup, Divider, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
 import styles from './OwnerPolicyPage.module.css'
 
@@ -37,7 +36,6 @@ export function OwnerPolicyPage() {
 function PolicyForm({ storeId, initial }: { storeId: number; initial: ReservationPolicy }) {
   const [policy, setPolicy] = useState(initial)
   const replace = useReplaceReservationPolicy(storeId)
-  const store = useMyStores().data?.find((s) => s.id === storeId)
   const set = (patch: Partial<ReservationPolicy>) => setPolicy((p) => ({ ...p, ...patch }))
   const invalid = policy.arrivalGraceMinutes >= policy.reservationDurationMinutes
 
@@ -70,11 +68,7 @@ function PolicyForm({ storeId, initial }: { storeId: number; initial: Reservatio
       <Section title="1회 이용 시간" action={<span className="t-caption-13 text-tertiary">이후 자동 이용 완료</span>}>
         <ChipGroup label="1회 이용 시간">
           {DURATION_OPTIONS.map((m) => (
-            <Chip
-              key={m}
-              selected={policy.reservationDurationMinutes === m}
-              onClick={() => set({ reservationDurationMinutes: m })}
-            >
+            <Chip key={m} selected={policy.reservationDurationMinutes === m} onClick={() => set({ reservationDurationMinutes: m })}>
               {minutesLabel(m)}
             </Chip>
           ))}
@@ -118,12 +112,6 @@ function PolicyForm({ storeId, initial }: { storeId: number; initial: Reservatio
         </ChipGroup>
       </Section>
 
-      <Divider thick />
-      <Section title="예약금" action={<span className="t-caption-13 text-tertiary">P2 · 설정 API 준비 중</span>}>
-        <p className="t-body-14 text-secondary">
-          {store?.depositAmount ? `1인당 ${formatPrice(store.depositAmount)}` : '예약금 없이 예약받고 있어요'}
-        </p>
-      </Section>
       <div className={styles.spacer} />
     </Page>
   )

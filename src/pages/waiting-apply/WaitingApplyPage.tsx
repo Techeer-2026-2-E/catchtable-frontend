@@ -4,21 +4,19 @@ import { useStoreDetail } from '@/features/store-detail'
 import { useRegisterWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
-import { Banner, Button, Chip, ChipGroup, ErrorState, LoadingState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
+import { Button, ErrorState, LoadingState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
 import styles from './WaitingApplyPage.module.css'
 
-const SEAT_OPTIONS = ['상관없음', '테이블석', '바석']
-const MINUTES_PER_TEAM = 4
-const ARRIVAL_LIMIT_MINUTES = 10
+/** 백엔드 WaitingCreateRequest 의 인원 범위 */
+const MAX_PARTY = 20
 
-/** 기능명세「원격 웨이팅 신청」「웨이팅 인원 입력」 */
+/** 기능명세「원격 웨이팅 신청」「웨이팅 인원 입력」 — POST /api/user/waitings { storeId, partyCount } */
 export function WaitingApplyPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const navigate = useNavigate()
   const { data: store, isPending, isError, refetch } = useStoreDetail(Number(storeId))
   const register = useRegisterWaiting()
   const [partySize, setPartySize] = useState(2)
-  const [seat, setSeat] = useState(SEAT_OPTIONS[0])
 
   if (isPending || isError) {
     return (
@@ -29,13 +27,12 @@ export function WaitingApplyPage() {
     )
   }
 
-  const teams = store.waitingTeams ?? 0
   const submit = () =>
     register.mutate(
-      { storeId: store.id, partyCount: partySize, seatPreference: seat },
+      { storeId: store.id, partyCount: partySize },
       {
         onSuccess: (waiting) => {
-          toast(`대기번호 ${waiting.waitNumber}번으로 접수됐어요`)
+          toast(`대기번호 ${waiting.waitNumber}번, 앞에 ${waiting.teamsAhead}팀`)
           navigate(paths.waiting(waiting.waitingId), { replace: true })
         },
         onError: (e) => toast(getErrorMessage(e, '웨이팅을 신청하지 못했어요')),
@@ -54,10 +51,7 @@ export function WaitingApplyPage() {
 
       <div className={styles.status}>
         <span className={styles.dot} aria-hidden />
-        <p className="t-body-14-strong">
-          {store.waitingAvailable ? '웨이팅 접수 중' : '지금은 웨이팅을 받지 않아요'}
-        </p>
-        <span className="t-caption-13 text-secondary">· 현재 {teams}팀 대기</span>
+        <p className="t-body-14-strong">{store.waitingAvailable ? '웨이팅 접수 중' : '지금은 웨이팅을 받지 않아요'}</p>
       </div>
 
       <Section>
@@ -65,34 +59,8 @@ export function WaitingApplyPage() {
         <p className="t-caption-13 text-tertiary">{store.address}</p>
       </Section>
 
-      <Section title="인원" action={<Stepper value={partySize} onChange={setPartySize} min={1} max={store.maxPartySize ?? 8} unit="명" label="인원" />}>
+      <Section title="인원" action={<Stepper value={partySize} onChange={setPartySize} min={1} max={MAX_PARTY} unit="명" label="인원" />}>
         <p className="t-caption-13 text-tertiary">유아를 포함한 전체 방문 인원을 입력해주세요</p>
-      </Section>
-
-      <Section title="좌석 조건" action={<span className="t-caption-13 text-tertiary">선택</span>}>
-        <ChipGroup label="좌석 조건">
-          {SEAT_OPTIONS.map((option) => (
-            <Chip key={option} selected={seat === option} onClick={() => setSeat(option)}>
-              {option}
-            </Chip>
-          ))}
-        </ChipGroup>
-      </Section>
-
-      <Section>
-        <div className={styles.estimate}>
-          <div>
-            <p className="t-caption-13 text-tertiary">예상 대기시간</p>
-            <p className="t-title-18">약 {Math.max(teams, 1) * MINUTES_PER_TEAM}분</p>
-          </div>
-          <div>
-            <p className="t-caption-13 text-tertiary">내 앞 대기</p>
-            <p className="t-title-18">{teams}팀</p>
-          </div>
-        </div>
-        <Banner tone="info">
-          입장 호출 후 {ARRIVAL_LIMIT_MINUTES}분 안에 응답하지 않으면 순번이 자동으로 만료돼요.
-        </Banner>
       </Section>
     </Page>
   )

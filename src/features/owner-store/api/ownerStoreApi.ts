@@ -1,17 +1,5 @@
-import type {
-  BusinessHour,
-  DayOfWeek,
-  Menu,
-  ReservationPolicy,
-  Review,
-  SalesPeriod,
-  SalesReport,
-  Store,
-  StoreCategory,
-  StoreTable,
-  TableStatus,
-  TableType,
-} from '@/entities'
+import type { BusinessHour, DayOfWeek, Menu, ReservationPolicy, StoreDetail, StoreTable, TableStatus } from '@/entities'
+import { env } from '@/shared/config'
 import { apiClient } from '@/shared/lib'
 
 /* ---------- 요청 타입 (백엔드 dev DTO) ---------- */
@@ -21,18 +9,11 @@ export interface CreateTableRequest {
   tableNumber: number
   minCapacity?: number
   capacity: number
-  /** [목 전용] */
-  tableType?: TableType
 }
 
-/** StoreTableUpdateRequest — 바꿀 값만 */
+/** StoreTableUpdateRequest — 운영 상태만 변경 가능 */
 export interface UpdateTableRequest {
-  tableNumber?: number
-  minCapacity?: number
-  capacity?: number
-  status?: TableStatus
-  /** [목 전용] */
-  tableType?: TableType
+  status: TableStatus
 }
 
 /** BusinessHourRequest — 시간은 "HH:mm" 또는 "HH:mm:ss" */
@@ -44,43 +25,23 @@ export interface BusinessHourRequest {
   breakEndTime?: string | null
 }
 
-/** MenuCreateRequest */
+/** MenuCreateRequest — 이름 100자, 설명 1000자 */
 export interface CreateMenuRequest {
   name: string
   price: number
   description?: string
-  /** [목 전용] 이미지 업로드 API 확정 전까지 data URL */
-  imageUrl?: string | null
-  /** [목 전용] 판매 중지 */
-  soldOut?: boolean
 }
+/** MenuUpdateRequest — 보낸 필드만 수정 */
 export type UpdateMenuRequest = Partial<CreateMenuRequest>
 
-/** [노션 명세] 매장 등록·수정 */
-export interface CreateStoreRequest {
-  name: string
-  category: StoreCategory
-  address: string
-  waitingAvailable: boolean
-}
-export type UpdateStoreRequest = Partial<CreateStoreRequest>
-
 export const ownerStoreApi = {
-  /* ---------- 매장 (노션 명세, 백엔드 미구현) ---------- */
-  getMyStores: async () => {
-    const { data } = await apiClient.get<Store[]>('/owner/stores')
-    return data
-  },
-  createStore: async (body: CreateStoreRequest) => {
-    const { data } = await apiClient.post<Store>('/owner/stores', body)
-    return data
-  },
-  updateStore: async (storeId: number, body: UpdateStoreRequest) => {
-    const { data } = await apiClient.patch<Store>(`/owner/stores/${storeId}`, body)
-    return data
-  },
+  /**
+   * 내 매장 — 백엔드에 점주 매장 목록 API 가 없어서 VITE_OWNER_STORE_IDS 의 매장을
+   * 고객용 상세 API(GET /api/user/stores/{id})로 조회 (임시)
+   */
+  getMyStores: () => Promise.all(env.ownerStoreIds.map(async (id) => (await apiClient.get<StoreDetail>(`/user/stores/${id}`)).data)),
 
-  /* ---------- 테이블 (백엔드 dev 구현) ---------- */
+  /* ---------- 테이블 ---------- */
   getTables: async (storeId: number) => {
     const { data } = await apiClient.get<StoreTable[]>(`/owner/stores/${storeId}/tables`)
     return data
@@ -94,7 +55,7 @@ export const ownerStoreApi = {
     return data
   },
 
-  /* ---------- 영업시간 (백엔드 dev 구현) — 목록에 없는 요일은 휴무 ---------- */
+  /* ---------- 영업시간 — 목록에 없는 요일은 휴무 ---------- */
   getBusinessHours: async (storeId: number) => {
     const { data } = await apiClient.get<BusinessHour[]>(`/owner/stores/${storeId}/business-hours`)
     return data
@@ -106,7 +67,7 @@ export const ownerStoreApi = {
     return data
   },
 
-  /* ---------- 예약 정책 (백엔드 dev 구현) ---------- */
+  /* ---------- 예약 정책 ---------- */
   getReservationPolicy: async (storeId: number) => {
     const { data } = await apiClient.get<ReservationPolicy>(`/owner/stores/${storeId}/reservation-policy`)
     return data
@@ -116,11 +77,10 @@ export const ownerStoreApi = {
     return data
   },
 
-  /* ---------- P2: 메뉴 (등록·수정 백엔드 dev 구현, 삭제는 노션 명세) ---------- */
-  /** 조회는 고객용 메뉴 API 를 같이 씀 */
+  /* ---------- 메뉴 — 조회 API 가 따로 없어서 매장 상세의 menus 를 사용 ---------- */
   getMenus: async (storeId: number) => {
-    const { data } = await apiClient.get<Menu[]>(`/user/stores/${storeId}/menus`)
-    return data
+    const { data } = await apiClient.get<StoreDetail>(`/user/stores/${storeId}`)
+    return data.menus
   },
   createMenu: async (storeId: number, body: CreateMenuRequest) => {
     const { data } = await apiClient.post<Menu>(`/owner/stores/${storeId}/menus`, body)
@@ -128,30 +88,6 @@ export const ownerStoreApi = {
   },
   updateMenu: async (storeId: number, menuId: number, body: UpdateMenuRequest) => {
     const { data } = await apiClient.patch<Menu>(`/owner/stores/${storeId}/menus/${menuId}`, body)
-    return data
-  },
-  deleteMenu: async (storeId: number, menuId: number) => {
-    await apiClient.delete(`/owner/stores/${storeId}/menus/${menuId}`)
-  },
-
-  /* ---------- P2: 매출 (노션 명세, 응답은 제안) ---------- */
-  /* ---------- P2: 리뷰 관리 (노션 명세, 답글 삭제는 경로 제안) ---------- */
-  getReviews: async (storeId: number) => {
-    const { data } = await apiClient.get<Review[]>(`/owner/stores/${storeId}/reviews`)
-    return data
-  },
-  /** 답글 작성·수정 — 이미 있으면 덮어씀 */
-  replyReview: async (reviewId: number, content: string) => {
-    const { data } = await apiClient.post<Review>(`/user/reviews/${reviewId}/reply`, { content })
-    return data
-  },
-  deleteReply: async (reviewId: number) => {
-    const { data } = await apiClient.delete<Review>(`/user/reviews/${reviewId}/reply`)
-    return data
-  },
-
-  getSales: async (storeId: number, params: { period: SalesPeriod; date?: string }) => {
-    const { data } = await apiClient.get<SalesReport>(`/owner/stores/${storeId}/sales`, { params })
     return data
   },
 }

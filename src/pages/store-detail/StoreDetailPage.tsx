@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Clock, Heart, MapPin, Share2, Users, Wallet } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek } from '@/entities'
 import { ReservationSheet, useAvailability } from '@/features/reservation'
@@ -7,22 +6,7 @@ import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
-import {
-  Badge,
-  Button,
-  Divider,
-  EmptyState,
-  ErrorState,
-  IconButton,
-  ImagePlaceholder,
-  LoadingState,
-  Page,
-  Rating,
-  Section,
-  Tabs,
-  toast,
-  TopBar,
-} from '@/shared/ui'
+import { Button, Divider, EmptyState, ErrorState, ImagePlaceholder, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
 import styles from './StoreDetailPage.module.css'
 
 type Tab = 'home' | 'menu' | 'review' | 'info'
@@ -40,7 +24,6 @@ export function StoreDetailPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('home')
-  const [liked, setLiked] = useState(false)
   const [searchParams] = useSearchParams()
   const initialDate = searchParams.get('date')
   // 검색 결과에서 날짜를 눌러 들어오면 예약 시트를 바로 연다
@@ -80,16 +63,6 @@ export function StoreDetailPage() {
     <Page
       bottom={
         <>
-          <IconButton
-            label={liked ? '저장 취소' : '저장'}
-            icon={<Heart fill={liked ? 'currentColor' : 'none'} />}
-            variant="outline"
-            className={liked ? styles.liked : undefined}
-            onClick={() => {
-              setLiked(!liked)
-              toast(liked ? '저장을 취소했어요' : '저장 목록에 추가했어요')
-            }}
-          />
           {store.waitingAvailable && (
             <Button variant="soft" className={styles.cta} onClick={() => navigate(paths.waitingApply(store.id))}>
               웨이팅 신청
@@ -101,64 +74,45 @@ export function StoreDetailPage() {
         </>
       }
     >
-      <div className={styles.hero}>
-        <TopBar
-          transparent
-          actions={<IconButton label="공유" icon={<Share2 />} onClick={() => toast('링크를 복사했어요')} />}
-        />
-        <ImagePlaceholder src={store.thumbnailUrl} alt={store.name} radius={0} className={styles.heroImage} />
-      </div>
+      {store.imageUrl ? (
+        <div className={styles.hero}>
+          <TopBar transparent />
+          <ImagePlaceholder src={store.imageUrl} alt={store.name} radius={0} className={styles.heroImage} />
+        </div>
+      ) : (
+        <TopBar />
+      )}
 
       <section className={styles.summary}>
-        <h1 className="t-title-20">{store.name}</h1>
-        <div className={styles.meta}>
-          {!!store.reviewCount && <Rating value={store.rating ?? 0} count={store.reviewCount} />}
-          <span className="t-caption-13 text-tertiary">
-            {[store.region, STORE_CATEGORY_LABEL[store.category]].filter(Boolean).join(' · ')}
-          </span>
-        </div>
-
-        <ul className={styles.infoList}>
-          <li>
-            <MapPin aria-hidden />
-            <span>{store.address}</span>
-          </li>
-          <li>
-            <Clock aria-hidden />
-            <span>
-              {todayHour
-                ? `오늘 ${hhmm(todayHour.openTime)}~${overnight ? '익일 ' : ''}${hhmm(todayHour.closingTime)}`
-                : '오늘 휴무'}
-              {todayHour?.breakStartTime && todayHour.breakEndTime && (
-                <span className="text-tertiary">
-                  {' '}
-                  · 브레이크 {hhmm(todayHour.breakStartTime)}~{hhmm(todayHour.breakEndTime)}
-                </span>
-              )}
-              {closedDays.length > 0 && <span className="text-tertiary"> · {closedDays.join('·')} 휴무</span>}
-            </span>
-          </li>
-          {store.priceRange && (
-            <li>
-              <Wallet aria-hidden />
-              <span>{store.priceRange}</span>
-            </li>
-          )}
-          {store.maxPartySize && (
-            <li>
-              <Users aria-hidden />
-              <span>최대 {store.maxPartySize}명 예약 가능</span>
-            </li>
-          )}
-        </ul>
+        <p className="t-label-13 text-brand">{STORE_CATEGORY_LABEL[store.category]}</p>
+        <h1 className="t-title-24">{store.name}</h1>
         <StoreTags store={store} />
+        <dl className={styles.facts}>
+          <dt>주소</dt>
+          <dd>{store.address}</dd>
+          <dt>오늘</dt>
+          <dd className="tnum">
+            {todayHour ? `${hhmm(todayHour.openTime)} ~ ${overnight ? '다음날 ' : ''}${hhmm(todayHour.closingTime)}` : '휴무'}
+            {todayHour?.breakStartTime && todayHour.breakEndTime && (
+              <span className={styles.sub}>
+                쉬는 시간 {hhmm(todayHour.breakStartTime)} ~ {hhmm(todayHour.breakEndTime)}
+              </span>
+            )}
+          </dd>
+          {closedDays.length > 0 && (
+            <>
+              <dt>휴무</dt>
+              <dd>매주 {closedDays.join(', ')}요일</dd>
+            </>
+          )}
+        </dl>
       </section>
 
       <Tabs items={TABS} value={tab} onChange={setTab} fill />
 
       {(tab === 'home' || tab === 'info') && (
         <>
-          <Section title="오늘 예약 가능 시간">
+          <Section title="오늘 예약 가능 시간" action={<span className="t-caption-12 text-tertiary">2명 기준</span>}>
             {todaySlots.isPending ? (
               <LoadingState compact />
             ) : openSlots.length === 0 ? (
@@ -169,14 +123,13 @@ export function StoreDetailPage() {
                   <button
                     key={slot.reservationStartAt}
                     type="button"
-                    className={styles.slot}
+                    className={`${styles.slot} tnum`}
                     disabled={!slot.available}
                     onClick={() => setSheetOpen(true)}
+                    aria-label={`${formatTime(slot.reservationStartAt)} ${slot.available ? `${slot.availableTableCount}테이블 남음` : '마감'}`}
                   >
-                    <span className="t-label-13">{formatTime(slot.reservationStartAt)}</span>
-                    <span className="t-caption-12">
-                      {slot.available ? `${slot.availableTableCount}테이블 남음` : '마감'}
-                    </span>
+                    <span className={styles.slotTime}>{formatTime(slot.reservationStartAt)}</span>
+                    <span className={styles.slotCount}>{slot.available ? `${slot.availableTableCount}석` : '마감'}</span>
                   </button>
                 ))}
               </div>
@@ -194,15 +147,9 @@ export function StoreDetailPage() {
             <ul className={styles.menuList}>
               {menus.data?.map((menu) => (
                 <li key={menu.id} className={styles.menu}>
-                  <div>
-                    <p className="t-body-14-strong">
-                      {menu.name}
-                      {menu.soldOut && <Badge className={styles.soldOut}>품절</Badge>}
-                    </p>
-                    {menu.description && <p className="t-caption-13 text-tertiary">{menu.description}</p>}
-                    <p className="t-label-13">{formatPrice(menu.price)}</p>
-                  </div>
-                  <ImagePlaceholder src={menu.imageUrl} className={styles.menuImage} radius={8} />
+                  <p className="t-body-15">{menu.name}</p>
+                  <p className={`${styles.price} t-label-15 tnum`}>{formatPrice(menu.price)}</p>
+                  {menu.description && <p className={`${styles.menuDescription} t-caption-13 text-tertiary`}>{menu.description}</p>}
                 </li>
               ))}
             </ul>
@@ -212,7 +159,7 @@ export function StoreDetailPage() {
       )}
 
       {(tab === 'home' || tab === 'review') && (
-        <Section title={`리뷰 ${reviews.data?.summary.totalCount ?? store.reviewCount ?? 0}`}>
+        <Section title={`리뷰 ${reviews.data?.reviewCount ?? 0}`}>
           {reviews.isPending ? (
             <LoadingState compact />
           ) : !reviews.data?.reviews.length ? (
@@ -238,7 +185,6 @@ export function StoreDetailPage() {
         storeId={store.id}
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        maxPartySize={store.maxPartySize}
         openDays={openDays}
         initialDate={initialDate}
       />

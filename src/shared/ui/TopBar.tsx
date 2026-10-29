@@ -12,7 +12,7 @@ interface TopBarProps {
   /** leading 버튼 동작 — 기본은 history back */
   onLeadingClick?: () => void
   actions?: ReactNode
-  /** 탭 메인 화면 — 제목을 Title/20 으로 크게 */
+  /** 탭 메인 화면 — 제목을 Title/24 로 크게 */
   large?: boolean
   /** 이미지 위에 겹치는 투명 상단바 */
   transparent?: boolean
@@ -20,15 +20,7 @@ interface TopBarProps {
 }
 
 /** 높이 56 고정. Back=하위 화면(뒤로가기+제목+액션), Main=탭 화면 제목 */
-export function TopBar({
-  title,
-  leading = 'back',
-  onLeadingClick,
-  actions,
-  large = false,
-  transparent = false,
-  className,
-}: TopBarProps) {
+export function TopBar({ title, leading = 'back', onLeadingClick, actions, large = false, transparent = false, className }: TopBarProps) {
   const navigate = useNavigate()
   const handleLeading = onLeadingClick ?? (() => navigate(-1))
 
@@ -42,7 +34,7 @@ export function TopBar({
           className={styles.leading}
         />
       )}
-      {title && <h1 className={cn(styles.title, large ? 't-title-20' : 't-title-18')}>{title}</h1>}
+      {title && <h1 className={cn(styles.title, large ? 't-title-24' : 't-title-18')}>{title}</h1>}
       {actions && <div className={styles.actions}>{actions}</div>}
     </header>
   )

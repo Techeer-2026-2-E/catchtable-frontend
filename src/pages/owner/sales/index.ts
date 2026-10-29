@@ -1,1 +1,0 @@
-export { OwnerSalesPage } from './OwnerSalesPage'

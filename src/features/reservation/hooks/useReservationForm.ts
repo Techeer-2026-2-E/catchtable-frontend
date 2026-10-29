@@ -4,7 +4,7 @@ import { reservationKeys } from '../api/queryKeys'
 import { reservationApi } from '../api/reservationApi'
 import { useReservationFormStore } from '../store/reservationFormStore'
 
-/** 예약 생성 — 폼 상태(날짜·시간·인원·좌석 타입)로 요청을 만들어 보냄 */
+/** 예약 생성 — 폼 상태(날짜·시간·인원)로 요청을 만들어 보냄 */
 export function useReservationForm() {
   const form = useReservationFormStore()
   const queryClient = useQueryClient()
@@ -25,8 +25,6 @@ export function useReservationForm() {
       storeId: form.storeId!,
       reservationStartAt: toStoreDateTime(form.date!, form.time!),
       partySize: form.partySize,
-      preferredTableType: form.tableType ?? undefined,
-      request: form.request || undefined,
     })
   }
 

@@ -8,55 +8,32 @@
   background: var(--color-primary-default);
   transition: width 0.2s ease;
 }
-.half {
-  flex: 1;
-}
-.tableTypes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-8);
-}
-.optionCard {
+.confirm {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
-  min-height: 5.5rem;
-  padding: var(--space-16);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-12);
-  background: var(--color-bg-surface);
-  color: var(--color-text-primary);
-}
-.optionCard svg {
-  width: 1.5rem;
-  height: 1.5rem;
-  color: var(--color-icon-subtle);
-}
-.optionCard[aria-checked='true'] {
-  border-color: var(--color-secondary-default);
-  box-shadow: 0 0 0 1px var(--color-secondary-default);
-  background: var(--color-secondary-soft);
-  color: var(--color-text-brand);
-}
-.optionCard[aria-checked='true'] svg {
-  color: var(--color-text-brand);
-}
-.menus {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-.menuCard {
   align-items: flex-start;
-  gap: var(--space-2);
-  min-height: auto;
-  text-align: left;
+  gap: var(--space-8);
+  padding: var(--space-24) var(--page-gutter);
+}
+.when {
+  display: flex;
+  flex-direction: column;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+}
+.when strong {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 3.5rem;
+  letter-spacing: -0.03em;
 }
 .infoTable {
   display: grid;
   grid-template-columns: 4rem 1fr;
+  width: 100%;
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-default);
   row-gap: var(--space-8);
   margin: 0;
   font-size: 0.875rem;
@@ -67,52 +44,4 @@
 }
 .infoTable dd {
   margin: 0;
-}
-.hold {
-  display: flex;
-  gap: var(--space-8);
-  padding: var(--space-12) var(--page-gutter);
-  background: var(--color-primary-soft);
-  font-size: 0.8125rem;
-  line-height: 1.125rem;
-}
-.confirmBar {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-.confirmSummary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.bottomSpacer {
-  height: 2.5rem;
-}
-.hold {
-  align-items: center;
-}
-.payment {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-16);
-}
-.payMethod {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-16);
-  border: 1px solid var(--color-secondary-default);
-  border-radius: var(--radius-12);
-  background: var(--color-secondary-soft);
-  color: var(--color-text-brand);
-}
-.payMethod svg {
-  width: 1.375rem;
-  height: 1.375rem;
-}
-.optionCard:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }

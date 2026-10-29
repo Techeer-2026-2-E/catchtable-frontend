@@ -18,7 +18,6 @@ import {
   OwnerPolicyPage,
   OwnerReservationsPage,
   OwnerReviewsPage,
-  OwnerSalesPage,
   OwnerStorePage,
   OwnerTablesPage,
   OwnerWaitingsPage,
@@ -27,7 +26,6 @@ import {
   ReservationPage,
   ReviewWritePage,
   SearchPage,
-  SignupPage,
   StoreDetailPage,
   WaitingApplyPage,
   WaitingPage,
@@ -42,7 +40,6 @@ export const router = createBrowserRouter([
       // 누구나 접근
       { path: ROUTES.HOME, element: <HomePage /> },
       { path: ROUTES.LOGIN, element: <LoginPage /> },
-      { path: ROUTES.SIGNUP, element: <SignupPage /> },
       { path: ROUTES.SEARCH, element: <SearchPage /> },
       { path: ROUTES.STORE_DETAIL, element: <StoreDetailPage /> },
 
@@ -72,7 +69,6 @@ export const router = createBrowserRouter([
       { path: ROUTES.OWNER_RESERVATIONS, element: <OwnerReservationsPage /> },
       { path: ROUTES.OWNER_WAITINGS, element: <OwnerWaitingsPage /> },
       { path: ROUTES.OWNER_MENUS, element: <OwnerMenusPage /> },
-      { path: ROUTES.OWNER_SALES, element: <OwnerSalesPage /> },
       { path: ROUTES.OWNER_REVIEWS, element: <OwnerReviewsPage /> },
     ],
   },
