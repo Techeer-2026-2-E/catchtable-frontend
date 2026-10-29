@@ -1,30 +1,18 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Plus, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router'
-import type { Review } from '@/entities'
+import type { MyReview } from '@/entities'
 import { reservationKeys, useReservationDetail } from '@/features/reservation'
 import { useMyReviews, useReviewMutations } from '@/features/review'
 import { storeDetailKeys } from '@/features/store-detail'
 import { ROUTES } from '@/shared/config'
-import { getErrorMessage, resizeImage } from '@/shared/lib'
+import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import {
-  ErrorState,
-  ImagePlaceholder,
-  LoadingState,
-  Page,
-  StarRating,
-  Button,
-  Textarea,
-  toast,
-  TopBar,
-} from '@/shared/ui'
+import { Button, ErrorState, LoadingState, Page, StarRating, Textarea, toast, TopBar } from '@/shared/ui'
 import styles from './ReviewWritePage.module.css'
 
-const MIN_LENGTH = 10
-const MAX_LENGTH = 500
-const MAX_PHOTOS = 3
+/** 백엔드 ReviewCreateRequest — 공백 불가, 1000자 이내 */
+const MAX_LENGTH = 1000
 const RATING_HINT = ['', '별로였어요', '아쉬웠어요', '괜찮았어요', '좋았어요', '최고였어요']
 
 interface Target {
@@ -35,12 +23,15 @@ interface Target {
 }
 
 /**
- * 기능명세「리뷰 작성」「리뷰 수정」 (P2)
- * 작성: /reviews/write/:reservationId — 이용 완료 방문에만
+ * 기능명세「리뷰 작성」「리뷰 수정」
+ * 작성: /reviews/write/:reservationId — 이용 완료 방문에만 (이미 쓴 방문이면 서버가 거절)
  * 수정: /reviews/:reviewId/edit
  */
 export function ReviewWritePage() {
-  const { reservationId, reviewId } = useParams<{ reservationId?: string; reviewId?: string }>()
+  const { reservationId, reviewId } = useParams<{
+    reservationId?: string
+    reviewId?: string
+  }>()
   const editing = !!reviewId
   const reservation = useReservationDetail(editing ? NaN : Number(reservationId))
   const mine = useMyReviews()
@@ -62,7 +53,11 @@ export function ReviewWritePage() {
   }
 
   const target: Target = review
-    ? { storeId: review.storeId, storeName: review.storeName, visitedAt: review.createdAt }
+    ? {
+        storeId: review.storeId,
+        storeName: review.storeName,
+        visitedAt: review.visitedAt,
+      }
     : {
         storeId: reservation.data!.storeId,
         storeName: reservation.data!.storeName,
@@ -70,13 +65,11 @@ export function ReviewWritePage() {
         partySize: reservation.data!.partySize,
       }
 
-  if (!editing && (reservation.data!.status !== 'COMPLETED' || reservation.data!.reviewed)) {
+  if (!editing && reservation.data!.status !== 'COMPLETED') {
     return (
       <Page>
         <TopBar title={title} leading="close" />
-        <ErrorState
-          message={reservation.data!.reviewed ? '이미 리뷰를 작성한 방문이에요' : '이용 완료된 방문만 리뷰를 쓸 수 있어요'}
-        />
+        <ErrorState message="이용 완료된 방문만 리뷰를 쓸 수 있어요" />
       </Page>
     )
   }
@@ -84,36 +77,23 @@ export function ReviewWritePage() {
   return <ReviewForm key={review?.reviewId ?? reservationId} target={target} review={review} reservationId={Number(reservationId)} />
 }
 
-function ReviewForm({ target, review, reservationId }: { target: Target; review?: Review; reservationId: number }) {
+function ReviewForm({ target, review, reservationId }: { target: Target; review?: MyReview; reservationId: number }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { create, update } = useReviewMutations()
   const [rating, setRating] = useState(review?.rating ?? 0)
   const [content, setContent] = useState(review?.content ?? '')
-  const [photos, setPhotos] = useState<string[]>(review?.imageUrls ?? [])
-  const fileRef = useRef<HTMLInputElement>(null)
   const editing = !!review
   const pending = create.isPending || update.isPending
 
-  const tooShort = content.trim().length < MIN_LENGTH
-  const canSubmit = rating > 0 && !tooShort && !pending
-
-  const addPhotos = async (files: FileList | null) => {
-    if (!files?.length) return
-    const room = MAX_PHOTOS - photos.length
-    try {
-      const added = await Promise.all([...files].slice(0, room).map((f) => resizeImage(f)))
-      setPhotos((list) => [...list, ...added])
-      if (files.length > room) toast(`사진은 ${MAX_PHOTOS}장까지 올릴 수 있어요`)
-    } catch (e) {
-      toast(getErrorMessage(e, '사진을 불러오지 못했어요'))
-    }
-  }
+  const canSubmit = rating > 0 && !!content.trim() && !pending
 
   const done = (message: string) => {
     // 예약 목록의 '리뷰 쓰기' 버튼과 매장 상세 리뷰도 함께 갱신
     queryClient.invalidateQueries({ queryKey: reservationKeys.all })
-    queryClient.invalidateQueries({ queryKey: storeDetailKeys.detail(target.storeId) })
+    queryClient.invalidateQueries({
+      queryKey: storeDetailKeys.detail(target.storeId),
+    })
     toast(message)
     navigate(ROUTES.MY_REVIEWS, { replace: true })
   }
@@ -121,9 +101,12 @@ function ReviewForm({ target, review, reservationId }: { target: Target; review?
 
   const submit = () => {
     if (!canSubmit) return
-    const body = { rating, content: content.trim(), imageUrls: photos }
-    if (editing) update.mutate({ reviewId: review.reviewId, body }, { onSuccess: () => done('리뷰를 수정했어요'), onError })
-    else create.mutate({ reservationId, ...body }, { onSuccess: () => done('리뷰를 등록했어요'), onError })
+    const body = { rating, content: content.trim() }
+    if (editing) {
+      update.mutate({ reviewId: review.reviewId, body }, { onSuccess: () => done('리뷰를 수정했어요'), onError })
+    } else {
+      create.mutate({ reservationId, ...body }, { onSuccess: () => done('리뷰를 등록했어요'), onError })
+    }
   }
 
   return (
@@ -138,12 +121,11 @@ function ReviewForm({ target, review, reservationId }: { target: Target; review?
 
       <div className={styles.form}>
         <div className={styles.store}>
-          <ImagePlaceholder className={styles.thumb} radius={8} />
           <div>
             <p className="t-headline-16">{target.storeName}</p>
             <p className="t-caption-13 text-tertiary">
-              {dayjs(target.visitedAt).format('M/D(dd) HH:mm')} {editing ? '작성' : '방문'}
-              {target.partySize && ` · ${target.partySize}명`}
+              {dayjs(target.visitedAt).format('M/D(dd) HH:mm')} 방문
+              {target.partySize && `, ${target.partySize}명`}
             </p>
           </div>
         </div>
@@ -157,48 +139,6 @@ function ReviewForm({ target, review, reservationId }: { target: Target; review?
         </section>
 
         <section className={styles.field}>
-          <p className="t-label-15">
-            사진 첨부 <span className="text-tertiary">(선택 · 최대 {MAX_PHOTOS}장)</span>
-          </p>
-          <ul className={styles.photos}>
-            {photos.map((src, i) => (
-              <li key={i} className={styles.photoSlot}>
-                <ImagePlaceholder src={src} alt={`첨부 사진 ${i + 1}`} className={styles.photo} radius={8} />
-                <button
-                  type="button"
-                  className={styles.removePhoto}
-                  aria-label={`사진 ${i + 1} 삭제`}
-                  onClick={() => setPhotos((list) => list.filter((_, j) => j !== i))}
-                >
-                  <X aria-hidden />
-                </button>
-              </li>
-            ))}
-            {photos.length < MAX_PHOTOS && (
-              <li>
-                <button type="button" className={styles.addPhoto} onClick={() => fileRef.current?.click()}>
-                  <Plus aria-hidden />
-                  <span className="t-caption-12">
-                    {photos.length}/{MAX_PHOTOS}
-                  </span>
-                </button>
-              </li>
-            )}
-          </ul>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-            onChange={(e) => {
-              addPhotos(e.target.files)
-              e.target.value = ''
-            }}
-          />
-        </section>
-
-        <section className={styles.field}>
           <Textarea
             label="리뷰 내용"
             value={content}
@@ -207,9 +147,6 @@ function ReviewForm({ target, review, reservationId }: { target: Target; review?
             maxLength={MAX_LENGTH}
             rows={6}
           />
-          {content.length > 0 && tooShort && (
-            <p className="t-caption-12 text-danger">{MIN_LENGTH}자 이상 작성해주세요</p>
-          )}
         </section>
       </div>
     </Page>

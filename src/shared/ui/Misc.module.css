@@ -91,16 +91,98 @@
   color: var(--color-icon-disabled);
 }
 
-/* ---------- Card ---------- */
+/* ---------- Card — 둥근 흰 블록 (여러 개를 나열할 때) ---------- */
 .card {
   padding: var(--space-16);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-12);
+  border: 1px solid var(--card-border, var(--color-border-default));
+  border-radius: var(--radius-16);
   background: var(--color-bg-surface);
 }
 .cardSelected {
   border-color: var(--color-primary-default);
   box-shadow: 0 0 0 1px var(--color-primary-default);
+}
+
+/* ---------- Ticket — 번호표 (양옆 홈 + 절취선) ---------- */
+.ticket {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-16);
+  background: var(--color-primary-default);
+  color: var(--color-text-on-primary);
+}
+.ticketMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-24) var(--space-24) var(--space-20);
+}
+.ticketStub {
+  position: relative;
+  padding: var(--space-16) var(--space-24) var(--space-20);
+  border-top: 2px dashed rgb(102 72 0 / 35%);
+}
+.ticketStub::before,
+.ticketStub::after {
+  position: absolute;
+  top: -0.75rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: var(--ticket-cutout, var(--color-bg-canvas));
+  content: '';
+}
+.ticketStub::before {
+  left: -0.6875rem;
+}
+.ticketStub::after {
+  right: -0.6875rem;
+}
+.ticketMuted {
+  background: var(--color-bg-muted);
+  color: var(--color-text-secondary);
+}
+.ticketMuted .ticketStub {
+  border-top-color: var(--color-border-strong);
+}
+
+/* ---------- StatLine — 요약 수치 블록 (칸 사이 세로선) ---------- */
+.statLine {
+  display: flex;
+  margin: 0;
+  padding: var(--space-12) 0;
+  border-radius: var(--radius-16);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-default);
+}
+.stat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-16);
+}
+.stat + .stat {
+  border-left: 1px solid var(--color-border-default);
+}
+.statLabel {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--color-text-tertiary);
+}
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+.statUnit {
+  margin-left: var(--space-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 /* ---------- SearchBar ---------- */

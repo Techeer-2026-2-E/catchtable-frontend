@@ -6,11 +6,10 @@ export interface OwnerReservationActionRequest {
   reason: string
 }
 
-/** [P2] 예약 변경 — PATCH /api/owner/reservations/{id} (노션 명세, 필드는 제안) */
+/** 예약 변경 — OwnerReservationUpdateRequest (보낸 값만 변경, 테이블은 서버가 다시 배정) */
 export interface ChangeReservationRequest {
   reservationStartAt?: string
   partySize?: number
-  tableId?: number
 }
 
 /** 점주 예약 운영 API — 백엔드 dev 구현 (OwnerReservationController) */
@@ -18,10 +17,6 @@ export const ownerReservationApi = {
   /** 날짜별 예약 현황 — status 를 주면 해당 상태만 */
   getList: async (storeId: number, params: { date: string; status?: ReservationStatus }) => {
     const { data } = await apiClient.get<OwnerReservation[]>(`/owner/stores/${storeId}/reservations`, { params })
-    return data
-  },
-  getDetail: async (reservationId: number) => {
-    const { data } = await apiClient.get<OwnerReservation>(`/owner/reservations/${reservationId}`)
     return data
   },
   cancel: async (reservationId: number, body: OwnerReservationActionRequest) => {

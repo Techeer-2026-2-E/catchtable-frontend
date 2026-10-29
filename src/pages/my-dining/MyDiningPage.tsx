@@ -1,210 +1,211 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { CalendarX } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import {
-  ACTIVE_WAITING_STATUSES,
   getReservationDisplayStatus,
   RESERVATION_STATUS_LABEL,
-  RESERVATION_STATUS_TONE,
   WAITING_STATUS_LABEL,
-  WAITING_STATUS_TONE,
-  type Reservation,
-  type Waiting,
+  type HistoryItem,
+  type HistoryType,
+  type ReservationStatus,
+  type WaitingStatus,
 } from '@/entities'
-import { useCancelReservation, useReservations } from '@/features/reservation'
-import { useCancelWaiting, useWaitings } from '@/features/waiting'
+import { reservationKeys, useCancelReservation, useHistory } from '@/features/reservation'
+import { useCancelWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
-import { Badge, Button, Card, Dialog, EmptyState, ErrorState, LoadingState, Page, Tabs, toast, TopBar } from '@/shared/ui'
+import { Button, Dialog, EmptyState, ErrorState, LoadingState, Page, Tabs, toast, TopBar } from '@/shared/ui'
 import styles from './MyDiningPage.module.css'
 
-type Tab = 'active' | 'past'
-type Item = { kind: 'reservation'; data: Reservation; at: string } | { kind: 'waiting'; data: Waiting; at: string }
-type CancelTarget = { kind: Item['kind']; id: number; label: string } | null
+type Tab = 'ALL' | HistoryType
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'ALL', label: '전체' },
+  { value: 'WAITING', label: '웨이팅' },
+  { value: 'RESERVATION', label: '예약' },
+]
 
-const isActiveReservation = (r: Reservation) => r.status === 'CONFIRMED'
-const isActiveWaiting = (w: Waiting) => ACTIVE_WAITING_STATUSES.includes(w.status)
+/** 묶는 날짜 — 예약은 방문일, 웨이팅은 줄 선 날 */
+const dayOf = (item: HistoryItem) => dayjs(item.reservationStartAt ?? item.waitingDate ?? item.requestedAt).format('YYYY-MM-DD')
+/** 같은 날 안에서의 순서 — 예약은 방문 시각, 웨이팅은 접수 시각 */
+const timeOf = (item: HistoryItem) => item.reservationStartAt ?? item.requestedAt
 
 /**
  * 기능명세「예약·웨이팅 목록 조회」「예약·웨이팅 취소」
- * GET /api/user/reservations · GET /api/user/waitings
+ * GET /api/user/reservations?type=WAITING|RESERVATION — 날짜별로 묶어 최근 날짜부터
  */
 export function MyDiningPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('active')
-  const reservations = useReservations()
-  const waitings = useWaitings()
+  const queryClient = useQueryClient()
+  const [tab, setTab] = useState<Tab>('ALL')
+  const history = useHistory(tab === 'ALL' ? undefined : { type: tab })
   const cancelReservation = useCancelReservation()
   const cancelWaiting = useCancelWaiting()
-  const [cancelTarget, setCancelTarget] = useState<CancelTarget>(null)
+  const [cancelTarget, setCancelTarget] = useState<HistoryItem | null>(null)
 
-  const loading = reservations.isPending || waitings.isPending
-  const failed = reservations.isError || waitings.isError
-
-  const items: Item[] = [
-    ...(waitings.data ?? []).map((w) => ({ kind: 'waiting' as const, data: w, at: w.createdAt ?? '' })),
-    ...(reservations.data ?? []).map((r) => ({ kind: 'reservation' as const, data: r, at: r.reservationStartAt })),
-  ]
-    .filter((item) => {
-      const active = item.kind === 'reservation' ? isActiveReservation(item.data) : isActiveWaiting(item.data)
-      return tab === 'active' ? active : !active
-    })
-    // 진행 중은 가까운 순, 지난 내역은 최근 순
-    .sort((a, b) => (tab === 'active' ? a.at.localeCompare(b.at) : b.at.localeCompare(a.at)))
+  const groups = groupByDay(history.data ?? [])
 
   const confirmCancel = () => {
     if (!cancelTarget) return
+    const item = cancelTarget
     const options = {
       onSuccess: () => {
-        toast(cancelTarget.kind === 'reservation' ? '예약을 취소했어요' : '웨이팅을 취소했어요')
+        queryClient.invalidateQueries({ queryKey: reservationKeys.all })
+        toast(item.type === 'RESERVATION' ? '예약을 취소했어요' : '웨이팅을 취소했어요')
         setCancelTarget(null)
       },
       onError: (e: unknown) => toast(getErrorMessage(e, '취소하지 못했어요')),
     }
-    if (cancelTarget.kind === 'reservation') cancelReservation.mutate(cancelTarget.id, options)
-    else cancelWaiting.mutate(cancelTarget.id, options)
+    if (item.type === 'RESERVATION') cancelReservation.mutate(item.id, options)
+    else cancelWaiting.mutate(item.id, options)
   }
 
   return (
-    <Page>
-      <TopBar title="마이다이닝" leading="none" large />
-      <Tabs
-        items={[
-          { value: 'active', label: '진행 중' },
-          { value: 'past', label: '지난 내역' },
-        ]}
-        value={tab}
-        onChange={setTab}
-      />
+    <Page muted>
+      <div className={styles.head}>
+        <TopBar title="마이다이닝" leading="none" large />
+        <Tabs items={TABS} value={tab} onChange={setTab} />
+      </div>
 
-      {loading ? (
+      {history.isPending ? (
         <LoadingState />
-      ) : failed ? (
-        <ErrorState
-          onRetry={() => {
-            reservations.refetch()
-            waitings.refetch()
-          }}
-        />
-      ) : items.length === 0 ? (
-        <EmptyState
-          icon={<CalendarX />}
-          title={tab === 'active' ? '진행 중인 예약·웨이팅이 없어요' : '지난 내역이 없어요'}
-          description="마음에 드는 매장을 찾아 예약해보세요"
-        />
+      ) : history.isError ? (
+        <ErrorState onRetry={() => history.refetch()} />
+      ) : groups.length === 0 ? (
+        <EmptyState icon={<CalendarX />} title="아직 내역이 없어요" description="마음에 드는 매장을 찾아 예약하거나 웨이팅해 보세요" />
       ) : (
-        <ul className={styles.list}>
-          {items.map((item) =>
-            item.kind === 'reservation' ? (
-              <ReservationItem
-                key={`r-${item.data.reservationId}`}
-                reservation={item.data}
-                onOpen={() => navigate(paths.reservationDetail(item.data.reservationId))}
-                onReview={() => navigate(paths.reviewWrite(item.data.reservationId))}
-                onCancel={() =>
-                  setCancelTarget({ kind: 'reservation', id: item.data.reservationId, label: item.data.storeName })
-                }
-              />
-            ) : (
-              <WaitingItem
-                key={`w-${item.data.waitingId}`}
-                waiting={item.data}
-                onOpen={() => navigate(paths.waiting(item.data.waitingId))}
-                onCancel={() =>
-                  setCancelTarget({ kind: 'waiting', id: item.data.waitingId, label: item.data.storeName ?? '' })
-                }
-              />
-            ),
-          )}
-        </ul>
+        <div className={styles.groups}>
+          {groups.map(({ day, items }) => (
+            <section key={day} className={styles.group} aria-label={dayjs(day).format('YYYY년 M월 D일')}>
+              <h2 className={`${styles.date} tnum`}>{dayjs(day).format('YYYY. M. D')}</h2>
+              <ul>
+                {items.map((item) => (
+                  <li key={`${item.type}-${item.id}`} className={styles.item}>
+                    {item.type === 'RESERVATION' ? (
+                      <ReservationItem
+                        item={item}
+                        onOpen={() => navigate(paths.reservationDetail(item.id))}
+                        onReview={() => navigate(paths.reviewWrite(item.id))}
+                        onCancel={() => setCancelTarget(item)}
+                      />
+                    ) : (
+                      <WaitingItem item={item} onOpen={() => navigate(paths.waiting(item.id))} onCancel={() => setCancelTarget(item)} />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
 
       <Dialog
         isOpen={!!cancelTarget}
         onClose={() => setCancelTarget(null)}
-        title={cancelTarget?.kind === 'waiting' ? '웨이팅을 취소할까요?' : '예약을 취소할까요?'}
-        confirmLabel={cancelTarget?.kind === 'waiting' ? '웨이팅 취소' : '예약 취소'}
+        title={cancelTarget?.type === 'WAITING' ? '웨이팅을 취소할까요?' : '예약을 취소할까요?'}
+        confirmLabel={cancelTarget?.type === 'WAITING' ? '웨이팅 취소' : '예약 취소'}
         onConfirm={confirmCancel}
       >
-        {cancelTarget?.label} {cancelTarget?.kind === 'waiting' ? '웨이팅' : '예약'}이 취소돼요. 취소 후에는 되돌릴 수
-        없어요.
+        {cancelTarget?.storeName} {cancelTarget?.type === 'WAITING' ? '웨이팅' : '예약'}이 취소돼요. 취소 후에는 되돌릴 수 없어요.
       </Dialog>
     </Page>
   )
 }
 
+/** 날짜별로 묶기 — 최근 날짜부터, 같은 날은 이른 시각부터 */
+function groupByDay(items: HistoryItem[]) {
+  const map = new Map<string, HistoryItem[]>()
+  ;[...items]
+    .sort((a, b) => dayOf(b).localeCompare(dayOf(a)) || timeOf(a).localeCompare(timeOf(b)))
+    .forEach((item) => map.set(dayOf(item), [...(map.get(dayOf(item)) ?? []), item]))
+  return [...map].map(([day, list]) => ({ day, items: list }))
+}
+
+/** 방문일 표시 — 오늘·내일은 말로 */
+const relativeDay = (iso: string) => {
+  const d = dayjs(iso)
+  if (d.isSame(dayjs(), 'day')) return `오늘(${d.format('dd')})`
+  if (d.isSame(dayjs().add(1, 'day'), 'day')) return `내일(${d.format('dd')})`
+  return d.format('M/D(dd)')
+}
+
 function ReservationItem({
-  reservation: r,
+  item,
   onOpen,
   onCancel,
   onReview,
 }: {
-  reservation: Reservation
+  item: HistoryItem
   onOpen: () => void
   onCancel: () => void
   onReview: () => void
 }) {
-  const display = getReservationDisplayStatus(r)
-  const upcoming = display === 'CONFIRMED' && dayjs(r.reservationStartAt).isAfter(dayjs())
+  const status = item.status as ReservationStatus
+  const display = getReservationDisplayStatus({ status })
+  const label = RESERVATION_STATUS_LABEL[display]
+  const startAt = item.reservationStartAt ?? item.requestedAt
+  const upcoming = status === 'CONFIRMED' && dayjs(startAt).isAfter(dayjs())
   return (
-    <Card as="li" className={styles.card}>
-      <button type="button" className={styles.cardBody} onClick={onOpen}>
-        <div className={styles.cardHead}>
-          <Badge tone={RESERVATION_STATUS_TONE[display]}>{RESERVATION_STATUS_LABEL[display]}</Badge>
-          <span className="t-caption-12 text-tertiary">예약</span>
-        </div>
-        <p className="t-headline-16">{r.storeName}</p>
-        <p className="t-caption-13 text-tertiary">
-          {dayjs(r.reservationStartAt).format('M/D(dd)')} {formatTime(r.reservationStartAt)} · {r.partySize}명
-          {r.tableTypeLabel && ` · ${r.tableTypeLabel}`}
-        </p>
+    <>
+      <p className={styles.statusLine}>
+        <strong>{label.startsWith('예약') ? label : `예약 ${label}`}</strong>
+        {item.active && (
+          <span className="text-brand tnum">
+            {relativeDay(startAt)} {formatTime(startAt)} 방문
+          </span>
+        )}
+      </p>
+      <button type="button" className={styles.summary} onClick={onOpen}>
+        <span className="t-headline-16">{item.storeName}</span>
+        <span className="t-body-14 text-secondary tnum">
+          {item.active ? `${item.partySize}명` : `${formatTime(startAt)}, ${item.partySize}명`}
+        </span>
       </button>
-      {upcoming && (
-        <div className={styles.actions}>
-          <Button variant="soft" size="S" onClick={onCancel}>
-            예약 취소
+      <div className={styles.actions}>
+        <Button variant="outline" size="M" className={styles.main} onClick={onOpen}>
+          예약 상세
+        </Button>
+        {upcoming && (
+          <Button variant="soft" size="M" onClick={onCancel}>
+            취소
           </Button>
-        </div>
-      )}
-      {r.status === 'COMPLETED' && !r.reviewed && (
-        <div className={styles.actions}>
-          <Button variant="soft" size="S" onClick={onReview}>
+        )}
+        {status === 'COMPLETED' && (
+          <Button variant="soft" size="M" onClick={onReview}>
             리뷰 쓰기
           </Button>
-        </div>
-      )}
-    </Card>
+        )}
+      </div>
+    </>
   )
 }
 
-function WaitingItem({ waiting: w, onOpen, onCancel }: { waiting: Waiting; onOpen: () => void; onCancel: () => void }) {
-  const active = isActiveWaiting(w)
+function WaitingItem({ item, onOpen, onCancel }: { item: HistoryItem; onOpen: () => void; onCancel: () => void }) {
+  const status = item.status as WaitingStatus
   return (
-    <Card as="li" className={styles.card}>
-      <button type="button" className={styles.cardBody} onClick={onOpen}>
-        <div className={styles.cardHead}>
-          <Badge tone={WAITING_STATUS_TONE[w.status]} solid={w.status === 'CALLED'}>
-            {w.status === 'WAITING' ? `대기 ${w.teamsAhead + 1}번째` : WAITING_STATUS_LABEL[w.status]}
-          </Badge>
-          <span className="t-caption-12 text-tertiary">웨이팅</span>
-        </div>
-        <p className="t-headline-16">{w.storeName}</p>
-        <p className="t-caption-13 text-tertiary">
-          대기번호 {w.waitNumber}번{w.createdAt && ` · ${dayjs(w.createdAt).format('M/D HH:mm')} 접수`} · {w.partyCount}명
-        </p>
+    <>
+      <p className={styles.statusLine}>
+        <strong>웨이팅 {WAITING_STATUS_LABEL[status]}</strong>
+        <span className={item.active ? 'text-brand tnum' : 'text-tertiary tnum'}>대기번호 {item.waitNumber}번</span>
+      </p>
+      <button type="button" className={styles.summary} onClick={onOpen}>
+        <span className="t-headline-16">{item.storeName}</span>
+        <span className="t-body-14 text-secondary tnum">
+          {formatTime(item.requestedAt)} 접수, {item.partySize}명
+        </span>
       </button>
-      {active && (
-        <div className={styles.actions}>
-          <Button variant="soft" size="S" onClick={onCancel}>
-            웨이팅 취소
+      <div className={styles.actions}>
+        <Button variant="outline" size="M" className={styles.main} onClick={onOpen}>
+          {item.active ? '순번 보기' : '웨이팅 상세'}
+        </Button>
+        {item.active && (
+          <Button variant="soft" size="M" onClick={onCancel}>
+            취소
           </Button>
-          <Button variant="outline" size="S" onClick={onOpen}>
-            현황 보기
-          </Button>
-        </div>
-      )}
-    </Card>
+        )}
+      </div>
+    </>
   )
 }

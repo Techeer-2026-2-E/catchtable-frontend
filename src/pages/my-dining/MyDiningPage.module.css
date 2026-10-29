@@ -1,27 +1,63 @@
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  padding: var(--space-16) var(--page-gutter) var(--space-24);
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg-canvas);
 }
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
+.head header {
+  position: static;
 }
-.cardBody {
+.groups {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-8);
+  padding: var(--space-8) 0 var(--space-24);
+}
+
+/* ---------- 날짜 한 묶음 — 흰 블록 ---------- */
+.group {
+  margin: 0 var(--space-8);
+  border-radius: var(--radius-16);
+  background: var(--color-bg-surface);
+}
+.date {
+  padding: var(--space-16) var(--space-16) var(--space-12);
+  border-bottom: 1px solid var(--color-border-default);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-16);
+}
+.item + .item {
+  border-top: 1px solid var(--color-border-default);
+}
+.statusLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-8);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+.statusLine strong {
+  font-weight: 700;
+}
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   text-align: left;
-}
-.cardHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
 }
 .actions {
   display: flex;
   gap: var(--space-8);
+  margin-top: var(--space-4);
+}
+.main {
+  flex: 1;
 }

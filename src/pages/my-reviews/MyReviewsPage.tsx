@@ -2,26 +2,25 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MessageSquareText } from 'lucide-react'
 import { useNavigate } from 'react-router'
-import { ReviewItem, type Review } from '@/entities'
+import { ReviewItem, type MyReview } from '@/entities'
 import { reservationKeys } from '@/features/reservation'
-import { useMyReviews, useReviewMutations, useWritableVisits } from '@/features/review'
+import { useMyReviews, useReviewMutations } from '@/features/review'
 import { paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
-import { dayjs } from '@/shared/lib/dayjs'
-import { Button, Card, Dialog, Divider, EmptyState, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { Button, Card, Dialog, EmptyState, ErrorState, LoadingState, Page, toast, TopBar } from '@/shared/ui'
 import styles from './MyReviewsPage.module.css'
 
 /**
  * 기능명세「내 리뷰 조회」「리뷰 수정」「리뷰 삭제」 (P2)
- * GET /api/user/members/me/reviews · GET /api/user/reviews/writable
+ * GET /api/user/members/me/reviews · PATCH·DELETE /api/user/reviews/{reviewId}
+ * 리뷰 작성은 마이다이닝의 이용 완료 예약에서 시작
  */
 export function MyReviewsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const writable = useWritableVisits()
   const mine = useMyReviews()
   const { remove } = useReviewMutations()
-  const [deleting, setDeleting] = useState<Review | null>(null)
+  const [deleting, setDeleting] = useState<MyReview | null>(null)
 
   const confirmDelete = () => {
     if (!deleting) return
@@ -39,29 +38,6 @@ export function MyReviewsPage() {
     <Page>
       <TopBar title={`내가 쓴 리뷰${mine.data ? ` (${mine.data.length})` : ''}`} />
 
-      {!!writable.data?.length && (
-        <>
-          <Section title="리뷰를 기다리는 방문" action={<span className="t-caption-13 text-tertiary">{writable.data.length}곳</span>}>
-            <ul className={styles.writable}>
-              {writable.data.map((v) => (
-                <Card as="li" key={v.reservationId} className={styles.visit}>
-                  <div>
-                    <p className="t-label-15">{v.storeName}</p>
-                    <p className="t-caption-13 text-tertiary">
-                      {dayjs(v.reservationStartAt).format('M/D(dd)')} 방문 · {v.partySize}명
-                    </p>
-                  </div>
-                  <Button size="S" onClick={() => navigate(paths.reviewWrite(v.reservationId))}>
-                    리뷰 쓰기
-                  </Button>
-                </Card>
-              ))}
-            </ul>
-          </Section>
-          <Divider thick />
-        </>
-      )}
-
       {mine.isPending ? (
         <LoadingState />
       ) : mine.isError ? (
@@ -78,7 +54,6 @@ export function MyReviewsPage() {
             <Card as="li" key={review.reviewId}>
               <ReviewItem
                 review={review}
-                heading="store"
                 actions={
                   <>
                     <Button size="S" variant="soft" onClick={() => navigate(paths.reviewEdit(review.reviewId))}>

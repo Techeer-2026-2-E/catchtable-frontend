@@ -1,65 +1,63 @@
-.card,
-.compact {
-  position: relative;
+/* ---------- 기본 카드 — 둥근 흰 블록 ---------- */
+.card {
   display: flex;
   flex-direction: column;
   gap: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--card-border, var(--color-border-default));
+  border-radius: var(--radius-16);
+  background: var(--color-bg-surface);
 }
 .link {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--space-12);
 }
-.card .image {
-  width: 100%;
-  height: 11.25rem;
-}
-.compact {
+.thumb {
+  display: inline-flex;
   flex-shrink: 0;
-  width: 9rem;
+  align-items: center;
+  justify-content: center;
+  width: 3.75rem;
+  height: 3.75rem;
+  border-radius: var(--radius-12);
+  background: var(--color-secondary-soft);
+  font-size: 1.875rem;
 }
-.compact .link {
-  gap: var(--space-8);
-}
-.compact .image {
-  width: 9rem;
-  height: 9rem;
-}
-.compact .name {
-  font-size: 0.9375rem;
-}
-.body {
+.text {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
+  min-width: 0;
 }
-.name {
-  padding-right: var(--space-32);
+.name,
+.meta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-}
 .tags {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-4);
   margin-top: var(--space-4);
 }
-.like {
-  position: absolute;
-  top: calc(11.25rem + var(--space-8));
-  right: 0;
-  display: inline-flex;
-  padding: var(--space-4);
-  color: var(--color-icon-subtle);
+
+/* ---------- compact — 가로 추천 줄 ---------- */
+.compact {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 8.5rem;
 }
-.like svg {
-  width: 1.375rem;
-  height: 1.375rem;
+.compactThumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 6.5rem;
+  margin-bottom: var(--space-8);
+  border-radius: var(--radius-16);
+  background: var(--color-secondary-soft);
+  font-size: 2.75rem;
 }

@@ -1,2 +1,2 @@
 export * from './model'
-export { StoreCard, StoreTags } from './ui/StoreCard'
+export { CATEGORY_EMOJI, StoreCard, StoreTags } from './ui/StoreCard'

@@ -1,43 +1,29 @@
 import type { Member, UserType } from '@/entities'
-import { apiClient } from '@/shared/lib'
+import { apiClient, memberIdStorage } from '@/shared/lib'
 
 /*
- * 인증 API — 노션 명세 "API 명세 (보류)(auth)" 경로 기준, 백엔드 미구현이라 목 API 로만 동작
- * 요청·응답 필드는 제안안 (백엔드와 확정 필요)
+ * 백엔드 dev 에는 로그인·회원가입 API 가 없고 X-Member-Id 헤더로 회원을 식별한다.
+ * 시작 화면에서 고른 회원 id 를 저장해 두고 모든 요청에 붙인다 (운영 인증 아님).
  */
 
-export interface SignupRequest {
-  email: string
-  password: string
-  name: string
-  /** 010-1234-5678 */
-  phone: string
+export interface StartAsRequest {
+  memberId: number
   userType: UserType
-}
-
-export interface LoginRequest {
-  email: string
-  password: string
-}
-
-export interface LoginResponse {
-  accessToken: string
-  member: Member
+  /** 점주 표시 이름 — GET /user/members/me 는 고객만 허용(점주는 403 FORBIDDEN_MEMBER_TYPE) */
+  name: string
 }
 
 export const authApi = {
-  /** 회원가입 — 201 */
-  signup: async (body: SignupRequest) => {
-    await apiClient.post('/user/auth/signup', body)
+  /** 회원 id 로 시작 — 고객은 GET /api/user/members/me 로 이름·연락처를 받음 */
+  startAs: async ({ memberId, userType, name }: StartAsRequest): Promise<Member> => {
+    memberIdStorage.set(memberId)
+    if (userType === 'OWNER') return { id: memberId, name, phone: '', userType }
+    try {
+      const { data } = await apiClient.get<Omit<Member, 'userType'>>('/user/members/me')
+      return { ...data, userType }
+    } catch (error) {
+      memberIdStorage.clear()
+      throw error
+    }
   },
-  /** 로그인 — 200, 토큰 발급 */
-  login: async (body: LoginRequest) => {
-    const { data } = await apiClient.post<LoginResponse>('/user/auth/login', body)
-    return data
-  },
-  /** 로그아웃 — 204 */
-  logout: async () => {
-    await apiClient.post('/user/auth/logout')
-  },
-  // 토큰 재발급(/user/auth/reissue)은 shared/lib/axios 인터셉터에서 처리
 }

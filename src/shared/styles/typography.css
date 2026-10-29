@@ -2,9 +2,22 @@
  * 텍스트 스타일 13종 — Figma Typography (IBM Plex Sans KR)
  * - 화면 제목은 Title/20 한 번, 하위 화면 상단바는 Title/18
  * - 카드: 제목 Headline/16, 본문 Body/14, 메타 Caption/13
- * - 대기번호·매출·KPI 는 Display/28
+ * - 대기번호·매출·KPI 는 Display/28, 번호표의 대기번호만 Display/40
+ * - 탭 메인 화면 제목은 Title/24
  * - Micro/11 은 배지와 탭바 라벨에만
  */
+.t-display-40 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 2.75rem;
+  letter-spacing: -0.02em;
+}
+.t-title-24 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2rem;
+  letter-spacing: -0.015em;
+}
 .t-display-28 {
   font-size: 1.75rem;
   font-weight: 700;
@@ -87,5 +100,27 @@
   color: var(--color-text-brand);
 }
 .text-danger {
+  color: var(--color-status-danger);
+}
+
+/* 시간·번호·금액 — 자리 폭이 같은 숫자로 줄을 맞춤 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 상태 글자 — 장부 줄 위에 작게. 색만으로 구분하지 않도록 항상 상태 문구와 함께 (data-tone 은 BadgeTone) */
+.status-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  color: var(--color-text-tertiary);
+}
+.status-text[data-tone='brand'] {
+  color: var(--color-text-brand);
+}
+.status-text[data-tone='primary'] {
+  color: var(--color-text-accent);
+}
+.status-text[data-tone='danger'] {
   color: var(--color-status-danger);
 }

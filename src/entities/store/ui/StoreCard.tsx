@@ -1,75 +1,67 @@
-import { Heart } from 'lucide-react'
 import { Link } from 'react-router'
-import { formatPrice } from '@/shared/lib/format'
-import { Badge, ImagePlaceholder, Rating } from '@/shared/ui'
-import { STORE_CATEGORY_LABEL, type Store } from '../model'
+import { Badge } from '@/shared/ui'
+import type { Store, StoreCategory } from '../model'
 import styles from './StoreCard.module.css'
+
+/** 매장 사진이 목록 응답에 없어서 카테고리 그림으로 자리를 채움 */
+export const CATEGORY_EMOJI: Record<StoreCategory, string> = {
+  KOREAN: '🍚',
+  JAPANESE: '🍣',
+  CHINESE: '🥟',
+  WESTERN: '🍝',
+  CAFE: '☕',
+  BAR: '🍶',
+  ETC: '🍽️',
+}
 
 interface StoreCardProps {
   store: Store
   to: string
-  /** 카드 하단 추가 영역 (예약 가능 날짜 등) */
+  /** 카드 하단 추가 영역 (예약 가능 시간 등) */
   footer?: React.ReactNode
-  /** compact=가로 스크롤용 작은 카드 */
+  /** compact = 가로로 넘기는 추천 줄의 작은 카드 */
   variant?: 'default' | 'compact'
 }
 
-/** 홈·검색 결과 매장 카드. 이미지 180 · 이름 · 평점/카테고리/지역 · 태그 */
+/** 매장 카드 — StoreSummaryResponse(이름, 카테고리, 주소, 웨이팅 가능)만 표시 */
 export function StoreCard({ store, to, footer, variant = 'default' }: StoreCardProps) {
-  const distance =
-    store.distanceMeters == null
-      ? null
-      : store.distanceMeters < 1000
-        ? `${store.distanceMeters}m`
-        : `${(store.distanceMeters / 1000).toFixed(1)}km`
-  const meta = [STORE_CATEGORY_LABEL[store.category], store.region, distance].filter(Boolean).join(' · ')
-
-  return (
-    <article className={variant === 'compact' ? styles.compact : styles.card}>
-      <Link to={to} className={styles.link}>
-        <ImagePlaceholder src={store.thumbnailUrl} alt={store.name} className={styles.image} />
-        <div className={styles.body}>
-          <h3 className={`${styles.name} t-headline-16`}>{store.name}</h3>
-          <div className={styles.meta}>
-            {!!store.reviewCount && store.rating != null && <Rating value={store.rating} count={store.reviewCount} />}
-            <span className="t-caption-13 text-tertiary">{meta}</span>
-          </div>
-          {variant === 'default' && store.priceRange && (
-            <p className="t-caption-13 text-tertiary">
-              {store.priceRange}
-              {store.maxPartySize && ` · 최대 ${store.maxPartySize}명`}
-            </p>
-          )}
-          <StoreTags store={store} />
-        </div>
+  if (variant === 'compact') {
+    return (
+      <Link to={to} className={styles.compact}>
+        <span className={styles.compactThumb} aria-hidden>
+          {CATEGORY_EMOJI[store.category]}
+        </span>
+        <span className={`${styles.name} t-label-15`}>{store.name}</span>
+        <span className="t-caption-12 text-tertiary">{store.categoryName}</span>
+        <StoreTags store={store} />
       </Link>
-      {variant === 'default' && (
-        <button type="button" className={styles.like} aria-label={`${store.name} 저장`}>
-          <Heart />
-        </button>
-      )}
+    )
+  }
+  return (
+    <article className={styles.card}>
+      <Link to={to} className={styles.link}>
+        <span className={styles.thumb} aria-hidden>
+          {CATEGORY_EMOJI[store.category]}
+        </span>
+        <span className={styles.text}>
+          <span className={`${styles.name} t-headline-16`}>{store.name}</span>
+          <span className={`${styles.meta} t-caption-13 text-tertiary`}>
+            {store.categoryName}, {store.address}
+          </span>
+          <StoreTags store={store} />
+        </span>
+      </Link>
       {footer}
     </article>
   )
 }
 
-/** 매장 태그 — 상태가 아니라 매장 속성이므로 brand 톤 */
+/** 매장 태그 — 상태가 아니라 매장 속성 */
 export function StoreTags({ store }: { store: Store }) {
-  const tags: { label: string; tone: 'brand' | 'primary' }[] = []
-  if (store.depositAmount === 0) tags.push({ label: '예약금 0원', tone: 'brand' })
-  else if (store.depositAmount) tags.push({ label: `예약금 ${formatPrice(store.depositAmount)}`, tone: 'brand' })
-  if (store.waitingAvailable) {
-    tags.push({ label: store.waitingTeams ? `웨이팅 ${store.waitingTeams}팀` : '바로 입장', tone: 'brand' })
-  }
-  if (tags.length === 0) return null
-
+  if (!store.waitingAvailable) return null
   return (
-    <div className={styles.tags}>
-      {tags.map((t) => (
-        <Badge key={t.label} tone={t.tone}>
-          {t.label}
-        </Badge>
-      ))}
-    </div>
+    <span className={styles.tags}>
+      <Badge tone="primary">웨이팅 가능</Badge>
+    </span>
   )
 }

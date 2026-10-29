@@ -24,54 +24,8 @@
   font-weight: 700;
   color: var(--color-text-on-primary);
 }
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-16);
-}
-.form button[type='submit'] {
-  margin-top: var(--space-8);
-}
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-}
-.divider::before,
-.divider::after {
-  flex: 1;
-  height: 1px;
-  background: var(--color-border-default);
-  content: '';
-}
-.social {
+.actions {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-}
-.footer {
-  text-align: center;
-}
-.dev {
-  display: flex;
-  justify-content: center;
-}
-.agree {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  font-size: 0.875rem;
-}
-.agree input {
-  width: 1.125rem;
-  height: 1.125rem;
-  accent-color: var(--color-secondary-default);
-}
-.fieldLabel {
-  margin-bottom: var(--space-8);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
 }

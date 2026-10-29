@@ -1,9 +1,6 @@
 /*
  * 매장 도메인 타입 — 백엔드 dev 의 store DTO 와 필드명을 그대로 맞춤
  * (catchtable-backend: store/dto/*Response.java)
- *
- * [목 전용] 표시가 붙은 필드는 아직 백엔드 응답에 없고 화면(와이어프레임)에만 필요한 값.
- * 목 API 가 내려주며, 백엔드에 추가 요청할 목록이기도 함.
  */
 
 /** store.entity.StoreCategory */
@@ -65,43 +62,21 @@ export interface Store {
   categoryName: string
   address: string
   waitingAvailable: boolean
-  /* ----- [목 전용] 백엔드 응답에 추가 요청 필요 ----- */
-  thumbnailUrl?: string
-  /** 지역 (예: 강남) */
-  region?: string
-  rating?: number
-  reviewCount?: number
-  /** 가격대 안내 (예: 저녁 8-15만원) */
-  priceRange?: string
-  /** 최대 예약 인원 */
-  maxPartySize?: number
-  /** 1인 예약금(원) — 0이면 예약금 없음 (P2) */
-  depositAmount?: number
-  /** 현재 웨이팅 팀 수 */
-  waitingTeams?: number
-  /** 위치 (P2 지도·주변 매장) */
-  latitude?: number
-  longitude?: number
-  /** 주변 매장 조회 시 현재 위치로부터 거리(m) */
-  distanceMeters?: number
 }
 
-/** GET /api/user/stores/{storeId} — StoreDetailResponse */
+/** GET /api/user/stores/{storeId} — StoreDetailResponse (메뉴 포함) */
 export interface StoreDetail extends Store {
+  description: string | null
+  /** 0X-XXXX-XXXX */
+  phone: string | null
+  imageUrl: string | null
   businessHours: BusinessHour[]
+  /** 매장 메뉴 — 백엔드는 별도 메뉴 조회 API 없이 상세에 포함 */
+  menus: Menu[]
 }
 
 /** store.entity.TableStatus */
 export type TableStatus = 'ACTIVE' | 'INACTIVE'
-
-/** [목 전용] 좌석(공간) 타입 — 백엔드 StoreTable 에 아직 없음 */
-export type TableType = 'ROOM' | 'HALL' | 'BAR'
-
-export const TABLE_TYPE_LABEL: Record<TableType, string> = {
-  ROOM: '룸',
-  HALL: '홀',
-  BAR: '바',
-}
 
 /** StoreTableResponse */
 export interface StoreTable {
@@ -110,8 +85,6 @@ export interface StoreTable {
   minCapacity: number
   capacity: number
   status: TableStatus
-  /** [목 전용] */
-  tableType?: TableType
 }
 
 /** MenuResponse */
@@ -120,10 +93,6 @@ export interface Menu {
   name: string
   price: number
   description: string | null
-  /** [목 전용] */
-  imageUrl?: string
-  /** [목 전용] 품절·판매 중지 — 고객 예약 화면에서 선택 불가 */
-  soldOut?: boolean
 }
 
 /** GET /api/user/stores/{storeId}/availability — AvailabilityResponse */
@@ -154,30 +123,4 @@ export interface ReservationPolicy {
   bookingOpenDays: number
   /** 시작 몇 분 전에 예약 마감 */
   bookingDeadlineMinutes: number
-}
-
-/* ---------- P2: 매출 관리 — GET /api/owner/stores/{storeId}/sales (응답 필드는 제안) ---------- */
-
-export type SalesPeriod = 'DAY' | 'WEEK' | 'MONTH'
-
-export interface SalesPoint {
-  /** 구간 라벨 (예: 10/3, 40주차, 10월) */
-  label: string
-  /** 구간 시작일 YYYY-MM-DD */
-  date: string
-  amount: number
-  reservationCount: number
-  waitingCount: number
-}
-
-export interface SalesReport {
-  storeId: number
-  period: SalesPeriod
-  /** 조회 구간 합계 */
-  totalAmount: number
-  reservationCount: number
-  waitingCount: number
-  /** 직전 같은 구간 대비 증감률(%) — 직전 기간 매출이 없으면 null */
-  changeRate: number | null
-  points: SalesPoint[]
 }

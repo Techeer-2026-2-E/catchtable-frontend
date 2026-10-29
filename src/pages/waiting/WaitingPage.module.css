@@ -1,60 +1,44 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-8) var(--page-gutter) var(--space-24);
+}
+.ticketHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.number {
+  margin-top: var(--space-12);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.number span {
+  margin-right: var(--space-4);
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 5rem;
+  letter-spacing: -0.04em;
+}
+.stubRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.stubValue {
+  margin-right: var(--space-4);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 2.25rem;
+}
 .called {
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
-  margin: var(--space-8) var(--page-gutter) 0;
-  padding: var(--space-16);
-  border: 1px solid var(--color-primary-default);
-  border-radius: var(--radius-16);
-  background: var(--color-primary-soft);
-}
-.calledHead {
-  display: flex;
-  gap: var(--space-12);
-}
-.calledHead svg {
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  color: var(--color-text-accent);
-}
-.calledActions {
-  display: flex;
   gap: var(--space-8);
 }
-.flex {
-  flex: 1;
-}
-.ticket {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-32) var(--page-gutter);
-  text-align: center;
-}
-.position {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-text-accent);
-}
-.position span {
-  margin-right: var(--space-2);
-  font-size: 3rem;
-  line-height: 3.5rem;
-}
-.info {
-  display: grid;
-  grid-template-columns: 5rem 1fr;
-  row-gap: var(--space-8);
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-.info dt {
-  color: var(--color-text-tertiary);
-}
-.info dd {
-  margin: 0;
-  text-align: right;
+.called strong {
+  font-size: 1.125rem;
 }

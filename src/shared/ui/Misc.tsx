@@ -47,15 +47,7 @@ export function Rating({ value, count }: { value: number; count?: number }) {
 }
 
 /** 점주 홈 요약 수치 */
-export function KPICard({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string
-  value: ReactNode
-  highlight?: boolean
-}) {
+export function KPICard({ label, value, highlight = false }: { label: string; value: ReactNode; highlight?: boolean }) {
   return (
     <div className={cn(styles.kpi, highlight && styles.kpiHighlight)}>
       <span className={styles.kpiLabel}>{label}</span>
@@ -74,7 +66,7 @@ export function EmptyState({ icon, title, description }: { icon?: ReactNode; tit
   )
 }
 
-/** 테두리 카드 — selected 시 노랑 테두리 */
+/** 둥근 흰 블록 — 여러 항목을 나열할 때. 회색 바탕(Page muted) 위에서는 테두리 없이 */
 export function Card({
   children,
   selected = false,
@@ -122,13 +114,7 @@ export function LoadingState({ label = '불러오는 중', compact = false }: { 
 }
 
 /** 불러오기 실패 — 다시 시도 버튼 */
-export function ErrorState({
-  message = '정보를 불러오지 못했어요',
-  onRetry,
-}: {
-  message?: string
-  onRetry?: () => void
-}) {
+export function ErrorState({ message = '정보를 불러오지 못했어요', onRetry }: { message?: string; onRetry?: () => void }) {
   return (
     <div className={styles.empty} role="alert">
       <p className="t-body-15">{message}</p>
@@ -138,5 +124,46 @@ export function ErrorState({
         </button>
       )}
     </div>
+  )
+}
+
+/**
+ * 번호표 — 대기번호·예약 확정처럼 손에 쥐는 표. 화면에서 가장 강조하는 요소라 한 화면에 하나만
+ * stub 은 절취선 아래 영역 (부가 정보)
+ */
+export function Ticket({
+  children,
+  stub,
+  muted = false,
+  className,
+}: {
+  children: ReactNode
+  stub?: ReactNode
+  /** 종료된 웨이팅·취소된 예약 — 노랑 대신 회색 */
+  muted?: boolean
+  className?: string
+}) {
+  return (
+    <div className={cn(styles.ticket, muted && styles.ticketMuted, className)}>
+      <div className={styles.ticketMain}>{children}</div>
+      {stub && <div className={styles.ticketStub}>{stub}</div>}
+    </div>
+  )
+}
+
+/** 요약 수치 블록 — 칸 사이 세로선 */
+export function StatLine({ items }: { items: { label: string; value: ReactNode; unit?: string }[] }) {
+  return (
+    <dl className={styles.statLine}>
+      {items.map((item) => (
+        <div key={item.label} className={styles.stat}>
+          <dt className={styles.statLabel}>{item.label}</dt>
+          <dd className={styles.statValue} style={{ margin: 0 }}>
+            {item.value}
+            {item.unit && <span className={styles.statUnit}>{item.unit}</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
   )
 }

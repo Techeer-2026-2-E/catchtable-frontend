@@ -2,33 +2,27 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi } from '../api/authApi'
 import { useAuthStore } from '../store/authStore'
 
-export function useLogin() {
-  const setAuth = useAuthStore((s) => s.setAuth)
+/** 회원 id 로 시작 (X-Member-Id) */
+export function useStartAs() {
+  const setMember = useAuthStore((s) => s.setMember)
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: authApi.login,
-    onSuccess: ({ accessToken, member }) => {
-      // 다른 계정으로 로그인할 때 이전 계정 데이터가 보이지 않도록
+    mutationFn: authApi.startAs,
+    onSuccess: (member) => {
+      // 다른 회원으로 바꿀 때 이전 회원 데이터가 보이지 않도록
       queryClient.clear()
-      setAuth(accessToken, member)
+      setMember(member)
     },
   })
 }
 
-export function useSignup() {
-  return useMutation({ mutationFn: authApi.signup })
-}
-
+/** 다른 회원으로 바꾸기 — 서버 호출 없이 저장된 회원 id 만 지움 */
 export function useLogout() {
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: authApi.logout,
-    onSettled: () => {
-      clearAuth()
-      queryClient.clear()
-    },
-  })
+  return () => {
+    clearAuth()
+    queryClient.clear()
+  }
 }

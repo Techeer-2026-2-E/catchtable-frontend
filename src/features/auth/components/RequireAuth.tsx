@@ -17,8 +17,9 @@ export function RequireAuth({ children, userType }: RequireAuthProps) {
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />
   }
+  // 다른 회원 유형으로 시작한 상태 — 시작 화면에서 다시 고르도록 (돌아올 곳은 기억)
   if (userType && member && member.userType !== userType) {
-    return <Navigate to={ROUTES.HOME} replace />
+    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />
   }
   return children
 }
