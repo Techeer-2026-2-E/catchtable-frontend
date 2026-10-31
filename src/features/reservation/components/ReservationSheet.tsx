@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import type { DayOfWeek } from '@/entities'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
 import { BottomSheet, Button } from '@/shared/ui'
 import { useReservationFormStore } from '../store/reservationFormStore'
+import { useAvailability } from '../hooks/useAvailability'
 import { ReservationDateTimeForm } from './ReservationDateTimeForm'
 
 interface Props {
@@ -13,28 +13,36 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   maxPartySize?: number
-  openDays?: DayOfWeek[]
-  /** 진입 시 미리 선택할 날짜 (검색 결과에서 날짜를 눌러 들어온 경우) */
+  /** 검색 결과에서 고른 초기 조건 */
   initialDate?: string | null
+  initialTime?: string | null
+  initialPartySize?: number
 }
 
 /** 매장 상세에서 여는 예약 시트 — 날짜·인원·시간 선택 후 다음 단계로 */
-export function ReservationSheet({ storeId, isOpen, onClose, maxPartySize, openDays, initialDate }: Props) {
+export function ReservationSheet({ storeId, isOpen, onClose, maxPartySize, initialDate, initialTime, initialPartySize }: Props) {
   const navigate = useNavigate()
-  const { date, partySize, time, setStore, setDate } = useReservationFormStore()
+  const { date, partySize, time, setStore, setDate, setPartySize, setTime } = useReservationFormStore()
+  const availability = useAvailability(storeId, date, partySize, isOpen)
 
-  // 검색 결과에서 고른 날짜는 이 매장에서 처음 한 번만 적용 — 다시 열 때 사용자가 고른 날짜·시간을 덮어쓰지 않음
-  const appliedInitialDate = useRef<string | null>(null)
+  // 같은 진입 조건은 한 번만 적용해 다시 열 때 사용자가 수정한 값을 보존한다.
+  const appliedInitialSelection = useRef<string | null>(null)
   useEffect(() => {
     if (!isOpen) return
     setStore(storeId)
-    if (initialDate && appliedInitialDate.current !== initialDate) {
-      appliedInitialDate.current = initialDate
+    const selection = [storeId, initialDate, initialTime, initialPartySize].join('|')
+    if (initialDate && appliedInitialSelection.current !== selection) {
+      appliedInitialSelection.current = selection
       setDate(initialDate)
+      if (initialPartySize) setPartySize(initialPartySize)
+      if (initialTime) setTime(initialTime)
     }
-  }, [isOpen, storeId, initialDate, setStore, setDate])
+  }, [isOpen, storeId, initialDate, initialTime, initialPartySize, setStore, setDate, setPartySize, setTime])
 
   const summary = date && time ? `${dayjs(date).format('M월 D일 (dd)')} ${formatTime(time)}, ${partySize}명` : null
+  const selectedAvailable = availability.data?.storeId === storeId && availability.data.date === date
+    && availability.data.partySize === partySize
+    && availability.data.slots.some((slot) => slot.available && dayjs(slot.reservationStartAt).format('HH:mm') === time)
 
   return (
     <BottomSheet
@@ -42,12 +50,12 @@ export function ReservationSheet({ storeId, isOpen, onClose, maxPartySize, openD
       onClose={onClose}
       title="예약 일시 선택"
       footer={
-        <Button disabled={!summary} onClick={() => navigate(paths.reservation(storeId))}>
+        <Button disabled={!summary || !selectedAvailable || availability.isFetching || availability.isError} onClick={() => navigate(paths.reservation(storeId))}>
           {summary ? `${summary} 선택` : '날짜와 시간을 선택해주세요'}
         </Button>
       }
     >
-      <ReservationDateTimeForm storeId={storeId} maxPartySize={maxPartySize} openDays={openDays} />
+      <ReservationDateTimeForm storeId={storeId} maxPartySize={maxPartySize} />
     </BottomSheet>
   )
 }

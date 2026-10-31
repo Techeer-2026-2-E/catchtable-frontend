@@ -5,6 +5,7 @@ import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from 
 import { useAvailability } from '@/features/reservation'
 import { useStoreSearch } from '@/features/store-search'
 import { paths } from '@/shared/config'
+import { useDebounce } from '@/shared/hooks'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
 import {
@@ -35,8 +36,7 @@ const readCondition = (params: URLSearchParams): Condition | null => {
 }
 
 /**
- * 매장 검색 — GET /api/user/stores (category, date+time, partySize)
- * 이름 검색은 백엔드 조건에 없어서 받은 목록을 화면에서 거름
+ * 매장 검색 — GET /api/user/stores (keyword, category, date+time, partySize, page, size)
  */
 export function SearchPage() {
   const navigate = useNavigate()
@@ -44,6 +44,7 @@ export function SearchPage() {
   const condition = readCondition(searchParams)
   const category = searchParams.get('category') as StoreCategory | null
   const [keyword, setKeyword] = useState(searchParams.get('q') ?? '')
+  const query = useDebounce(keyword.trim())
   const [sheetOpen, setSheetOpen] = useState(false)
   const [draft, setDraft] = useState<Condition>(() => condition ?? { date: dayjs().format('YYYY-MM-DD'), time: '19:00', partySize: 2 })
 
@@ -54,19 +55,22 @@ export function SearchPage() {
   }
 
   const {
-    data: all,
+    data: results,
     isPending,
     isError,
     refetch,
     isFetching,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
   } = useStoreSearch({
     category: category ?? undefined,
     date: condition?.date,
     time: condition?.time,
     partySize: condition?.partySize,
+    keyword: query || undefined,
   })
-  const query = keyword.trim().toLowerCase()
-  const results = query ? all?.filter((store) => store.name.toLowerCase().includes(query)) : all
 
   const slotDate = condition?.date ?? dayjs().format('YYYY-MM-DD')
   const slotPartySize = condition?.partySize ?? 2
@@ -130,7 +134,7 @@ export function SearchPage() {
 
       {isPending ? (
         <LoadingState />
-      ) : isError ? (
+      ) : isError && !results?.length ? (
         <ErrorState onRetry={() => refetch()} />
       ) : (
         <section className={styles.results}>
@@ -149,14 +153,14 @@ export function SearchPage() {
                 <li key={store.id}>
                   <StoreCard
                     store={store}
-                    to={paths.storeDetail(store.id)}
+                    to={condition ? `${paths.storeDetail(store.id)}?${new URLSearchParams({ date: slotDate, time: condition.time, party: String(slotPartySize) })}` : paths.storeDetail(store.id)}
                     footer={
                       condition && (
                         <AvailableTimes
                           store={store}
                           date={slotDate}
                           partySize={slotPartySize}
-                          onSelect={() => navigate(`${paths.storeDetail(store.id)}?date=${slotDate}`)}
+                          onSelect={(time) => navigate(`${paths.storeDetail(store.id)}?${new URLSearchParams({ date: slotDate, time, party: String(slotPartySize) })}`)}
                         />
                       )
                     }
@@ -164,6 +168,13 @@ export function SearchPage() {
                 </li>
               ))}
             </ul>
+          )}
+          {isFetchNextPageError ? (
+            <ErrorState message="매장을 더 불러오지 못했어요" onRetry={() => fetchNextPage()} />
+          ) : hasNextPage && (
+            <Button variant="outline" fullWidth disabled={isFetching} onClick={() => fetchNextPage()}>
+              {isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+            </Button>
           )}
         </section>
       )}
@@ -225,7 +236,7 @@ export function SearchPage() {
  * 매장 줄 아래 예약 가능 시간 — 기능명세「예약 가능 시간·잔여 테이블 조회」
  * GET /api/user/stores/{storeId}/availability
  */
-function AvailableTimes({ store, date, partySize, onSelect }: { store: Store; date: string; partySize: number; onSelect: () => void }) {
+function AvailableTimes({ store, date, partySize, onSelect }: { store: Store; date: string; partySize: number; onSelect: (time: string) => void }) {
   const { data, isPending } = useAvailability(store.id, date, partySize)
   const open = data?.slots.filter((s) => s.available) ?? []
   const label = dayjs(date).isSame(dayjs(), 'day') ? '오늘' : dayjs(date).format('M/D(dd)')
@@ -235,9 +246,9 @@ function AvailableTimes({ store, date, partySize, onSelect }: { store: Store; da
   return (
     <div className={styles.slots} aria-label={`${label} 예약 가능 시간`}>
       {open.slice(0, 6).map((slot) => (
-        <button key={slot.reservationStartAt} type="button" className={`${styles.slot} tnum`} onClick={onSelect}>
+        <button key={slot.reservationStartAt} type="button" className={`${styles.slot} tnum`} onClick={() => onSelect(dayjs(slot.reservationStartAt).format('HH:mm'))}>
           {formatTime(slot.reservationStartAt)}
-          <span className={styles.slotCount}>{slot.availableTableCount}</span>
+          <span className={styles.slotCount}>{slot.availableTableCount}테이블</span>
         </button>
       ))}
     </div>

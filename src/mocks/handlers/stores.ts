@@ -17,7 +17,7 @@ export const storeHandlers = [
     )
   }),
 
-  /** 조건별 매장 목록 — category, date+time(함께), partySize */
+  /** 조건별 매장 목록 — 필터를 적용한 뒤 id순 페이지를 반환 */
   http.get(`${API}/user/stores`, async ({ request }) => {
     await before()
     const q = new URL(request.url).searchParams
@@ -25,10 +25,18 @@ export const storeHandlers = [
     const date = q.get('date')
     const time = q.get('time')
     const partySize = Number(q.get('partySize') ?? 0) || null
+    const keyword = q.get('keyword')?.trim().toLowerCase()
+    const page = Number(q.get('page') ?? 0)
+    const size = Number(q.get('size') ?? 10)
     if (!!date !== !!time) return badRequest('날짜와 시간은 함께 입력해야 합니다')
+    if (!Number.isInteger(page) || page < 0 || !Number.isInteger(size) || size < 1 || size > 50) {
+      return badRequest('페이지와 조회 개수를 확인해주세요')
+    }
 
     const stores = db.stores.filter((s) => {
       if (category && s.category !== category) return false
+      if (keyword && !s.name.toLowerCase().includes(keyword)) return false
+      if ((partySize || date) && s.ownerId == null) return false
       // 이 인원을 앉힐 수 있는 운영 중 테이블이 하나라도 있는 매장만 (백엔드 filterByPartySize)
       if (
         partySize &&
@@ -38,11 +46,12 @@ export const storeHandlers = [
       }
       if (date && time) {
         const at = dayjs(`${date}T${time}`)
-        if (validateBookable(s, at) || freeTables(s, at, partySize ?? 2).length === 0) return false
+        if (validateBookable(s, at)) return false
       }
       return true
     })
-    return HttpResponse.json(stores.map(toStore))
+    const result = paginate(stores.sort((a, b) => a.id - b.id), new URL(request.url), 10)
+    return HttpResponse.json({ stores: result.items.map(toStore), page: result.page, size: result.size, hasNext: result.hasNext })
   }),
 
   http.get(`${API}/user/stores/:storeId`, async ({ params }) => {
@@ -55,7 +64,7 @@ export const storeHandlers = [
   http.get(`${API}/user/stores/:storeId/availability`, async ({ params, request }) => {
     await before()
     const store = findStore(Number(params.storeId))
-    if (!store) return storeNotFound()
+    if (!store || store.ownerId == null) return storeNotFound()
     const q = new URL(request.url).searchParams
     const date = q.get('date')
     const partySize = Number(q.get('partySize'))
@@ -67,7 +76,7 @@ export const storeHandlers = [
   http.get(`${API}/user/stores/:storeId/tables`, async ({ params, request }) => {
     await before()
     const store = findStore(Number(params.storeId))
-    if (!store) return storeNotFound()
+    if (!store || store.ownerId == null) return storeNotFound()
     const q = new URL(request.url).searchParams
     const startAt = q.get('reservationStartAt')
     const partySize = Number(q.get('partySize'))

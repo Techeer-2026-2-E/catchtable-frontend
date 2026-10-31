@@ -64,8 +64,18 @@ export interface Store {
   waitingAvailable: boolean
 }
 
+/** GET /api/user/stores — StoreListResponse */
+export interface StoreList {
+  stores: Store[]
+  page: number
+  size: number
+  hasNext: boolean
+}
+
 /** GET /api/user/stores/{storeId} — StoreDetailResponse (메뉴 포함) */
 export interface StoreDetail extends Store {
+  /** 예약 지원 여부. 잔여 테이블 수와는 별개다. */
+  reservationEnabled: boolean
   description: string | null
   /** 0X-XXXX-XXXX */
   phone: string | null

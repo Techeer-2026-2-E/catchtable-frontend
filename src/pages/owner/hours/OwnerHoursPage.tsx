@@ -12,33 +12,44 @@ interface DayRow {
   open: boolean
   openTime: string
   closingTime: string
-}
-interface BreakTime {
-  enabled: boolean
-  start: string
-  end: string
+  breakEnabled: boolean
+  breakStartTime: string
+  breakEndTime: string
 }
 
 const hhmm = (time: string) => time.slice(0, 5)
 
-function toForm(hours: BusinessHour[]): { rows: DayRow[]; breakTime: BreakTime } {
+function toForm(hours: BusinessHour[]): DayRow[] {
   const fallback = hours[0]
-  const rows = DAYS_OF_WEEK.map((day) => {
+  return DAYS_OF_WEEK.map((day) => {
     const h = hours.find((x) => x.dayOfWeek === day)
     return {
       dayOfWeek: day,
       open: !!h,
       openTime: hhmm(h?.openTime ?? fallback?.openTime ?? '11:00'),
       closingTime: hhmm(h?.closingTime ?? fallback?.closingTime ?? '22:00'),
+      breakEnabled: !!(h?.breakStartTime && h.breakEndTime),
+      breakStartTime: hhmm(h?.breakStartTime ?? '15:00'),
+      breakEndTime: hhmm(h?.breakEndTime ?? '17:00'),
     }
   })
-  const withBreak = hours.find((h) => h.breakStartTime && h.breakEndTime)
-  return {
-    rows,
-    breakTime: withBreak
-      ? { enabled: true, start: hhmm(withBreak.breakStartTime!), end: hhmm(withBreak.breakEndTime!) }
-      : { enabled: false, start: '15:00', end: '17:00' },
-  }
+}
+
+const minutes = (time: string) => {
+  const [hour, minute] = time.split(':').map(Number)
+  return hour * 60 + minute
+}
+
+function validBreak(row: DayRow) {
+  if (!row.breakEnabled) return true
+  if (!row.breakStartTime || !row.breakEndTime) return false
+  const open = minutes(row.openTime)
+  // 여는 시각보다 이른 브레이크 시각은 다음 날로 계산한다.
+  const offset = (time: string) => minutes(time) + (minutes(time) < open ? 1440 : 0)
+  const close = offset(row.closingTime)
+  const start = offset(row.breakStartTime)
+  const end = offset(row.breakEndTime)
+  return open < start && start < end && end < close
 }
 
 /**
@@ -63,9 +74,7 @@ export function OwnerHoursPage() {
 }
 
 function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] }) {
-  const initial = toForm(hours)
-  const [rows, setRows] = useState<DayRow[]>(initial.rows)
-  const [breakTime, setBreakTime] = useState<BreakTime>(initial.breakTime)
+  const [rows, setRows] = useState<DayRow[]>(() => toForm(hours))
   const replace = useReplaceBusinessHours(storeId)
 
   const update = (day: DayOfWeek, patch: Partial<DayRow>) =>
@@ -73,9 +82,8 @@ function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] 
 
   // 마감이 오픈보다 이르면 다음날 마감(예: 17:00 ~ 02:00)으로 본다. 같으면 영업시간 0 이라 오류
   const isOvernight = (r: DayRow) => r.closingTime < r.openTime
-  const sameTime = rows.some((r) => r.open && r.openTime === r.closingTime)
-  const badBreak = breakTime.enabled && breakTime.start >= breakTime.end
-  const invalid = sameTime || badBreak
+  const invalidRow = rows.find((r) => r.open && (!r.openTime || !r.closingTime || r.openTime === r.closingTime || !validBreak(r)))
+  const invalid = !!invalidRow
 
   const save = () => {
     const body: BusinessHourRequest[] = rows
@@ -84,8 +92,8 @@ function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] 
         dayOfWeek: r.dayOfWeek,
         openTime: r.openTime,
         closingTime: r.closingTime,
-        breakStartTime: breakTime.enabled ? breakTime.start : null,
-        breakEndTime: breakTime.enabled ? breakTime.end : null,
+        breakStartTime: r.breakEnabled ? r.breakStartTime : null,
+        breakEndTime: r.breakEnabled ? r.breakEndTime : null,
       }))
     replace.mutate(body, {
       onSuccess: () => toast('영업시간을 저장했어요'),
@@ -115,23 +123,36 @@ function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] 
               {!r.open ? (
                 <span className="t-body-14 text-tertiary">휴무</span>
               ) : (
-                <div className={styles.times}>
-                  <input
-                    type="time"
-                    aria-label={`${label}요일 오픈 시간`}
-                    value={r.openTime}
-                    onChange={(e) => update(r.dayOfWeek, { openTime: e.target.value })}
-                    aria-invalid={wrong}
-                  />
-                  <span className="text-tertiary">~</span>
-                  <input
-                    type="time"
-                    aria-label={`${label}요일 마감 시간`}
-                    value={r.closingTime}
-                    onChange={(e) => update(r.dayOfWeek, { closingTime: e.target.value })}
-                    aria-invalid={wrong}
-                  />
-                  {isOvernight(r) && <span className={styles.nextDay}>다음날</span>}
+                <div className={styles.schedule}>
+                  <div className={styles.times}>
+                    <input
+                      type="time"
+                      aria-label={`${label}요일 오픈 시간`}
+                      value={r.openTime}
+                      onChange={(e) => update(r.dayOfWeek, { openTime: e.target.value })}
+                      aria-invalid={wrong}
+                    />
+                    <span className="text-tertiary">~</span>
+                    <input
+                      type="time"
+                      aria-label={`${label}요일 마감 시간`}
+                      value={r.closingTime}
+                      onChange={(e) => update(r.dayOfWeek, { closingTime: e.target.value })}
+                      aria-invalid={wrong}
+                    />
+                    {isOvernight(r) && <span className={styles.nextDay}>다음날</span>}
+                  </div>
+                  <div className={styles.breakHeader}>
+                    <span className="t-caption-13 text-secondary">브레이크타임</span>
+                    <Toggle checked={r.breakEnabled} label={`${label}요일 브레이크타임 사용`} onChange={(breakEnabled) => update(r.dayOfWeek, { breakEnabled })} />
+                  </div>
+                  {r.breakEnabled && (
+                    <div className={styles.times}>
+                      <input type="time" aria-label={`${label}요일 브레이크 시작`} value={r.breakStartTime} onChange={(e) => update(r.dayOfWeek, { breakStartTime: e.target.value })} aria-invalid={!validBreak(r)} />
+                      <span className="text-tertiary">~</span>
+                      <input type="time" aria-label={`${label}요일 브레이크 종료`} value={r.breakEndTime} onChange={(e) => update(r.dayOfWeek, { breakEndTime: e.target.value })} aria-invalid={!validBreak(r)} />
+                    </div>
+                  )}
                 </div>
               )}
               <Toggle checked={r.open} label={`${label}요일 영업`} onChange={(open) => update(r.dayOfWeek, { open })} />
@@ -142,44 +163,11 @@ function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] 
       {invalid && (
         <Section>
           <Banner tone="danger">
-            {badBreak
-              ? '브레이크타임 종료는 시작보다 늦어야 해요.'
-              : '오픈과 마감 시간이 같아요. 24시간 영업이면 00:00 ~ 23:59 로 입력해주세요.'}
+            {invalidRow && `${DAY_OF_WEEK_LABEL[invalidRow.dayOfWeek]}요일의 시간을 확인해주세요. 오픈과 마감은 달라야 하며, 브레이크타임은 영업 구간 안에서 시작·종료 순서여야 해요.`}
           </Banner>
         </Section>
       )}
 
-      <Section
-        title="브레이크타임"
-        action={
-          <Toggle
-            checked={breakTime.enabled}
-            label="브레이크타임 사용"
-            onChange={(enabled) => setBreakTime({ ...breakTime, enabled })}
-          />
-        }
-      >
-        {breakTime.enabled ? (
-          <div className={styles.times}>
-            <input
-              type="time"
-              aria-label="브레이크타임 시작"
-              value={breakTime.start}
-              onChange={(e) => setBreakTime({ ...breakTime, start: e.target.value })}
-            />
-            <span className="text-tertiary">~</span>
-            <input
-              type="time"
-              aria-label="브레이크타임 종료"
-              value={breakTime.end}
-              onChange={(e) => setBreakTime({ ...breakTime, end: e.target.value })}
-            />
-            <span className="t-caption-13 text-tertiary">영업일 공통</span>
-          </div>
-        ) : (
-          <p className="t-caption-13 text-tertiary">브레이크타임 없이 영업해요</p>
-        )}
-      </Section>
     </Page>
   )
 }

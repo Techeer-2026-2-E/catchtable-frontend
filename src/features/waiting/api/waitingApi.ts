@@ -33,7 +33,7 @@ export const waitingApi = {
     const { data } = await apiClient.get<Waiting>(`/user/waitings/${waitingId}`)
     return data
   },
-  /** 호출 응답 — 방문 예정(도착했어요). 상태가 CONFIRMED 로 바뀜 */
+  /** 방문 의사 응답 — CALLED 상태와 기존 제한시간 유지 */
   accept: async (waitingId: number) => {
     const { data } = await apiClient.post<WaitingRespondResult>(`/user/waitings/${waitingId}/accept`)
     return data

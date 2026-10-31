@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { dayjs } from '@/shared/lib/dayjs'
 import { cn } from '@/shared/lib/cn'
@@ -20,6 +20,9 @@ interface CalendarProps {
 export function Calendar({ value, onChange, isDisabled, maxDays = 60 }: CalendarProps) {
   const today = dayjs().startOf('day')
   const [month, setMonth] = useState(() => (value ? dayjs(value) : today).startOf('month'))
+  useEffect(() => {
+    if (value) setMonth(dayjs(value).startOf('month'))
+  }, [value])
 
   const start = month.startOf('month')
   const leading = start.day()
