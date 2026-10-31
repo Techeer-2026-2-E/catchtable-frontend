@@ -51,7 +51,7 @@ export const waitingHandlers = [
     return HttpResponse.json(toWaiting(w))
   }),
 
-  /** 호출 수락 (도착했어요) — CALLED → CONFIRMED */
+  /** 방문 의사 응답 — CALLED 유지, 반복 응답은 최초 시각 반환 */
   http.post(`${API}/user/waitings/:waitingId/accept`, async ({ params, request }) => {
     await before()
     const w = db.waitings.find((x) => x.waitingId === Number(params.waitingId))
@@ -64,9 +64,8 @@ export const waitingHandlers = [
         respondedAt: w.respondedAt,
         expiresAt: w.callExpiresAt,
       })
-    if (w.status === 'CONFIRMED') return respond()
-    if (w.status !== 'CALLED') return conflict('WAITING_NOT_CALLED', '호출된 웨이팅만 응답할 수 있습니다.')
-    w.status = 'CONFIRMED'
+    if (w.status !== 'CALLED') return conflict('WAITING_NOT_RESPONDABLE', '응답할 수 없는 웨이팅입니다.')
+    if (w.respondedAt) return respond()
     w.respondedAt = nowIso()
     w.updatedAt = w.respondedAt
     queueChanged(w.storeId)

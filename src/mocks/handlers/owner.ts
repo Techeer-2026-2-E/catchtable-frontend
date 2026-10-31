@@ -27,7 +27,7 @@ function ownStore(request: Request, storeId: number): { store: StoreRow } | { er
   const memberId = memberIdOf(request)
   if (!memberId) return { error: unauthorized() }
   const store = findStore(storeId)
-  if (!store) return { error: notFound('STORE_NOT_FOUND', '매장을 찾을 수 없습니다') }
+  if (!store || store.ownerId == null) return { error: notFound('STORE_NOT_FOUND', '매장을 찾을 수 없습니다') }
   if (store.ownerId !== memberId) return { error: fail(403, 'FORBIDDEN_MEMBER_TYPE', '이 기능을 사용할 수 없는 회원 유형입니다.') }
   return { store }
 }
@@ -36,7 +36,7 @@ const presentTable = ({ storeId: _s, ...t }: (typeof db.tables)[number]) => t
 /** MenuCreateRequest · MenuUpdateRequest */
 type MenuBody = { name: string; price: number; description: string }
 const presentMenu = ({ storeId: _s, ...m }: (typeof db.menus)[number]) => m
-const timeOk = (v: unknown) => typeof v === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(v)
+const timeOk = (v: unknown) => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d(?::00)?$/.test(v)
 const withSeconds = (v: string) => (v.length === 5 ? `${v}:00` : v)
 
 /* ================================================================== */
@@ -128,8 +128,20 @@ const storeHandlers = [
       if (withSeconds(h.openTime) === withSeconds(h.closingTime)) {
         return badRequest('영업 시작 시각과 종료 시각이 같을 수 없습니다.', 'INVALID_BUSINESS_HOUR')
       }
-      if (!!h.breakStartTime !== !!h.breakEndTime || (h.breakStartTime && h.breakEndTime && h.breakStartTime >= h.breakEndTime)) {
+      if (!!h.breakStartTime !== !!h.breakEndTime) {
         return badRequest('브레이크타임은 시작과 종료를 함께 입력하고 영업시간 안에 있어야 합니다.', 'INVALID_BREAK_TIME')
+      }
+      if (h.breakStartTime && h.breakEndTime) {
+        if (!timeOk(h.breakStartTime) || !timeOk(h.breakEndTime)) {
+          return badRequest('브레이크타임은 분 단위로 입력해야 합니다.', 'INVALID_BUSINESS_HOUR_PRECISION')
+        }
+        const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5))
+        const open = minutes(h.openTime)
+        const offset = (time: string) => minutes(time) + (minutes(time) < open ? 1440 : 0)
+        if (!(open < offset(h.breakStartTime) && offset(h.breakStartTime) < offset(h.breakEndTime)
+          && offset(h.breakEndTime) < offset(h.closingTime))) {
+          return badRequest('브레이크타임은 영업 구간 안에 있어야 합니다.', 'INVALID_BREAK_TIME')
+        }
       }
     }
     own.store.businessHours = b.businessHours.map((h) => ({
@@ -325,7 +337,7 @@ const callResult = (w: (typeof db.waitings)[number]) => ({
   waitingId: w.waitingId,
   status: w.status,
   waitNumber: w.waitNumber,
-  callCount: 1,
+  callCount: w.callCount ?? 0,
   calledAt: w.calledAt,
   expiresAt: w.callExpiresAt,
 })
@@ -392,7 +404,9 @@ const waitingHandlers = [
     await before()
     const found = ownWaiting(request, Number(params.waitingId))
     if ('error' in found) return found.error
-    if (found.w.status !== 'WAITING') return conflict('WAITING_NOT_CALLABLE', '대기 중인 고객만 호출할 수 있습니다.')
+    if (found.w.status !== 'WAITING' && found.w.status !== 'CALLED') {
+      return conflict('WAITING_NOT_CALLABLE', '대기 중이거나 호출된 고객만 호출할 수 있습니다.')
+    }
     callWaiting(found.w)
     return saved(HttpResponse.json(callResult(found.w)))
   }),

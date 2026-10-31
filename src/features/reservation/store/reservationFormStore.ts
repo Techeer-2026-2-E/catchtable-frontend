@@ -9,7 +9,7 @@ interface ReservationFormState {
   setStore: (storeId: number) => void
   setDate: (date: string) => void
   setPartySize: (size: number) => void
-  setTime: (time: string) => void
+  setTime: (time: string | null) => void
   reset: () => void
 }
 

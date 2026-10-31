@@ -9,7 +9,7 @@ import type { BadgeTone } from '@/shared/ui'
 export type WaitingStatus =
   | 'WAITING' // 대기 중
   | 'CALLED' // 입장 호출됨
-  | 'CONFIRMED' // 도착 의사 응답 (방문 예정)
+  | 'CONFIRMED' // 기존 상태 호환 — 새 호출 수락은 CALLED 유지
   | 'SEATED' // 착석 완료
   | 'CANCELED' // 취소 (고객/점주)
   | 'NO_SHOW' // 미응답·노쇼·자동 만료 (알림 이벤트 이름은 WAITING_EXPIRED)
@@ -50,6 +50,9 @@ export interface Waiting {
   calledAt: string | null
   /** 호출 응답·입장 제한 시각 */
   expiresAt: string | null
+  /** 방문 의사 응답 시각 — 호출 전·종료 후 null */
+  respondedAt: string | null
+  arrivalIntent: 'COMING' | null
 }
 
 /** 종료 결과 — 고객 취소·점주 노쇼 응답 (WaitingTerminationResponse) */

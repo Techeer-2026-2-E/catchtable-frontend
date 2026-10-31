@@ -42,6 +42,7 @@ export function WaitingPage() {
   const status = waiting.status
   const isActive = ACTIVE_WAITING_STATUSES.includes(status)
   const called = status === 'CALLED' || status === 'CONFIRMED'
+  const responded = status === 'CONFIRMED' || (waiting.arrivalIntent === 'COMING' && !!waiting.respondedAt)
   const mm = String(Math.floor(remaining / 60)).padStart(2, '0')
   const ss = String(remaining % 60).padStart(2, '0')
   const onError = (e: unknown) => toast(getErrorMessage(e))
@@ -77,7 +78,7 @@ export function WaitingPage() {
             ) : called ? (
               <div className={styles.called} aria-live="assertive">
                 <p className="t-headline-16">
-                  {status === 'CONFIRMED' ? '도착을 알렸어요. 입장해주세요' : '입장 차례예요. 도착을 알려주세요'}
+                  {responded ? '방문 의사를 전달했어요. 제한시간 안에 입장해주세요' : '입장 차례예요. 도착을 알려주세요'}
                 </p>
                 <p className="t-body-14">
                   남은 시간{' '}
@@ -85,12 +86,12 @@ export function WaitingPage() {
                     {mm}:{ss}
                   </strong>
                 </p>
-                {status === 'CALLED' && (
+                {status === 'CALLED' && !responded && (
                   <Button
                     variant="secondary"
                     fullWidth
                     disabled={accept.isPending}
-                    onClick={() => accept.mutate(undefined, { onSuccess: () => toast('매장에 도착했다고 알렸어요'), onError })}
+                    onClick={() => accept.mutate(undefined, { onSuccess: () => toast('방문 의사를 전달했어요'), onError })}
                   >
                     지금 가고 있어요
                   </Button>
@@ -102,7 +103,7 @@ export function WaitingPage() {
           }
         >
           <div className={styles.ticketHead}>
-            <span className="t-label-13">{WAITING_STATUS_LABEL[status]}</span>
+            <span className="t-label-13">{responded ? WAITING_STATUS_LABEL.CONFIRMED : WAITING_STATUS_LABEL[status]}</span>
             <span className="t-caption-13 tnum">{dayjs(waiting.waitingDate).format('M월 D일 (dd)')}</span>
           </div>
           <p className={styles.number}>

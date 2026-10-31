@@ -67,13 +67,13 @@ export function createConfirmedReservation(args: {
 /** 예약 가능 여부 + 배정할 테이블 — 실패 시 오류 응답 */
 export function pickTable(storeId: number, startAtIso: string | undefined, partySize: number | undefined) {
   const store = findStore(storeId)
-  if (!store) return { error: notFound('STORE_NOT_FOUND', '매장을 찾을 수 없습니다') }
+  if (!store || store.ownerId == null) return { error: notFound('STORE_NOT_FOUND', '매장을 찾을 수 없습니다') }
   if (!startAtIso || !partySize || partySize < 1) return { error: badRequest('예약 시각과 인원은 필수입니다.') }
   const startAt = dayjs(startAtIso)
   const invalid = validateBookable(store, startAt)
   if (invalid) return { error: badRequest(BOOKABLE_MESSAGE[invalid], invalid) }
   const [table] = freeTables(store, startAt, partySize)
-  if (!table) return { error: conflict('NO_AVAILABLE_TABLE', '선택한 시간에 배정 가능한 테이블이 없습니다.') }
+  if (!table) return { error: conflict('HTTP_409', '예약 가능한 테이블이 없습니다.') }
   return { store, startAt, table }
 }
 

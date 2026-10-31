@@ -46,8 +46,12 @@ export function openingWindow(store: StoreRow, date: string) {
   const start = dayjs(`${date}T${bh.openTime}`)
   let end = dayjs(`${date}T${bh.closingTime}`)
   if (!end.isAfter(start)) end = end.add(1, 'day')
-  const breakTime =
-    bh.breakStartTime && bh.breakEndTime ? { start: dayjs(`${date}T${bh.breakStartTime}`), end: dayjs(`${date}T${bh.breakEndTime}`) } : null
+  const onBusinessDay = (time: string) => {
+    const value = dayjs(`${date}T${time}`)
+    return value.isBefore(start) ? value.add(1, 'day') : value
+  }
+  const breakTime = bh.breakStartTime && bh.breakEndTime
+    ? { start: onBusinessDay(bh.breakStartTime), end: onBusinessDay(bh.breakEndTime) } : null
   return { start, end, breakTime }
 }
 
@@ -84,28 +88,33 @@ export function validateBookable(store: StoreRow, startAt: dayjs.Dayjs): Bookabl
   const current = now()
   if (startAt.isAfter(current.startOf('day').add(store.policy.bookingOpenDays + 1, 'day'))) return 'BOOKING_NOT_OPEN_YET'
   if (startAt.subtract(store.policy.bookingDeadlineMinutes, 'minute').isBefore(current)) return 'BOOKING_DEADLINE_PASSED'
-  const window = openingWindow(store, startAt.format('YYYY-MM-DD'))
   const end = startAt.add(store.policy.reservationDurationMinutes, 'minute')
-  if (!window || startAt.isBefore(window.start) || end.isAfter(window.end)) return 'OUTSIDE_BUSINESS_HOURS'
-  if (window.breakTime && startAt.isBefore(window.breakTime.end) && !startAt.isBefore(window.breakTime.start)) {
-    return 'OUTSIDE_BUSINESS_HOURS'
-  }
-  return null
+  const windows = [openingWindow(store, startAt.subtract(1, 'day').format('YYYY-MM-DD')), openingWindow(store, startAt.format('YYYY-MM-DD'))]
+  return windows.some((window) => window && !startAt.isBefore(window.start) && !end.isAfter(window.end)
+    && (!window.breakTime || !overlaps(startAt, end, window.breakTime.start, window.breakTime.end)))
+    ? null : 'OUTSIDE_BUSINESS_HOURS'
 }
 
 /** GET /availability — 날짜의 예약 슬롯과 잔여 테이블 수 */
 export function availability(store: StoreRow, date: string, partySize: number) {
-  const window = openingWindow(store, date)
   const slots: { reservationStartAt: string; availableTableCount: number; available: boolean }[] = []
-  if (!window) return slots
+  const dayStart = dayjs(date).startOf('day')
+  const dayEnd = dayStart.add(1, 'day')
+  const windows = [openingWindow(store, dayStart.subtract(1, 'day').format('YYYY-MM-DD')), openingWindow(store, date)]
   const step = store.policy.reservationSlotMinutes
-  for (let t = window.start; !t.add(store.policy.reservationDurationMinutes, 'minute').isAfter(window.end); t = t.add(step, 'minute')) {
-    if (window.breakTime && !t.isBefore(window.breakTime.start) && t.isBefore(window.breakTime.end)) continue
-    const bookable = validateBookable(store, t) === null
-    const count = bookable ? freeTables(store, t, partySize).length : 0
-    slots.push({ reservationStartAt: toIso(t), availableTableCount: count, available: bookable && count > 0 })
+  for (const window of windows) {
+    if (!window) continue
+    let first = window.start.isBefore(dayStart) ? dayStart : window.start
+    const remainder = (first.hour() * 60 + first.minute()) % step
+    if (remainder) first = first.add(step - remainder, 'minute')
+    for (let t = first; t.isBefore(dayEnd) && !t.add(store.policy.reservationDurationMinutes, 'minute').isAfter(window.end); t = t.add(step, 'minute')) {
+      if (validateBookable(store, t)) continue
+      const count = freeTables(store, t, partySize).length
+      slots.push({ reservationStartAt: toIso(t), availableTableCount: count, available: count > 0 })
+    }
   }
-  return slots
+  return [...new Map(slots.map((slot) => [slot.reservationStartAt, slot])).values()]
+    .sort((a, b) => a.reservationStartAt.localeCompare(b.reservationStartAt))
 }
 
 /* ------------------------------------------------------------------ */
@@ -255,9 +264,11 @@ export function advanceDemoQueues() {
 export function callWaiting(w: WaitingRow) {
   const store = findStore(w.storeId)!
   const current = now()
+  w.callCount = (w.callCount ?? (w.calledAt ? 1 : 0)) + 1
   w.status = 'CALLED'
   w.calledAt = toIso(current)
   w.callExpiresAt = toIso(current.add(store.waitingSettings.arrivalLimitMinutes, 'minute'))
+  w.respondedAt = null
   w.updatedAt = w.calledAt
   notify(
     w.memberId,
@@ -284,6 +295,7 @@ export const toStore = (row: StoreRow): Store => ({
 
 export const toStoreDetail = (row: StoreRow): StoreDetail => ({
   ...toStore(row),
+  reservationEnabled: row.ownerId != null,
   description: row.description ?? null,
   phone: row.phone ?? null,
   imageUrl: row.imageUrl ?? null,
@@ -347,8 +359,10 @@ export function toWaiting(w: WaitingRow): Waiting {
     teamsAhead: ahead,
     partyCount: w.partyCount,
     status: w.status,
-    calledAt: w.calledAt,
-    expiresAt: w.callExpiresAt,
+    calledAt: active ? w.calledAt : null,
+    expiresAt: active ? w.callExpiresAt : null,
+    respondedAt: active ? w.respondedAt ?? null : null,
+    arrivalIntent: active && w.respondedAt ? 'COMING' : null,
   }
 }
 
@@ -389,7 +403,7 @@ export function toOwnerWaiting(w: WaitingRow): OwnerWaiting {
     calledAt: w.calledAt,
     callExpiresAt: w.callExpiresAt,
     respondedAt: w.respondedAt ?? null,
-    arrivalIntent: w.status === 'CONFIRMED' ? 'COMING' : null,
+    arrivalIntent: w.respondedAt ? 'COMING' : null,
   }
 }
 

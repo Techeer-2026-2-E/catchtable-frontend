@@ -1,4 +1,4 @@
-import type { Category, Store, StoreCategory } from '@/entities'
+import type { Category, StoreCategory, StoreList } from '@/entities'
 import { apiClient } from '@/shared/lib'
 
 /**
@@ -12,6 +12,7 @@ export interface StoreSearchParams {
   /** HH:mm */
   time?: string
   partySize?: number
+  keyword?: string
 }
 
 export const storeSearchApi = {
@@ -20,9 +21,9 @@ export const storeSearchApi = {
     const { data } = await apiClient.get<Category[]>('/user/categories')
     return data
   },
-  /** 조건별 매장 목록 — 페이징 없이 전체 목록 */
-  searchStores: async (params: StoreSearchParams) => {
-    const { data } = await apiClient.get<Store[]>('/user/stores', { params })
+  /** 조건별 매장 목록 — 0부터 시작하는 페이지, 기본 10개 */
+  searchStores: async (params: StoreSearchParams & { page?: number; size?: number }) => {
+    const { data } = await apiClient.get<StoreList>('/user/stores', { params })
     return data
   },
 }

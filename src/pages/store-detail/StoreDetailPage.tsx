@@ -25,7 +25,13 @@ export function StoreDetailPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('home')
   const [searchParams] = useSearchParams()
-  const initialDate = searchParams.get('date')
+  const dateParam = searchParams.get('date')
+  const initialDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+    && dayjs(dateParam).isValid() && dayjs(dateParam).format('YYYY-MM-DD') === dateParam ? dateParam : null
+  const timeParam = searchParams.get('time')
+  const initialTime = timeParam && /^([01]\d|2[0-3]):[0-5]\d$/.test(timeParam) ? timeParam : null
+  const partyParam = Number(searchParams.get('party'))
+  const initialPartySize = Number.isInteger(partyParam) && partyParam > 0 ? partyParam : undefined
   // 검색 결과에서 날짜를 눌러 들어오면 예약 시트를 바로 연다
   const [sheetOpen, setSheetOpen] = useState(!!initialDate)
 
@@ -34,7 +40,7 @@ export function StoreDetailPage() {
   const menus = useStoreMenus(id)
   const reviews = useStoreReviews(id)
   const today = dayjs().format('YYYY-MM-DD')
-  const todaySlots = useAvailability(id, today, 2)
+  const todaySlots = useAvailability(id, today, 2, store?.reservationEnabled === true)
 
   if (isPending) {
     return (
@@ -63,12 +69,12 @@ export function StoreDetailPage() {
     <Page
       bottom={
         <>
-          {store.waitingAvailable && (
+          {store.reservationEnabled && store.waitingAvailable && (
             <Button variant="soft" className={styles.cta} onClick={() => navigate(paths.waitingApply(store.id))}>
               웨이팅 신청
             </Button>
           )}
-          <Button className={styles.cta} onClick={() => setSheetOpen(true)}>
+          <Button className={styles.cta} disabled={!store.reservationEnabled} aria-describedby={!store.reservationEnabled ? 'reservation-support' : undefined} onClick={() => setSheetOpen(true)}>
             예약하기
           </Button>
         </>
@@ -87,19 +93,22 @@ export function StoreDetailPage() {
         <p className="t-label-13 text-brand">{STORE_CATEGORY_LABEL[store.category]}</p>
         <h1 className="t-title-24">{store.name}</h1>
         <StoreTags store={store} />
+        {!store.reservationEnabled && (
+          <p id="reservation-support" className="t-caption-13 text-tertiary">예약 미지원 · 정보 조회 전용 매장입니다.</p>
+        )}
         <dl className={styles.facts}>
           <dt>주소</dt>
           <dd>{store.address}</dd>
           <dt>오늘</dt>
           <dd className="tnum">
-            {todayHour ? `${hhmm(todayHour.openTime)} ~ ${overnight ? '다음날 ' : ''}${hhmm(todayHour.closingTime)}` : '휴무'}
+            {todayHour ? `${hhmm(todayHour.openTime)} ~ ${overnight ? '다음날 ' : ''}${hhmm(todayHour.closingTime)}` : store.reservationEnabled ? '휴무' : '영업시간 정보 없음'}
             {todayHour?.breakStartTime && todayHour.breakEndTime && (
               <span className={styles.sub}>
                 쉬는 시간 {hhmm(todayHour.breakStartTime)} ~ {hhmm(todayHour.breakEndTime)}
               </span>
             )}
           </dd>
-          {closedDays.length > 0 && (
+          {store.reservationEnabled && closedDays.length > 0 && (
             <>
               <dt>휴무</dt>
               <dd>매주 {closedDays.join(', ')}요일</dd>
@@ -110,7 +119,7 @@ export function StoreDetailPage() {
 
       <Tabs items={TABS} value={tab} onChange={setTab} fill />
 
-      {(tab === 'home' || tab === 'info') && (
+      {store.reservationEnabled && (tab === 'home' || tab === 'info') && (
         <>
           <Section title="오늘 예약 가능 시간" action={<span className="t-caption-12 text-tertiary">2명 기준</span>}>
             {todaySlots.isPending ? (
@@ -129,7 +138,7 @@ export function StoreDetailPage() {
                     aria-label={`${formatTime(slot.reservationStartAt)} ${slot.available ? `${slot.availableTableCount}테이블 남음` : '마감'}`}
                   >
                     <span className={styles.slotTime}>{formatTime(slot.reservationStartAt)}</span>
-                    <span className={styles.slotCount}>{slot.available ? `${slot.availableTableCount}석` : '마감'}</span>
+                    <span className={styles.slotCount}>{slot.available ? `${slot.availableTableCount}테이블` : '마감'}</span>
                   </button>
                 ))}
               </div>
@@ -181,13 +190,14 @@ export function StoreDetailPage() {
         </Section>
       )}
 
-      <ReservationSheet
+      {store.reservationEnabled && <ReservationSheet
         storeId={store.id}
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        openDays={openDays}
         initialDate={initialDate}
-      />
+        initialTime={initialTime}
+        initialPartySize={initialPartySize}
+      />}
     </Page>
   )
 }

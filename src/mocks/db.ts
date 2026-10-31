@@ -33,7 +33,7 @@ export interface MemberRow {
 }
 
 export interface StoreRow extends Omit<Store, 'categoryName'> {
-  ownerId: number
+  ownerId: number | null
   description: string | null
   phone: string | null
   imageUrl: string | null
@@ -82,6 +82,7 @@ export interface WaitingRow {
   createdAt: string
   calledAt: string | null
   callExpiresAt: string | null
+  callCount?: number
   updatedAt: string
   /** 고객이 도착 의사를 응답한 시각 */
   respondedAt?: string | null

@@ -5,7 +5,7 @@ import { CATEGORY_EMOJI, StoreCard, type Store } from '@/entities'
 import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Divider, EmptyState, ErrorState, LoadingState, Page } from '@/shared/ui'
+import { Button, Divider, EmptyState, ErrorState, LoadingState, Page } from '@/shared/ui'
 import styles from './HomePage.module.css'
 
 /** 오늘 저녁 추천 기준 — 7시, 2명 */
@@ -20,7 +20,8 @@ export function HomePage() {
   const { data: categories } = useCategories()
   const all = useStoreSearch({})
   const tonight = useStoreSearch({ date: today, time: TONIGHT.time, partySize: TONIGHT.partySize })
-  const waitingNow = all.data?.filter((s) => s.waitingAvailable) ?? []
+  const stores = all.data ?? []
+  const waitingNow = stores.filter((s) => s.waitingAvailable)
   const tonightLink = `${ROUTES.SEARCH}?date=${today}&time=${TONIGHT.time}&party=${TONIGHT.partySize}`
 
   return (
@@ -53,9 +54,9 @@ export function HomePage() {
 
       {all.isPending ? (
         <LoadingState compact />
-      ) : all.isError ? (
+      ) : all.isError && stores.length === 0 ? (
         <ErrorState onRetry={() => all.refetch()} />
-      ) : all.data.length === 0 ? (
+      ) : stores.length === 0 ? (
         <EmptyState title="등록된 매장이 없어요" />
       ) : (
         <>
@@ -70,12 +71,19 @@ export function HomePage() {
           <section className={styles.section}>
             <h2 className={`${styles.sectionTitle} t-title-18`}>모든 매장</h2>
             <ul className={styles.list}>
-              {all.data.map((store) => (
+              {stores.map((store) => (
                 <li key={store.id}>
                   <StoreCard store={store} to={paths.storeDetail(store.id)} />
                 </li>
               ))}
             </ul>
+            {all.isFetchNextPageError ? (
+              <ErrorState message="매장을 더 불러오지 못했어요" onRetry={() => all.fetchNextPage()} />
+            ) : all.hasNextPage && (
+              <Button variant="outline" fullWidth disabled={all.isFetching} onClick={() => all.fetchNextPage()}>
+                {all.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+              </Button>
+            )}
           </section>
         </>
       )}

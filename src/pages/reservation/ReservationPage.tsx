@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { useAuthStore } from '@/features/auth'
-import { ReservationDateTimeForm, useReservationForm, useReservationFormStore } from '@/features/reservation'
+import { reservationKeys, ReservationDateTimeForm, useAvailability, useReservationForm, useReservationFormStore } from '@/features/reservation'
 import { useStoreDetail } from '@/features/store-detail'
 import { paths } from '@/shared/config'
-import { getErrorMessage } from '@/shared/lib'
+import { getErrorCode, getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPhone, formatTime } from '@/shared/lib/format'
-import { Button, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { Button, EmptyState, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
 import styles from './ReservationPage.module.css'
 
 type Step = 'datetime' | 'confirm'
@@ -26,7 +27,9 @@ export function ReservationPage() {
   const form = useReservationFormStore()
   const setStore = useReservationFormStore((s) => s.setStore)
   const reservation = useReservationForm()
-  const [step, setStep] = useState<Step>(() => (form.date && form.time ? 'confirm' : 'datetime'))
+  const queryClient = useQueryClient()
+  const availability = useAvailability(id, form.date, form.partySize, store?.reservationEnabled === true && form.storeId === id)
+  const [step, setStep] = useState<Step>(() => (form.storeId === id && form.date && form.time ? 'confirm' : 'datetime'))
 
   useEffect(() => {
     setStore(id)
@@ -41,8 +44,13 @@ export function ReservationPage() {
     )
   }
 
+  if (!store.reservationEnabled) {
+    return <Page bottom={<Button fullWidth disabled>예약하기</Button>}><TopBar title={store.name} /><EmptyState title="예약 미지원" description="정보 조회 전용 매장입니다." /></Page>
+  }
+
   const stepIndex = STEPS.indexOf(step)
-  const openDays = store.businessHours.map((h) => h.dayOfWeek)
+  const selectedAvailable = availability.data?.date === form.date && availability.data.partySize === form.partySize
+    && availability.data.slots.some((slot) => slot.available && dayjs(slot.reservationStartAt).format('HH:mm') === form.time)
 
   const submit = async () => {
     try {
@@ -51,6 +59,11 @@ export function ReservationPage() {
       toast('예약이 확정됐어요')
       navigate(paths.reservationDetail(created.reservationId), { replace: true, state: { justCreated: true } })
     } catch (e) {
+      if (getErrorCode(e) === 'HTTP_409') {
+        form.setTime(null)
+        setStep('datetime')
+        await queryClient.invalidateQueries({ queryKey: reservationKeys.availability(id, form.date ?? '', form.partySize) })
+      }
       toast(getErrorMessage(e, '예약하지 못했어요. 다시 시도해주세요'))
     }
   }
@@ -59,11 +72,11 @@ export function ReservationPage() {
     <Page
       bottom={
         step === 'confirm' ? (
-          <Button fullWidth onClick={submit} disabled={reservation.isPending}>
+          <Button fullWidth onClick={submit} disabled={reservation.isPending || !selectedAvailable || availability.isFetching || availability.isError}>
             {reservation.isPending ? '예약 중…' : '예약하기'}
           </Button>
         ) : (
-          <Button fullWidth disabled={!form.date || !form.time} onClick={() => setStep('confirm')}>
+          <Button fullWidth disabled={!form.date || !form.time || !selectedAvailable || availability.isFetching || availability.isError} onClick={() => setStep('confirm')}>
             다음
           </Button>
         )
@@ -80,7 +93,7 @@ export function ReservationPage() {
 
       {step === 'datetime' && (
         <Section title="언제 방문하시나요?">
-          <ReservationDateTimeForm storeId={store.id} openDays={openDays} />
+          <ReservationDateTimeForm storeId={store.id} />
         </Section>
       )}
 

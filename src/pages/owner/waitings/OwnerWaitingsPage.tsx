@@ -138,6 +138,7 @@ export function OwnerWaitingsPage() {
         <ul className={styles.list}>
           {active.map((w) => {
             const called = w.status === 'CALLED' || w.status === 'CONFIRMED'
+            const responded = w.arrivalIntent === 'COMING' && !!w.respondedAt
             return (
               <Card as="li" key={w.id} className={styles.card}>
                 <div className={styles.lead}>
@@ -146,13 +147,14 @@ export function OwnerWaitingsPage() {
                 </div>
                 <div className={styles.body}>
                   <span className="status-text" data-tone={WAITING_STATUS_TONE[w.status]}>
-                    {WAITING_STATUS_LABEL[w.status]}
+                    {responded ? WAITING_STATUS_LABEL.CONFIRMED : WAITING_STATUS_LABEL[w.status]}
                     {called && w.callExpiresAt && <ArrivalCountdown expiresAt={w.callExpiresAt} />}
                   </span>
                   <p className="t-headline-16">{w.customerName}</p>
                   <p className="t-caption-13 text-tertiary tnum">
                     {w.createdAt && `${dayjs(w.createdAt).format('HH:mm')} 접수`}
                     {called && w.calledAt && `, ${dayjs(w.calledAt).format('HH:mm')} 호출`}
+                    {called && responded && `, ${dayjs(w.respondedAt).format('HH:mm')} 응답`}
                   </p>
                   <div className={styles.actions}>
                     {called ? (
