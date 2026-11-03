@@ -14,6 +14,7 @@ import {
   type BookableError,
 } from '../logic'
 import { API, badRequest, before, body, conflict, memberIdOf, notFound, saved, unauthorized } from '../utils'
+import { MOCK_DEPOSIT_STORES, refundableAmount, refundForCancel } from './payments'
 
 const BOOKABLE_MESSAGE: Record<BookableError, string> = {
   BOOKING_NOT_OPEN_YET: '아직 예약을 받지 않는 날짜입니다.',
@@ -30,6 +31,8 @@ export function createConfirmedReservation(args: {
   tableId: number
   startAt: dayjs.Dayjs
   partySize: number
+  /** 선점이면 결제 대기로 만들고 확정 알림을 보내지 않음 */
+  hold?: boolean
 }): ReservationRow {
   const store = findStore(args.storeId)!
   const at = nowIso()
@@ -41,9 +44,9 @@ export function createConfirmedReservation(args: {
     reservationStartAt: toIso(args.startAt),
     reservationEndAt: toIso(args.startAt.add(store.policy.reservationDurationMinutes, 'minute')),
     partySize: args.partySize,
-    status: 'CONFIRMED',
+    status: args.hold ? 'PENDING_PAYMENT' : 'CONFIRMED',
     requestedAt: at,
-    confirmedAt: at,
+    confirmedAt: args.hold ? null : at,
     checkedInAt: null,
     checkedInByMemberId: null,
     completedAt: null,
@@ -55,6 +58,7 @@ export function createConfirmedReservation(args: {
     noShowReason: null,
   }
   db.reservations.push(row)
+  if (args.hold) return row
   notify(
     args.memberId,
     'RESERVATION_CONFIRMED',
@@ -84,6 +88,9 @@ export const reservationHandlers = [
     const memberId = memberIdOf(request)
     if (!memberId) return unauthorized()
     const b = await body<{ storeId: number; reservationStartAt: string; partySize: number }>(request)
+    if (MOCK_DEPOSIT_STORES[Number(b.storeId)]) {
+      return conflict('RESERVATION_PAYMENT_REQUIRED', '예약금 결제가 필요합니다. 선점 생성 → 결제 준비 → 승인 경로를 이용해 주세요.')
+    }
     const picked = pickTable(Number(b.storeId), b.reservationStartAt, b.partySize)
     if ('error' in picked) return picked.error
     const row = createConfirmedReservation({
@@ -134,6 +141,11 @@ export const reservationHandlers = [
     if (r.status !== 'CONFIRMED' || r.checkedInAt || !dayjs(r.reservationStartAt).isAfter(dayjs())) {
       return conflict('RESERVATION_NOT_CANCELLABLE', '취소할 수 없는 예약입니다.')
     }
+    const idempotencyKey = request.headers.get('Idempotency-Key')
+    if (refundableAmount(r) > 0 && !idempotencyKey) {
+      return conflict('REFUND_NOT_COMPLETED', '환불 완료를 확인한 후 예약을 취소할 수 있습니다.')
+    }
+    if (idempotencyKey) refundForCancel(r, idempotencyKey)
     r.status = 'CANCELLED'
     r.cancelledAt = nowIso()
     r.cancellationActor = 'CUSTOMER'

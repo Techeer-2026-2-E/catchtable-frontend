@@ -14,6 +14,12 @@ export const ROUTES = {
   MYPAGE: '/mypage',
   PROFILE_EDIT: '/mypage/profile',
   NOTIFICATIONS: '/notifications',
+  /** P2 유료 예약·결제 */
+  PAYMENT_CHECKOUT: '/reservations/holds/:holdId/payment',
+  PAYMENT_SUCCESS: '/payments/success',
+  PAYMENT_FAIL: '/payments/fail',
+  PAYMENTS: '/mypage/payments',
+  PAYMENT_DETAIL: '/payments/:paymentId',
   /** P2 리뷰 */
   MY_REVIEWS: '/mypage/reviews',
   REVIEW_WRITE: '/reviews/write/:reservationId',
@@ -36,6 +42,8 @@ export const paths = {
   storeDetail: (storeId: Id) => `/stores/${storeId}`,
   reservation: (storeId: Id) => `/stores/${storeId}/reservation`,
   reservationDetail: (reservationId: Id) => `/reservations/${reservationId}`,
+  paymentCheckout: (holdId: Id) => `/reservations/holds/${holdId}/payment`,
+  paymentDetail: (paymentId: Id) => `/payments/${paymentId}`,
   waitingApply: (storeId: Id) => `/stores/${storeId}/waiting`,
   waiting: (waitingId: Id) => `/waitings/${waitingId}`,
   reviewWrite: (reservationId: Id) => `/reviews/write/${reservationId}`,

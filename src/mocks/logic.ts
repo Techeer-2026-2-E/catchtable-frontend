@@ -62,7 +62,9 @@ const overlaps = (aStart: dayjs.Dayjs, aEnd: dayjs.Dayjs, bStart: dayjs.Dayjs, b
 function occupiedTableIds(storeId: number, start: dayjs.Dayjs, end: dayjs.Dayjs, excludeReservationId?: number) {
   const ids = new Set<number>()
   db.reservations.forEach((r) => {
-    if (r.storeId !== storeId || r.status !== 'CONFIRMED' || r.tableId == null) return
+    if (r.storeId !== storeId || r.tableId == null) return
+    const holding = r.status === 'PENDING_PAYMENT' && r.holdExpiresAt && dayjs(r.holdExpiresAt).isAfter(now())
+    if (r.status !== 'CONFIRMED' && !holding) return
     if (r.reservationId === excludeReservationId) return
     if (overlaps(start, end, dayjs(r.reservationStartAt), dayjs(r.reservationEndAt))) ids.add(r.tableId)
   })

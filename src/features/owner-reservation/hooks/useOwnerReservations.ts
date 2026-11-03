@@ -5,6 +5,7 @@ import {
   type OwnerReservationActionRequest,
 } from '../api/ownerReservationApi'
 import { ownerReservationKeys } from '../api/queryKeys'
+import { getErrorCode, refundKeyStorage } from '@/shared/lib'
 
 /** 날짜별 예약 현황 — 1분마다 갱신 (자동 이용 완료 반영) */
 export function useOwnerReservations(storeId: number, date: string) {
@@ -22,9 +23,21 @@ export function useOwnerReservationActions() {
   return {
     enter: useMutation({ mutationFn: (id: number) => ownerReservationApi.enter(id), onSuccess: invalidate }),
     cancel: useMutation({
-      mutationFn: ({ id, body }: { id: number; body: OwnerReservationActionRequest }) =>
-        ownerReservationApi.cancel(id, body),
-      onSuccess: invalidate,
+      // 무료 예약은 키 없이 취소된다. 환불이 남아 409 면 같은 키로 환불과 취소를 함께 요청
+      mutationFn: async ({ id, body }: { id: number; body: OwnerReservationActionRequest }) => {
+        const pendingKey = refundKeyStorage.peek('owner-cancel', id)
+        if (pendingKey) return ownerReservationApi.cancel(id, body, pendingKey)
+        try {
+          return await ownerReservationApi.cancel(id, body)
+        } catch (e) {
+          if (getErrorCode(e) !== 'REFUND_NOT_COMPLETED') throw e
+          return ownerReservationApi.cancel(id, body, refundKeyStorage.get('owner-cancel', id))
+        }
+      },
+      onSuccess: (_data, { id }) => {
+        refundKeyStorage.clear('owner-cancel', id)
+        return invalidate()
+      },
     }),
     noShow: useMutation({
       mutationFn: ({ id, body }: { id: number; body: OwnerReservationActionRequest }) =>

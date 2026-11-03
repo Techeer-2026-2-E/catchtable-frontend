@@ -1,5 +1,5 @@
 import type { OwnerReservation, ReservationStatus } from '@/entities'
-import { apiClient } from '@/shared/lib'
+import { apiClient, PG_TIMEOUT } from '@/shared/lib'
 
 /** OwnerReservationActionRequest — 취소·노쇼 사유 (필수, 500자 이내) */
 export interface OwnerReservationActionRequest {
@@ -19,8 +19,12 @@ export const ownerReservationApi = {
     const { data } = await apiClient.get<OwnerReservation[]>(`/owner/stores/${storeId}/reservations`, { params })
     return data
   },
-  cancel: async (reservationId: number, body: OwnerReservationActionRequest) => {
-    const { data } = await apiClient.post<OwnerReservation>(`/owner/reservations/${reservationId}/cancel`, body)
+  /** 환불이 있으면 Idempotency-Key 를 함께 보냄. PG 응답을 기다리므로 시간 제한을 늘림 */
+  cancel: async (reservationId: number, body: OwnerReservationActionRequest, idempotencyKey?: string) => {
+    const { data } = await apiClient.post<OwnerReservation>(`/owner/reservations/${reservationId}/cancel`, body, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+      timeout: idempotencyKey ? PG_TIMEOUT : undefined,
+    })
     return data
   },
   /** 방문 확인 — checkedInAt 기록 (상태는 CONFIRMED 유지, 이용시간 지나면 COMPLETED) */

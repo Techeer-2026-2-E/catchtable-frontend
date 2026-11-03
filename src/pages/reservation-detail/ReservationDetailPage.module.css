@@ -48,3 +48,14 @@
 .flex {
   flex: 1;
 }
+.refund {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  row-gap: var(--space-4);
+  margin: var(--space-12) 0 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.refund dd {
+  margin: 0;
+}

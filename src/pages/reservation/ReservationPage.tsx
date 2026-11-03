@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { useAuthStore } from '@/features/auth'
-import { reservationKeys, ReservationDateTimeForm, useAvailability, useReservationForm, useReservationFormStore } from '@/features/reservation'
+import { reservationKeys, ReservationDateTimeForm, useAvailability, useCreateHold, useReservationForm, useReservationFormStore } from '@/features/reservation'
 import { useStoreDetail } from '@/features/store-detail'
 import { paths } from '@/shared/config'
 import { getErrorCode, getErrorMessage } from '@/shared/lib'
@@ -17,6 +17,7 @@ const STEPS: Step[] = ['datetime', 'confirm']
 /**
  * 예약 — 날짜·인원·시간 선택 → 확인 후 생성
  * POST /api/user/reservations { storeId, reservationStartAt, partySize } — 테이블은 서버가 자동 배정
+ * 예약금 매장은 409 RESERVATION_PAYMENT_REQUIRED → 선점 생성 후 결제 화면으로
  */
 export function ReservationPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -27,6 +28,7 @@ export function ReservationPage() {
   const form = useReservationFormStore()
   const setStore = useReservationFormStore((s) => s.setStore)
   const reservation = useReservationForm()
+  const createHold = useCreateHold()
   const queryClient = useQueryClient()
   const availability = useAvailability(id, form.date, form.partySize, store?.reservationEnabled === true && form.storeId === id)
   const [step, setStep] = useState<Step>(() => (form.storeId === id && form.date && form.time ? 'confirm' : 'datetime'))
@@ -59,21 +61,39 @@ export function ReservationPage() {
       toast('예약이 확정됐어요')
       navigate(paths.reservationDetail(created.reservationId), { replace: true, state: { justCreated: true } })
     } catch (e) {
-      if (getErrorCode(e) === 'HTTP_409') {
-        form.setTime(null)
-        setStep('datetime')
-        await queryClient.invalidateQueries({ queryKey: reservationKeys.availability(id, form.date ?? '', form.partySize) })
+      if (getErrorCode(e) === 'RESERVATION_PAYMENT_REQUIRED') {
+        await startPaidReservation()
+        return
       }
-      toast(getErrorMessage(e, '예약하지 못했어요. 다시 시도해주세요'))
+      await handleSubmitError(e)
     }
+  }
+
+  const startPaidReservation = async () => {
+    try {
+      const hold = await createHold.mutateAsync(reservation.toRequest())
+      form.reset()
+      navigate(paths.paymentCheckout(hold.holdId), { replace: true })
+    } catch (e) {
+      await handleSubmitError(e)
+    }
+  }
+
+  const handleSubmitError = async (e: unknown) => {
+    if (getErrorCode(e) === 'HTTP_409') {
+      form.setTime(null)
+      setStep('datetime')
+      await queryClient.invalidateQueries({ queryKey: reservationKeys.availability(id, form.date ?? '', form.partySize) })
+    }
+    toast(getErrorMessage(e, '예약하지 못했어요. 다시 시도해주세요'))
   }
 
   return (
     <Page
       bottom={
         step === 'confirm' ? (
-          <Button fullWidth onClick={submit} disabled={reservation.isPending || !selectedAvailable || availability.isFetching || availability.isError}>
-            {reservation.isPending ? '예약 중…' : '예약하기'}
+          <Button fullWidth onClick={submit} disabled={reservation.isPending || createHold.isPending || !selectedAvailable || availability.isFetching || availability.isError}>
+            {reservation.isPending || createHold.isPending ? '예약 중…' : '예약하기'}
           </Button>
         ) : (
           <Button fullWidth disabled={!form.date || !form.time || !selectedAvailable || availability.isFetching || availability.isError} onClick={() => setStep('confirm')}>

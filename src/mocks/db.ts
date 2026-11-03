@@ -17,8 +17,7 @@ import type {
   UserType,
   WaitingEndReason,
   WaitingSettings,
-  WaitingStatus,
-} from '@/entities'
+  WaitingStatus, PaymentDetail, PaymentStatus } from '@/entities'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
 
 /* ------------------------------------------------------------------ */
@@ -70,6 +69,24 @@ export interface ReservationRow {
   noShowAt: string | null
   noShowByMemberId: number | null
   noShowReason: string | null
+  /** 선점으로 만든 예약만 */
+  holdExpiresAt?: string | null
+}
+
+export interface PaymentRow {
+  paymentId: number
+  memberId: number
+  holdId: number
+  orderId: string
+  orderName: string
+  amount: number
+  status: PaymentStatus
+  method: string | null
+  approvedAt: string | null
+  canceledAmount: number
+  receiptUrl: string | null
+  refunds: PaymentDetail['refunds']
+  refundKeys: string[]
 }
 
 export interface WaitingRow {
@@ -112,6 +129,7 @@ export interface Db {
   tables: TableRow[]
   menus: MenuRow[]
   reservations: ReservationRow[]
+  payments: PaymentRow[]
   waitings: WaitingRow[]
   reviews: ReviewRow[]
 }
@@ -577,6 +595,7 @@ function seed(): Db {
     tables,
     menus,
     reservations,
+    payments: [],
     waitings,
     reviews,
   }
@@ -594,7 +613,7 @@ function load(): Db {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const saved = JSON.parse(raw) as Db
-      if (saved.seededOn === dayjs().format('YYYY-MM-DD')) return saved
+      if (saved.seededOn === dayjs().format('YYYY-MM-DD')) return { ...saved, payments: saved.payments ?? [] }
     }
   } catch {
     /* 저장된 값이 없거나 깨짐 — 새로 시드 */

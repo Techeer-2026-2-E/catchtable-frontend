@@ -28,6 +28,37 @@ export interface Reservation {
   cancellationReason: string | null
 }
 
+/** 선점 — ReservationHoldResponse. holdId 와 reservationId 는 같은 값, expiresAt 은 재조회해도 늘어나지 않음 */
+export interface ReservationHold {
+  holdId: number
+  reservationId: number
+  storeId: number
+  tableId: number | null
+  reservationStartAt: string
+  reservationEndAt: string
+  partySize: number
+  status: ReservationStatus
+  expiresAt: string
+  serverTime: string
+  remainingSeconds: number
+}
+
+/** 환불 예상 — RefundPreviewResponse. 조회 시점 기준이며 조회만으로 환불되지 않음 */
+export interface RefundPreview {
+  reservationId: number
+  paymentId: number | null
+  currency: string
+  paidAmount: number
+  alreadyRefundedAmount: number
+  policyType: string | null
+  reservationStartAt: string
+  calculatedAt: string
+  refundRate: number
+  refundableAmount: number
+  nonRefundableAmount: number
+  policyDescription: string
+}
+
 /** 점주용 — OwnerReservationResponse */
 export interface OwnerReservation {
   reservationId: number

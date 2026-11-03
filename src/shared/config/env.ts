@@ -10,6 +10,11 @@ export const env = {
    */
   apiMocking: mocking === 'true' || (import.meta.env.DEV && mocking !== 'false'),
   /**
+   * Toss 결제창 클라이언트 키. 비어 있으면 개발 서버에서만 결제창 없이 승인 단계로 넘어감
+   * 서버의 TOSS_SECRET_KEY 와 짝인 테스트 키만 넣는다
+   */
+  tossClientKey: import.meta.env.VITE_TOSS_CLIENT_KEY ?? '',
+  /**
    * [임시] 점주 "내 매장 목록" API 가 백엔드에 없어서 매장 id 를 지정 — 쉼표로 구분
    * 기본: 실제 백엔드는 scripts/local-seed.sql 의 매장 1, 목 API 는 점주(회원 2)의 매장 2·4
    */
