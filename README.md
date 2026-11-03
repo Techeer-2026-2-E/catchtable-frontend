@@ -43,6 +43,9 @@ src/
 │   ├── store-detail/           # 매장 상세
 │   ├── reservation/            # 예약하기 (날짜·인원·시간)
 │   ├── reservation-detail/     # 예약 상세
+│   ├── payment-checkout/       # 예약금 결제 (선점 남은 시간·결제창)
+│   ├── payment-result/         # 결제창 복귀 (승인·실패)
+│   ├── payments/ · payment-detail/  # 결제 내역·상세
 │   ├── waiting/                # 내 웨이팅 (실시간 순번)
 │   ├── mypage/                 # 예약·웨이팅 내역, 회원정보
 │   ├── notifications/
