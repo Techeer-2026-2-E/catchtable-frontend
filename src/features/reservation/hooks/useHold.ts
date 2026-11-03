@@ -4,6 +4,8 @@ import { dayjs } from '@/shared/lib/dayjs'
 import { reservationKeys } from '../api/queryKeys'
 import { reservationApi } from '../api/reservationApi'
 
+const HOLD_RESULT_POLL_MS = 3_000
+
 export function useCreateHold() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -21,6 +23,11 @@ export function useHold(holdId: number) {
     queryFn: () => reservationApi.getHold(holdId),
     enabled: Number.isFinite(holdId),
     refetchOnWindowFocus: true,
+    // 남은 초는 내림값이라 만료 직전에도 0일 수 있고, 승인 중이면 0초가 이어진다. 결론이 날 때까지 다시 조회
+    refetchInterval: (query) => {
+      const hold = query.state.data
+      return hold?.status === 'PENDING_PAYMENT' && hold.remainingSeconds === 0 ? HOLD_RESULT_POLL_MS : false
+    },
   })
 }
 
