@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { PAYMENT_REFUND_STATUS_LABEL, PAYMENT_STATUS_LABEL } from '@/entities'
 import { usePaymentDetail, useSyncPayment } from '@/features/payment'
 import { reservationKeys } from '@/features/reservation'
@@ -100,9 +100,9 @@ export function PaymentDetailPage() {
 
         <div className={styles.receipt}>
           {payment.receiptUrl && (
-            <Link to={payment.receiptUrl} target="_blank" rel="noreferrer" className="t-body-14">
+            <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="t-body-14">
               영수증 보기
-            </Link>
+            </a>
           )}
           <p className="t-caption-13 text-tertiary">{payment.receiptNotice}</p>
         </div>

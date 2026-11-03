@@ -39,6 +39,9 @@ export function PaymentSuccessPage() {
         navigate(paths.reservationDetail(payment.reservationId), { replace: true, state: { justCreated: true } })
       } else if (payment.status === 'TIMEOUT' || payment.status === 'READY') {
         setResult({ kind: 'unknown', paymentId: payment.paymentId })
+      } else if (payment.status === 'FAILED' || payment.status === 'CANCELED') {
+        // 승인 거절은 200 으로 오며 선점도 함께 해제된다
+        setResult({ kind: 'failed', message: '결제가 승인되지 않아 자리가 반환되었어요. 다시 예약해주세요.' })
       } else {
         navigate(paths.paymentDetail(payment.paymentId), { replace: true })
       }

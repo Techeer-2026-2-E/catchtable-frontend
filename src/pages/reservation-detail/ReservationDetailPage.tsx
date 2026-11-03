@@ -23,7 +23,6 @@ export function ReservationDetailPage() {
   const cancel = useCancelReservation()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const preview = useRefundPreview(Number(reservationId), confirmOpen)
-  const justCreated = !!state?.justCreated
 
   if (isPending || isError) {
     return (
@@ -34,6 +33,8 @@ export function ReservationDetailPage() {
     )
   }
 
+  // 방금 만든 화면에서 바로 취소하면 확정 안내를 더 보여주지 않는다
+  const justCreated = !!state?.justCreated && reservation.status === 'CONFIRMED'
   const display = getReservationDisplayStatus(reservation)
   const cancelable = display === 'CONFIRMED' && dayjs(reservation.reservationStartAt).isAfter(dayjs())
   const start = dayjs(reservation.reservationStartAt)
@@ -44,6 +45,7 @@ export function ReservationDetailPage() {
   const pendingKey = refundKeyStorage.peek('customer-cancel', reservation.reservationId)
 
   const doCancel = () => {
+    if (preview.isFetching || cancel.isPending) return
     const idempotencyKey = pendingKey ?? (refundable > 0 ? refundKeyStorage.get('customer-cancel', reservation.reservationId) : undefined)
     cancel.mutate(
       { reservationId: reservation.reservationId, idempotencyKey },
