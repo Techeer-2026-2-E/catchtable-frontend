@@ -4,6 +4,29 @@ import { paymentKeys } from '../api/queryKeys'
 
 const PAGE_SIZE = 10
 
+export function useUnconfirmedRefundRequest(paymentId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: paymentKeys.unconfirmedRefund(paymentId),
+    queryFn: () => paymentApi.getUnconfirmedRefund(paymentId),
+    enabled: enabled && Number.isFinite(paymentId),
+    retry: false,
+    refetchInterval: (query) => ['REQUESTED', 'UNKNOWN'].includes(query.state.data?.refundStatus ?? '') ? 3000 : false,
+  })
+}
+
+export function useRequestUnconfirmedRefund() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paymentId, key }: { paymentId: number; key: string }) => paymentApi.requestUnconfirmedRefund(paymentId, key),
+    onSuccess: (request) => client.setQueryData(paymentKeys.unconfirmedRefund(request.paymentId), request),
+    // 접수 응답을 잃어도 서버에 저장된 요청 상태를 다시 읽는다.
+    onSettled: (_data, _error, { paymentId }) => {
+      client.invalidateQueries({ queryKey: paymentKeys.unconfirmedRefund(paymentId) })
+      client.invalidateQueries({ queryKey: paymentKeys.detail(paymentId) })
+    },
+  })
+}
+
 /** 주문 준비 — 재요청해도 같은 주문이라 조회처럼 다룸. 만료 뒤 새 주문을 시도하지 않도록 재시도·자동 갱신 없음 */
 export function usePreparedPayment(holdId: number, enabled: boolean) {
   return useQuery({

@@ -86,4 +86,20 @@ export interface PreparedPayment {
   expiresAt: string
   serverTime: string
   remainingSeconds: number
+  refundPolicy: 'FLEXIBLE' | 'STANDARD' | 'STRICT'
+  refundPolicyName: string
+  refundRules: { minDaysBefore: number; refundRate: number }[]
+  refundPolicyNotice: string
+}
+
+/** 예약이 성립하지 않은 승인 결제의 전액 환불 접수. 접수와 PG 완료를 구분한다. */
+export interface UnconfirmedRefundRequest {
+  requestId: number
+  paymentId: number
+  reservationId: number
+  currency: string
+  refundAmount: number
+  refundStatus: PaymentRefundStatus
+  requestedAt: string
+  completedAt: string | null
 }

@@ -17,7 +17,7 @@ import type {
   UserType,
   WaitingEndReason,
   WaitingSettings,
-  WaitingStatus, PaymentDetail, PaymentStatus } from '@/entities'
+  WaitingStatus, PaymentDetail, PaymentStatus, UnconfirmedRefundRequest, PreparedPayment } from '@/entities'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
 
 /* ------------------------------------------------------------------ */
@@ -71,6 +71,8 @@ export interface ReservationRow {
   noShowReason: string | null
   /** 선점으로 만든 예약만 */
   holdExpiresAt?: string | null
+  depositAmountSnapshot?: number | null
+  refundPolicySnapshot?: PreparedPayment['refundPolicy'] | null
 }
 
 export interface PaymentRow {
@@ -87,6 +89,8 @@ export interface PaymentRow {
   receiptUrl: string | null
   refunds: PaymentDetail['refunds']
   refundKeys: string[]
+  refundRequired?: boolean
+  unconfirmedRefund?: UnconfirmedRefundRequest & { key: string }
 }
 
 export interface WaitingRow {

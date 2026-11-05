@@ -148,13 +148,15 @@ Figma「Design System」을 코드로 옮긴 것. 새 화면은 아래를 조합
 
 ### 유료 예약 로컬 검증
 
-`npm test`는 선점 만료·승인 보호·결과 불명 화면의 자동 검사를 실행합니다. `npm run lint`, `npm run build`와 구분합니다.
+`npm test`는 선점 만료·승인 보호·결과 불명·환불 기준·미확정 승인 환불 화면의 자동 검사를 실행합니다. 최종 로컬31개 통과이며 `npm run lint`, `npm run build`와 구분합니다.
 
 자동 검사의 실행 환경은 Node22.22.2 이상(22.x),24.15 이상(24.x),26 이상입니다. 이번 검증은 Node26.12.0/npm11.20.0에서 수행했습니다.
 
 실제 API 모드(`VITE_API_MOCKING=false`)에서는 `VITE_TOSS_CLIENT_KEY`가 없으면 결제를 시작하지 않습니다. 키가 없다는 이유로 합성 거래 키를 실제 백엔드에 보내지 않습니다. 개발 서버의 MSW는 결제창 없이 목 승인으로 이동합니다. 일회용 DB·fake PG로 실행한 로컬 백엔드에 연결할 때만 `VITE_TOSS_SIMULATION=true`를 명시할 수 있으며 배포 빌드에서는 항상 꺼집니다. 실제 Toss에 연결한 서버에서는 사용하지 않습니다.
 
 이번 [선점·결제 검증 기록](work-log/2026-11-04-paid-reservation-flow.md#2026-11-05-선점결제-후속)은 실제 기능33 설정을 읽는 로컬 백엔드·PostgreSQL16·fake PG 결과입니다. 실제 Toss 인증·승인·환불과 배포 완료를 뜻하지 않습니다.
+
+결제 전 정책 고지와 미확정 승인 전액 환불에는 백엔드 V33 및 prepare의 정책4필드·`POST/GET /payments/{id}/unconfirmed-refund`가 필요합니다. 백엔드를 먼저 적용합니다. 환불202는 접수이며 REQUESTED/UNKNOWN에서는 같은 키로 결과를 확인합니다. [추가 구현과 재시작 검증](work-log/2026-11-04-paid-reservation-flow.md#2026-11-05-추가--정책-고지와-미확정-승인-환불)을 참조하세요.
 
 ### 상태 관리
 

@@ -1,4 +1,4 @@
-import type { Payment, PaymentDetail, PaymentList, PreparedPayment } from '@/entities'
+import type { Payment, PaymentDetail, PaymentList, PreparedPayment, UnconfirmedRefundRequest } from '@/entities'
 import { apiClient, PG_TIMEOUT } from '@/shared/lib'
 
 export interface ConfirmPaymentRequest {
@@ -9,6 +9,15 @@ export interface ConfirmPaymentRequest {
 
 /** 결제 API — 백엔드 dev UserPaymentController · UserPaymentApprovalController */
 export const paymentApi = {
+  getUnconfirmedRefund: async (paymentId: number) => {
+    const { data } = await apiClient.get<UnconfirmedRefundRequest | ''>(`/user/payments/${paymentId}/unconfirmed-refund`)
+    return data || null
+  },
+  requestUnconfirmedRefund: async (paymentId: number, key: string) => {
+    const { data } = await apiClient.post<UnconfirmedRefundRequest>(`/user/payments/${paymentId}/unconfirmed-refund`, undefined,
+      { headers: { 'Idempotency-Key': key } })
+    return data
+  },
   /** 저장된 유료 선점으로 주문 준비 — 같은 선점 재요청은 같은 주문·금액·만료시각 */
   prepare: async (holdId: number) => {
     const { data } = await apiClient.post<PreparedPayment>('/user/payments/prepare', { holdId })

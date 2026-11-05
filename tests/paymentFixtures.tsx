@@ -18,6 +18,9 @@ export const hold: ReservationHold = {
 export const prepared: PreparedPayment = {
   paymentId: 31, reservationId: 21, holdId: 21, orderId: 'test-order-21', orderName: '예약금',
   amount: 10001, status: 'READY', expiresAt: hold.expiresAt, serverTime: hold.serverTime, remainingSeconds: 300,
+  refundPolicy: 'FLEXIBLE', refundPolicyName: '유연',
+  refundRules: [{ minDaysBefore: 1, refundRate: 100 }, { minDaysBefore: 0, refundRate: 50 }],
+  refundPolicyNotice: '매장 현지시간(Asia/Seoul)의 예약일 기준입니다.',
 }
 
 export const payment: Payment = {

@@ -82,7 +82,9 @@ export function PaymentCheckoutPage() {
   // 0초인데 아직 PENDING_PAYMENT — 승인 진행·결과 불명일 수 있어 실패로 단정하지 않는다
   const awaitingResult = statusCheckRequired || remaining === 0
   const start = dayjs(hold.data.reservationStartAt)
-  const payable = !!prepared.data && remaining > 0 && !paying && !prepared.isFetching && !prepared.isError && !release.isPending
+  const hasTerms = !!prepared.data?.refundPolicy && !!prepared.data.refundPolicyName
+    && !!prepared.data.refundPolicyNotice && Array.isArray(prepared.data.refundRules) && prepared.data.refundRules.length > 0
+  const payable = !!prepared.data && hasTerms && remaining > 0 && !paying && !prepared.isFetching && !prepared.isError && !release.isPending
 
   const pay = async () => {
     if (!payable || opening.current) return
@@ -92,6 +94,7 @@ export function PaymentCheckoutPage() {
       await requestTossPayment(async () => {
         const latest = await prepared.refetch({ throwOnError: true })
         if (!latest.data) throw new Error('주문을 다시 확인해주세요')
+        if (!latest.data.refundPolicy || !latest.data.refundRules?.length) throw new Error('환불 기준을 다시 확인해주세요')
         return latest.data
       })
     } catch (e) {
@@ -153,7 +156,10 @@ export function PaymentCheckoutPage() {
               : getErrorMessage(prepared.error, '주문을 준비하지 못했어요')}
           </Banner>
         )}
-        {prepared.isError && !statusCheckRequired && remaining > 0 && (
+        {prepared.data && !hasTerms && !awaitingResult && (
+          <Banner tone="danger">환불 기준을 확인하지 못했어요. 주문을 다시 확인해주세요.</Banner>
+        )}
+        {(prepared.isError || (prepared.data && !hasTerms)) && !statusCheckRequired && remaining > 0 && (
           <Button variant="outline" disabled={prepared.isFetching} onClick={() => prepared.refetch()}>
             주문 다시 확인
           </Button>
@@ -177,6 +183,21 @@ export function PaymentCheckoutPage() {
             </>
           )}
         </dl>
+
+        {hasTerms && prepared.data && (
+          <section className={styles.policy}>
+            <h2 className="t-headline-16">환불 기준</h2>
+            <p className="t-body-14">{prepared.data.refundPolicyName} 환불 정책</p>
+            <ul className="t-body-14">
+              {prepared.data.refundRules.map((rule, index) => (
+                <li key={rule.minDaysBefore}>
+                  {rule.minDaysBefore === 0 ? '예약 당일' : `${rule.minDaysBefore}일 전${index === 0 ? '까지' : ''}`} {rule.refundRate}%
+                </li>
+              ))}
+            </ul>
+            <p className="t-caption-13 text-secondary">{prepared.data.refundPolicyNotice}</p>
+          </section>
+        )}
 
         <p className="t-body-14 text-secondary">
           {awaitingResult
