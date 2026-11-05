@@ -14,7 +14,7 @@ import {
 import { reservationKeys, useCancelReservation, useHistory } from '@/features/reservation'
 import { useCancelWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
-import { getErrorMessage } from '@/shared/lib'
+import { getErrorCode, getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
 import { Button, Dialog, EmptyState, ErrorState, LoadingState, Page, Tabs, toast, TopBar } from '@/shared/ui'
@@ -56,9 +56,13 @@ export function MyDiningPage() {
         toast(item.type === 'RESERVATION' ? '예약을 취소했어요' : '웨이팅을 취소했어요')
         setCancelTarget(null)
       },
-      onError: (e: unknown) => toast(getErrorMessage(e, '취소하지 못했어요')),
+      onError: (e: unknown) => {
+        toast(getErrorMessage(e, '취소하지 못했어요'))
+        // 환불이 있는 예약은 예상액을 확인하는 예약 상세에서 취소한다
+        if (getErrorCode(e) === 'REFUND_NOT_COMPLETED') navigate(paths.reservationDetail(item.id))
+      },
     }
-    if (item.type === 'RESERVATION') cancelReservation.mutate(item.id, options)
+    if (item.type === 'RESERVATION') cancelReservation.mutate({ reservationId: item.id }, options)
     else cancelWaiting.mutate(item.id, options)
   }
 

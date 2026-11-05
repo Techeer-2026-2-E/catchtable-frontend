@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Star, UserRound } from 'lucide-react'
+import { ChevronRight, CreditCard, Star, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { useAuthStore, useLogout } from '@/features/auth'
 import { useMe } from '@/features/member'
@@ -35,6 +35,7 @@ export function MyPage() {
       <Divider thick />
       <p className={`${styles.groupTitle} t-caption-13 text-tertiary`}>계정</p>
       <ListItem icon={<UserRound />} title="이름, 연락처 설정" to={ROUTES.PROFILE_EDIT} />
+      <ListItem icon={<CreditCard />} title="결제 내역" to={ROUTES.PAYMENTS} />
       <ListItem icon={<Star />} title="리뷰 관리" value={reviews.data ? `${reviews.data.length}개` : undefined} to={ROUTES.MY_REVIEWS} />
       <Divider thick />
 

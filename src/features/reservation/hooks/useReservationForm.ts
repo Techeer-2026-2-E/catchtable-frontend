@@ -19,14 +19,16 @@ export function useReservationForm() {
 
   const isValid = !!(form.storeId && form.date && form.time && form.partySize > 0)
 
+  const toRequest = () => ({
+    storeId: form.storeId!,
+    reservationStartAt: toStoreDateTime(form.date!, form.time!),
+    partySize: form.partySize,
+  })
+
   const submit = () => {
     if (!isValid) return Promise.reject(new Error('예약 정보가 부족해요'))
-    return mutation.mutateAsync({
-      storeId: form.storeId!,
-      reservationStartAt: toStoreDateTime(form.date!, form.time!),
-      partySize: form.partySize,
-    })
+    return mutation.mutateAsync(toRequest())
   }
 
-  return { form, isValid, submit, ...mutation }
+  return { form, isValid, submit, toRequest, ...mutation }
 }
