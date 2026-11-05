@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { findPaymentByHold, requestTossPayment, usePreparedPayment } from '@/features/payment'
 import { useHold, useHoldCountdown, useReleaseHold } from '@/features/reservation'
@@ -30,6 +30,7 @@ export function PaymentCheckoutPage() {
   const [releaseOpen, setReleaseOpen] = useState(false)
   const [paying, setPaying] = useState(false)
   const [checking, setChecking] = useState(false)
+  const opening = useRef(false)
 
   // 0초가 되면 서버 상태를 다시 확인 — 승인 진행 중이면 0초여도 만료가 아니다
   const refetchHold = hold.refetch
@@ -81,19 +82,26 @@ export function PaymentCheckoutPage() {
   // 0초인데 아직 PENDING_PAYMENT — 승인 진행·결과 불명일 수 있어 실패로 단정하지 않는다
   const awaitingResult = statusCheckRequired || remaining === 0
   const start = dayjs(hold.data.reservationStartAt)
-  const payable = !!prepared.data && remaining > 0 && !paying
+  const payable = !!prepared.data && remaining > 0 && !paying && !prepared.isFetching && !prepared.isError && !release.isPending
 
   const pay = async () => {
-    if (!prepared.data) return
+    if (!payable || opening.current) return
+    opening.current = true
     setPaying(true)
     try {
-      await requestTossPayment(prepared.data)
+      await requestTossPayment(async () => {
+        const latest = await prepared.refetch({ throwOnError: true })
+        if (!latest.data) throw new Error('주문을 다시 확인해주세요')
+        return latest.data
+      })
     } catch (e) {
+      await refetchHold()
       // 사용자가 결제창을 닫은 경우 선점은 그대로 두고 다시 시도할 수 있게 한다
       if ((e as { code?: string }).code !== 'USER_CANCEL') {
         toast(e instanceof Error && e.message ? e.message : '결제창을 열지 못했어요')
       }
     } finally {
+      opening.current = false
       setPaying(false)
     }
   }
@@ -104,8 +112,12 @@ export function PaymentCheckoutPage() {
         toast('선점을 취소했어요')
         navigate(paths.storeDetail(hold.data.storeId), { replace: true })
       },
-      onError: (e) => {
+      onError: async (e) => {
         setReleaseOpen(false)
+        const latest = await refetchHold()
+        if (latest.data?.status === 'PENDING_PAYMENT' && latest.data.remainingSeconds > 0) {
+          await prepared.refetch()
+        }
         toast(getErrorMessage(e, '선점을 취소하지 못했어요'))
       },
     })
@@ -141,6 +153,11 @@ export function PaymentCheckoutPage() {
               : getErrorMessage(prepared.error, '주문을 준비하지 못했어요')}
           </Banner>
         )}
+        {prepared.isError && !statusCheckRequired && remaining > 0 && (
+          <Button variant="outline" disabled={prepared.isFetching} onClick={() => prepared.refetch()}>
+            주문 다시 확인
+          </Button>
+        )}
 
         <dl className={styles.info}>
           <dt>매장</dt>
@@ -161,10 +178,14 @@ export function PaymentCheckoutPage() {
           )}
         </dl>
 
-        <p className="t-body-14 text-secondary">결제를 마치면 예약이 확정돼요. 시간 안에 결제하지 않으면 자리가 반환돼요.</p>
+        <p className="t-body-14 text-secondary">
+          {awaitingResult
+            ? '결제 결과를 확인한 뒤 예약 상태를 안내해드릴게요.'
+            : '결제를 마치면 예약이 확정돼요. 시간 안에 결제하지 않으면 자리가 반환돼요.'}
+        </p>
 
         {!awaitingResult && (
-          <Button variant="ghost" size="S" onClick={() => setReleaseOpen(true)}>
+          <Button variant="ghost" size="S" disabled={paying || release.isPending} onClick={() => setReleaseOpen(true)}>
             선점 취소
           </Button>
         )}

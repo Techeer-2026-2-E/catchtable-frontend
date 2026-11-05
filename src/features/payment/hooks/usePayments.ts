@@ -55,6 +55,10 @@ export function useSyncPayment() {
 
 /** 선점에 이미 진행 중인 결제를 찾음 — prepare 가 PAYMENT_STATUS_CHECK_REQUIRED 일 때 사용 */
 export async function findPaymentByHold(holdId: number) {
-  const { payments } = await paymentApi.getList({ size: 50 })
-  return payments.find((payment) => payment.holdId === holdId) ?? null
+  for (let page = 0; ; page++) {
+    const result = await paymentApi.getList({ page, size: 50 })
+    const payment = result.payments.find((item) => item.holdId === holdId)
+    if (payment) return payment
+    if (!result.hasNext) return null
+  }
 }

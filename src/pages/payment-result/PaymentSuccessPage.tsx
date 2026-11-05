@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import type { Payment } from '@/entities'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useConfirmPayment } from '@/features/payment'
@@ -59,7 +60,8 @@ export function PaymentSuccessPage() {
       applyPayment(await mutateAsync({ paymentKey, orderId, amount }))
     } catch (e) {
       const code = getErrorCode(e)
-      if (!code || UNKNOWN_RESULT_CODES.includes(code)) {
+      const status = isAxiosError(e) ? e.response?.status : undefined
+      if (!status || status >= 500 || status === 408 || status === 429 || !code || UNKNOWN_RESULT_CODES.includes(code)) {
         // 응답 유실·시간 초과 포함
         setResult({ kind: 'unknown' })
       } else {
@@ -101,7 +103,7 @@ export function PaymentSuccessPage() {
         <TopBar title="결제 확인" leading="none" />
         <div className={styles.wrap}>
           <h1 className="t-title-24">결제 결과를 확인하고 있어요</h1>
-          <Banner tone="notice">아직 실패가 아니에요. 다시 결제하지 말고 결과를 확인해주세요. 자리는 그대로 잡아둘게요.</Banner>
+          <Banner tone="notice">아직 결과가 확인되지 않았어요. 다시 결제하지 말고 결과를 확인해주세요.</Banner>
         </div>
       </Page>
     )
