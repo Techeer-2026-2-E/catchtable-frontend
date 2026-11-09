@@ -35,6 +35,8 @@ export const ROUTES = {
   OWNER_WAITING_SETTINGS: '/owner/stores/:storeId/waitings/settings',
   OWNER_MENUS: '/owner/stores/:storeId/menus',
   OWNER_REVIEWS: '/owner/stores/:storeId/reviews',
+  OWNER_STORE_INFO: '/owner/stores/:storeId/info',
+  OWNER_SPECIAL_DAYS: '/owner/stores/:storeId/hours/special',
 } as const
 
 type Id = number | string
@@ -58,4 +60,6 @@ export const paths = {
   ownerWaitingSettings: (storeId: Id) => `/owner/stores/${storeId}/waitings/settings`,
   ownerMenus: (storeId: Id) => `/owner/stores/${storeId}/menus`,
   ownerReviews: (storeId: Id) => `/owner/stores/${storeId}/reviews`,
+  ownerStoreInfo: (storeId: Id) => `/owner/stores/${storeId}/info`,
+  ownerSpecialDays: (storeId: Id) => `/owner/stores/${storeId}/hours/special`,
 }

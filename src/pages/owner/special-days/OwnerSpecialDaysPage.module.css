@@ -1,0 +1,72 @@
+.hint {
+  padding: var(--space-8) var(--page-gutter) var(--space-12);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-12);
+  padding: 0 var(--page-gutter) var(--space-24);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-16);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-16);
+  background: var(--color-bg-surface);
+  text-align: left;
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.chevron {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-icon-subtle);
+}
+
+.sheet {
+  display: grid;
+  gap: var(--space-16);
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
+.toggleText {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+}
+
+.footer {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.footer > :first-child:not(:only-child) {
+  flex: 0 0 6rem;
+}

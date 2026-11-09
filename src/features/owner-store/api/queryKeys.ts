@@ -5,4 +5,6 @@ export const ownerStoreKeys = {
   businessHours: (storeId: number) => [...ownerStoreKeys.all, storeId, 'business-hours'] as const,
   policy: (storeId: number) => [...ownerStoreKeys.all, storeId, 'reservation-policy'] as const,
   menus: (storeId: number) => [...ownerStoreKeys.all, storeId, 'menus'] as const,
+  specialDays: (storeId: number) => [...ownerStoreKeys.all, storeId, 'special-days'] as const,
+  deposit: (storeId: number) => [...ownerStoreKeys.all, storeId, 'deposit-policy'] as const,
 }

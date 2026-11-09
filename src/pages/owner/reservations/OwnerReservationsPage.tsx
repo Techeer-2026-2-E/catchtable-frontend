@@ -29,6 +29,7 @@ import {
   TopBar,
 } from '@/shared/ui'
 import { ChangeReservationSheet } from './ChangeReservationSheet'
+import { ReservationDetailSheet } from './ReservationDetailSheet'
 import styles from './OwnerReservationsPage.module.css'
 
 type Filter = 'ALL' | ReservationDisplayStatus
@@ -60,6 +61,7 @@ export function OwnerReservationsPage() {
   const [pending, setPending] = useState<Pending>(null)
   const [reason, setReason] = useState('')
   const [changing, setChanging] = useState<OwnerReservation | null>(null)
+  const [detailId, setDetailId] = useState<number | null>(null)
   const tables = useStoreTables(id).data
   // 응답에는 tableId 만 있어서 테이블 목록(GET /owner/stores/{id}/tables)으로 번호를 찾음
   const tableNumberOf = (tableId: number | null) => tables?.find((t) => t.id === tableId)?.tableNumber
@@ -74,6 +76,7 @@ export function OwnerReservationsPage() {
   const rows = data
     .map((r) => ({ ...r, display: getReservationDisplayStatus(r) }))
     .sort((a, b) => a.reservationStartAt.localeCompare(b.reservationStartAt))
+  const detail = rows.find((r) => r.reservationId === detailId)
   const list = rows.filter((r) => filter === 'ALL' || r.display === filter)
   const count = (f: Filter) => (f === 'ALL' ? rows.length : rows.filter((r) => r.display === f).length)
   const onError = (e: unknown) => toast(getErrorMessage(e, '처리하지 못했어요'))
@@ -135,14 +138,21 @@ export function OwnerReservationsPage() {
                   <span className="t-caption-12 text-tertiary">{r.partySize}명</span>
                 </div>
                 <div className={styles.body}>
-                  <span className="status-text" data-tone={RESERVATION_STATUS_TONE[r.display]}>
-                    {RESERVATION_STATUS_LABEL[r.display]}
-                  </span>
-                  <p className="t-headline-16">{r.customerName}</p>
-                  <p className="t-caption-13 text-tertiary tnum">
-                    {tableNumberOf(r.tableId) != null && `${tableNumberOf(r.tableId)}번 테이블, `}
-                    {formatPhone(r.customerPhone)}
-                  </p>
+                  <button
+                    type="button"
+                    className={styles.open}
+                    aria-label={`${r.customerName}님 예약 상세`}
+                    onClick={() => setDetailId(r.reservationId)}
+                  >
+                    <span className="status-text" data-tone={RESERVATION_STATUS_TONE[r.display]}>
+                      {RESERVATION_STATUS_LABEL[r.display]}
+                    </span>
+                    <span className="t-headline-16">{r.customerName}</span>
+                    <span className="t-caption-13 text-tertiary tnum">
+                      {tableNumberOf(r.tableId) != null && `${tableNumberOf(r.tableId)}번 테이블, `}
+                      {formatPhone(r.customerPhone)}
+                    </span>
+                  </button>
                   {r.display === 'VISITED' && (
                     <p className="t-caption-13 text-accent">{formatTime(r.reservationEndAt)}에 자동으로 이용 완료 처리돼요</p>
                   )}
@@ -198,6 +208,30 @@ export function OwnerReservationsPage() {
           })}
         </ul>
       )}
+
+      {detail && !pending && !changing && (() => {
+        const noShowAt = dayjs(detail.reservationStartAt).add(graceMinutes, 'minute')
+        return (
+          <ReservationDetailSheet
+            key={detail.reservationId}
+            reservation={detail}
+            table={tables?.find((t) => t.id === detail.tableId)}
+            canNoShow={!now.isBefore(noShowAt)}
+            noShowAvailableAt={noShowAt.format('HH:mm')}
+            entering={enter.isPending}
+            onClose={() => setDetailId(null)}
+            onEnter={() =>
+              enter.mutate(detail.reservationId, {
+                onSuccess: () => toast(`${detail.customerName}님 방문을 확인했어요`),
+                onError,
+              })
+            }
+            onChange={() => setChanging(detail)}
+            onCancel={() => openDialog('cancel', detail)}
+            onNoShow={() => openDialog('noShow', detail)}
+          />
+        )
+      })()}
 
       {changing && <ChangeReservationSheet key={changing.reservationId} reservation={changing} onClose={() => setChanging(null)} />}
 

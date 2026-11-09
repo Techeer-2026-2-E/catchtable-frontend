@@ -41,7 +41,12 @@ export const storeTables = (storeId: number) => db.tables.filter((t) => t.storeI
 /** 해당 날짜에 시작하는 영업 구간 (마감이 오픈보다 이르면 다음날 마감) */
 export function openingWindow(store: StoreRow, date: string) {
   const day = toDayOfWeek(dayjs(date).day())
-  const bh = store.businessHours.find((h) => h.dayOfWeek === day)
+  const special = store.specialDays?.find((d) => d.businessDate === date)
+  const bh = special
+    ? special.closed
+      ? undefined
+      : { ...special, openTime: special.openTime!, closingTime: special.closingTime! }
+    : store.businessHours.find((h) => h.dayOfWeek === day)
   if (!bh) return null
   const start = dayjs(`${date}T${bh.openTime}`)
   let end = dayjs(`${date}T${bh.closingTime}`)

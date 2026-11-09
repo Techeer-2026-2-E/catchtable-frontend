@@ -1,0 +1,15 @@
+.form {
+  display: grid;
+  gap: var(--space-20);
+  padding: var(--space-8) var(--page-gutter) var(--space-24);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.photo {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
