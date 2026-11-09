@@ -134,3 +134,49 @@ export interface ReservationPolicy {
   /** 시작 몇 분 전에 예약 마감 */
   bookingDeadlineMinutes: number
 }
+
+/** 특정일 휴무·예외 영업시간 — SpecialBusinessDayResponse (시간은 "HH:mm:ss", 휴무면 null) */
+export interface SpecialBusinessDay {
+  /** YYYY-MM-DD */
+  businessDate: string
+  closed: boolean
+  openTime: string | null
+  closingTime: string | null
+  breakStartTime: string | null
+  breakEndTime: string | null
+}
+
+/** 예약금 환불 정책 — store.entity.RefundPolicy */
+export type RefundPolicy = 'FLEXIBLE' | 'STANDARD' | 'STRICT'
+
+export const REFUND_POLICY_LABEL: Record<RefundPolicy, string> = {
+  FLEXIBLE: '유연',
+  STANDARD: '일반',
+  STRICT: '엄격',
+}
+
+/** 환불 비율 안내 — 백엔드 ReservationRefundCalculator 기준 (방문일까지 남은 날 기준) */
+export const REFUND_POLICY_RULES: Record<RefundPolicy, [string, string][]> = {
+  FLEXIBLE: [
+    ['방문 1일 전까지', '전액 환불'],
+    ['방문 당일', '50% 환불'],
+  ],
+  STANDARD: [
+    ['방문 2일 전까지', '전액 환불'],
+    ['방문 1일 전', '50% 환불'],
+    ['방문 당일, 노쇼', '환불 없음'],
+  ],
+  STRICT: [
+    ['방문 3일 전까지', '전액 환불'],
+    ['방문 2일 전', '50% 환불'],
+    ['방문 1일 전', '20% 환불'],
+    ['방문 당일, 노쇼', '환불 없음'],
+  ],
+}
+
+/** 예약금 정책 — DepositPolicyResponse (예약 1건당 금액) */
+export interface DepositPolicy {
+  depositEnabled: boolean
+  depositAmount: number
+  refundPolicy: RefundPolicy | null
+}

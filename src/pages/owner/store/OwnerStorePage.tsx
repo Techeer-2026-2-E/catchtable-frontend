@@ -1,8 +1,8 @@
-import { CalendarCheck, Clock, ListChecks, NotebookPen, Settings2, Star, Users } from 'lucide-react'
+import { CalendarCheck, CalendarDays, Clock, ListChecks, NotebookPen, Settings2, Star, Store, Users } from 'lucide-react'
 import { useParams } from 'react-router'
 import { toDayOfWeek } from '@/entities'
 import { useOwnerReservations } from '@/features/owner-reservation'
-import { useBusinessHours, useMyStores, useOwnerMenus, useStoreTables } from '@/features/owner-store'
+import { useBusinessHours, useMyStores, useOwnerMenus, useSpecialDays, useStoreTables } from '@/features/owner-store'
 import { useOwnerWaitings } from '@/features/owner-waiting'
 import { useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
@@ -21,6 +21,10 @@ export function OwnerStorePage() {
   const hours = useBusinessHours(id)
   const menus = useOwnerMenus(id)
   const reviews = useStoreReviews(id, 'LATEST', 1)
+  const specialDays = useSpecialDays(id)
+  const todayKey = dayjs().format('YYYY-MM-DD')
+  const todaySpecial = specialDays.data?.find((d) => d.businessDate === todayKey)
+  const upcomingSpecial = specialDays.data?.filter((d) => d.businessDate >= todayKey).length ?? 0
 
   const todayReservations = reservations.data?.filter((r) => r.status === 'CONFIRMED') ?? []
   const activeTables = tables.data?.filter((t) => t.status === 'ACTIVE') ?? []
@@ -65,10 +69,26 @@ export function OwnerStorePage() {
       <ListItem
         icon={<Clock />}
         title="영업시간 관리"
-        value={today ? `${today.openTime.slice(0, 5)}~${today.closingTime.slice(0, 5)}` : '오늘 휴무'}
+        value={
+          todaySpecial
+            ? todaySpecial.closed
+              ? '오늘 임시 휴무'
+              : `${todaySpecial.openTime?.slice(0, 5)}~${todaySpecial.closingTime?.slice(0, 5)}`
+            : today
+              ? `${today.openTime.slice(0, 5)}~${today.closingTime.slice(0, 5)}`
+              : '오늘 휴무'
+        }
         to={paths.ownerHours(storeId)}
       />
+      <ListItem
+        icon={<CalendarDays />}
+        title="특정일 휴무, 영업 변경"
+        value={upcomingSpecial ? `${upcomingSpecial}일` : undefined}
+        to={paths.ownerSpecialDays(storeId)}
+      />
       <ListItem icon={<Settings2 />} title="예약 정책 관리" to={paths.ownerPolicy(storeId)} />
+
+      <ListItem icon={<Store />} title="매장 정보 수정" description="사진, 이름, 카테고리, 연락처" to={paths.ownerStoreInfo(storeId)} />
 
       <p className={styles.group}>더보기</p>
       <ListItem

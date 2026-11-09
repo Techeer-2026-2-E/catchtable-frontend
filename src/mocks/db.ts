@@ -11,7 +11,9 @@ import type {
   DayOfWeek,
   Menu,
   ReservationPolicy,
+  RefundPolicy,
   ReservationStatus,
+  SpecialBusinessDay,
   Store,
   StoreTable,
   UserType,
@@ -39,6 +41,10 @@ export interface StoreRow extends Omit<Store, 'categoryName'> {
   policy: ReservationPolicy
   businessHours: BusinessHour[]
   waitingSettings: Omit<WaitingSettings, 'storeId'>
+  /** 특정일 휴무, 영업시간 변경 — 요일별 영업시간보다 우선 */
+  specialDays?: SpecialBusinessDay[]
+  /** 예약금 정책 — 없으면 payments.ts 의 MOCK_DEPOSIT_STORES 기본값 */
+  deposit?: { enabled: boolean; amount: number; policy: RefundPolicy | null }
 }
 
 export interface TableRow extends StoreTable {
@@ -220,6 +226,24 @@ function seed(): Db {
       policy: policy({ bookingDeadlineMinutes: 0 }),
       businessHours: hours('11:30', '22:00', { weekendClose: '02:00' }),
       waitingSettings: waitingSettings(true),
+      specialDays: [
+        {
+          businessDate: dayjs().add(6, 'day').format('YYYY-MM-DD'),
+          closed: true,
+          openTime: null,
+          closingTime: null,
+          breakStartTime: null,
+          breakEndTime: null,
+        },
+        {
+          businessDate: dayjs().add(15, 'day').format('YYYY-MM-DD'),
+          closed: false,
+          openTime: '12:00:00',
+          closingTime: '20:00:00',
+          breakStartTime: null,
+          breakEndTime: null,
+        },
+      ],
     },
     {
       id: 3,
@@ -610,7 +634,8 @@ function seed(): Db {
 /* ------------------------------------------------------------------ */
 
 // v4: 백엔드 응답에 없는 값(평점·지역·좌석 타입·알림함 등)을 뺌
-const STORAGE_KEY = 'catchtable-mock-db-v4'
+// v5: 특정일 영업, 예약금 정책
+const STORAGE_KEY = 'catchtable-mock-db-v5'
 
 function load(): Db {
   try {

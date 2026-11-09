@@ -3,7 +3,9 @@ import { useParams } from 'react-router'
 import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, type BusinessHour, type DayOfWeek } from '@/entities'
 import { useBusinessHours, useReplaceBusinessHours, type BusinessHourRequest } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
-import { Banner, Button, ErrorState, LoadingState, Page, Section, toast, Toggle, TopBar } from '@/shared/ui'
+import { CalendarDays } from 'lucide-react'
+import { paths } from '@/shared/config'
+import { Banner, Button, ErrorState, ListItem, LoadingState, Page, Section, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerHoursPage.module.css'
 
 /** 화면 편집용 — 휴무 요일도 시간 값을 유지해서 다시 켜면 복원되게 함 */
@@ -112,6 +114,8 @@ function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] 
       <TopBar title="영업시간 관리" />
       <p className={`${styles.hint} t-caption-13 text-tertiary`}>
         마감 시간이 오픈보다 이르면 다음날 새벽 마감으로 저장돼요.
+        <br />
+        이미 받은 예약이나 웨이팅과 겹치는 시간으로는 바꿀 수 없어요.
       </p>
       <ul className={styles.list}>
         {rows.map((r) => {
@@ -160,10 +164,16 @@ function HoursForm({ storeId, hours }: { storeId: number; hours: BusinessHour[] 
           )
         })}
       </ul>
+      <ListItem
+        icon={<CalendarDays />}
+        title="특정일 휴무, 영업 변경"
+        description="공휴일, 임시 휴무처럼 날짜별로 다른 날"
+        to={paths.ownerSpecialDays(storeId)}
+      />
       {invalid && (
         <Section>
           <Banner tone="danger">
-            {invalidRow && `${DAY_OF_WEEK_LABEL[invalidRow.dayOfWeek]}요일의 시간을 확인해주세요. 오픈과 마감은 달라야 하며, 브레이크타임은 영업 구간 안에서 시작·종료 순서여야 해요.`}
+            {invalidRow && `${DAY_OF_WEEK_LABEL[invalidRow.dayOfWeek]}요일의 시간을 확인해주세요. 오픈과 마감은 달라야 하며, 브레이크타임은 영업 시간 안에 있어야 해요.`}
           </Banner>
         </Section>
       )}

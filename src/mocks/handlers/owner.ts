@@ -1,6 +1,16 @@
 import { http, HttpResponse, sse } from 'msw'
-import type { BusinessHour, DayOfWeek, ReservationPolicy, ReservationStatus, TableStatus, WaitingSettings } from '@/entities'
-import { ACTIVE_WAITING_STATUSES } from '@/entities'
+import type {
+  BusinessHour,
+  DayOfWeek,
+  RefundPolicy,
+  ReservationPolicy,
+  ReservationStatus,
+  SpecialBusinessDay,
+  StoreCategory,
+  TableStatus,
+  WaitingSettings,
+} from '@/entities'
+import { ACTIVE_WAITING_STATUSES, STORE_CATEGORY_LABEL } from '@/entities'
 import { dayjs } from '@/shared/lib/dayjs'
 import { db, nextId, type StoreRow } from '../db'
 import {
@@ -8,6 +18,7 @@ import {
   callWaiting,
   endWaiting,
   findStore,
+  openingWindow,
   freeTables,
   notify,
   nowIso,
@@ -20,6 +31,7 @@ import {
   toWaitingTermination,
   validateBookable,
 } from '../logic'
+import { depositOf } from './payments'
 import { API, badRequest, before, body, conflict, fail, memberIdOf, notFound, saved, unauthorized } from '../utils'
 
 /** 점주 본인 매장인지 확인 — 아니면 오류 응답 */
@@ -30,6 +42,33 @@ function ownStore(request: Request, storeId: number): { store: StoreRow } | { er
   if (!store || store.ownerId == null) return { error: notFound('STORE_NOT_FOUND', '매장을 찾을 수 없습니다') }
   if (store.ownerId !== memberId) return { error: fail(403, 'FORBIDDEN_MEMBER_TYPE', '이 기능을 사용할 수 없는 회원 유형입니다.') }
   return { store }
+}
+
+/**
+ * 특정일 영업을 바꾸면(null = 삭제해 요일별 영업으로 되돌림) 그날 확정 예약이나 진행 중 웨이팅이
+ * 새 영업 구간 밖으로 나가는지 확인 — 백엔드 BUSINESS_HOUR_HAS_RESERVATIONS / _WAITINGS
+ */
+function specialDayBlocked(store: StoreRow, date: string, next: SpecialBusinessDay | null) {
+  if (date < dayjs().format('YYYY-MM-DD')) return badRequest('지난 날짜의 영업시간은 변경할 수 없습니다.', 'PAST_BUSINESS_DATE')
+  const preview: StoreRow = {
+    ...store,
+    specialDays: [...(store.specialDays ?? []).filter((d) => d.businessDate !== date), ...(next ? [next] : [])],
+  }
+  const window = openingWindow(preview, date)
+  const inside = (start: string, end: string) =>
+    !!window && !dayjs(start).isBefore(window.start) && !dayjs(end).isAfter(window.end)
+  const reservations = db.reservations.filter(
+    (r) => r.storeId === store.id && r.status === 'CONFIRMED' && r.reservationStartAt.startsWith(date),
+  )
+  if (reservations.some((r) => !inside(r.reservationStartAt, r.reservationEndAt))) {
+    return conflict('BUSINESS_HOUR_HAS_RESERVATIONS', '변경하려는 영업시간에 이미 확정된 예약이 있습니다.')
+  }
+  const isToday = date === dayjs().format('YYYY-MM-DD')
+  const waitings = db.waitings.filter((w) => w.storeId === store.id && ACTIVE_WAITING_STATUSES.includes(w.status))
+  if (isToday && waitings.length > 0 && (!window || dayjs().isAfter(window.end))) {
+    return conflict('BUSINESS_HOUR_HAS_WAITINGS', '변경하려는 영업시간에 진행 중인 웨이팅이 있습니다.')
+  }
+  return null
 }
 
 const presentTable = ({ storeId: _s, ...t }: (typeof db.tables)[number]) => t
@@ -180,6 +219,112 @@ const storeHandlers = [
     }
     own.store.policy = b as ReservationPolicy
     return saved(HttpResponse.json(own.store.policy))
+  }),
+
+  /* ---------- 매장 정보 수정 ---------- */
+  http.patch(`${API}/owner/stores/:storeId`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    const b = await body<{ name?: string; category?: StoreCategory; address?: string; description?: string; phone?: string; imageUrl?: string }>(request)
+    if (b.name != null && !b.name.trim()) return badRequest('매장 이름을 입력해주세요.')
+    if (b.address != null && !b.address.trim()) return badRequest('주소를 입력해주세요.')
+    if (b.phone && !/^0\d{1,2}-\d{3,4}-\d{4}$/.test(b.phone)) return badRequest('전화번호 형식이 올바르지 않습니다.')
+    if (b.imageUrl && !/^https?:\/\/.+/.test(b.imageUrl)) return badRequest('이미지 주소 형식이 올바르지 않습니다.')
+    if (b.category && !(b.category in STORE_CATEGORY_LABEL)) return badRequest('카테고리가 올바르지 않습니다.')
+    const s = own.store
+    if (b.name != null) s.name = b.name
+    if (b.category) s.category = b.category
+    if (b.address != null) s.address = b.address
+    if (b.description != null) s.description = b.description || null
+    if (b.phone != null) s.phone = b.phone || null
+    if (b.imageUrl != null) s.imageUrl = b.imageUrl || null
+    return saved(
+      HttpResponse.json({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        categoryName: STORE_CATEGORY_LABEL[s.category],
+        address: s.address,
+        description: s.description,
+        phone: s.phone,
+        imageUrl: s.imageUrl,
+      }),
+    )
+  }),
+
+  /* ---------- 특정일 휴무, 영업시간 변경 ---------- */
+  http.get(`${API}/owner/stores/:storeId/special-business-days`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    return HttpResponse.json([...(own.store.specialDays ?? [])].sort((a, b) => a.businessDate.localeCompare(b.businessDate)))
+  }),
+
+  http.put(`${API}/owner/stores/:storeId/special-business-days/:date`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    const date = String(params.date)
+    const b = await body<Omit<SpecialBusinessDay, 'businessDate'>>(request)
+    if (typeof b.closed !== 'boolean') return badRequest('휴무 여부를 입력해주세요.')
+    if (b.closed && (b.openTime || b.closingTime || b.breakStartTime || b.breakEndTime)) {
+      return badRequest('휴무일에는 영업시간을 입력할 수 없습니다.', 'INVALID_BUSINESS_HOUR')
+    }
+    if (!b.closed && (!b.openTime || !b.closingTime || b.openTime === b.closingTime)) {
+      return badRequest('영업시간이 올바르지 않습니다.', 'INVALID_BUSINESS_HOUR')
+    }
+    const sec = (t?: string | null) => (t ? (t.length === 5 ? `${t}:00` : t) : null)
+    const next: SpecialBusinessDay = {
+      businessDate: date,
+      closed: b.closed,
+      openTime: sec(b.openTime),
+      closingTime: sec(b.closingTime),
+      breakStartTime: sec(b.breakStartTime),
+      breakEndTime: sec(b.breakEndTime),
+    }
+    const blocked = specialDayBlocked(own.store, date, next)
+    if (blocked) return blocked
+    own.store.specialDays = [...(own.store.specialDays ?? []).filter((d) => d.businessDate !== date), next]
+    return saved(HttpResponse.json(next))
+  }),
+
+  http.delete(`${API}/owner/stores/:storeId/special-business-days/:date`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    const date = String(params.date)
+    if (!own.store.specialDays?.some((d) => d.businessDate === date)) {
+      return notFound('SPECIAL_BUSINESS_DAY_NOT_FOUND', '특정일 영업시간을 찾을 수 없습니다.')
+    }
+    const blocked = specialDayBlocked(own.store, date, null)
+    if (blocked) return blocked
+    own.store.specialDays = own.store.specialDays.filter((d) => d.businessDate !== date)
+    return saved(new HttpResponse(null, { status: 204 }))
+  }),
+
+  /* ---------- 예약금 정책 ---------- */
+  http.get(`${API}/owner/stores/:storeId/deposit-policy`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    const d = depositOf(own.store.id)
+    return HttpResponse.json({ depositEnabled: !!d, depositAmount: d?.amount ?? 0, refundPolicy: d?.policy ?? null })
+  }),
+
+  http.put(`${API}/owner/stores/:storeId/deposit-policy`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    const b = await body<{ depositEnabled: boolean; depositAmount: number; refundPolicy: RefundPolicy | null }>(request)
+    if (b.depositEnabled && (!((b.depositAmount ?? 0) > 0) || !b.refundPolicy)) {
+      return badRequest('예약금을 사용하면 금액은 1원 이상, 환불 정책은 필수입니다.', 'INVALID_DEPOSIT_POLICY')
+    }
+    own.store.deposit = b.depositEnabled
+      ? { enabled: true, amount: b.depositAmount ?? 0, policy: b.refundPolicy ?? null }
+      : { enabled: false, amount: 0, policy: null }
+    const d = depositOf(own.store.id)
+    return saved(HttpResponse.json({ depositEnabled: !!d, depositAmount: d?.amount ?? 0, refundPolicy: d?.policy ?? null }))
   }),
 
   /* ---------- 메뉴 (등록·수정) ---------- */
