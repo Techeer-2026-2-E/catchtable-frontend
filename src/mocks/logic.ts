@@ -276,7 +276,7 @@ export function callWaiting(w: WaitingRow) {
     w.memberId,
     'WAITING_CALLED',
     w.waitingId,
-    `${store.name} 입장 차례예요. ${store.waitingSettings.arrivalLimitMinutes}분 안에 도착을 알려주세요`,
+    `${store.name} 입장 차례예요. ${store.waitingSettings.arrivalLimitMinutes}분 안에 매장에 와주세요`,
     { status: w.status, waitNumber: w.waitNumber, storeName: store.name, calledAt: w.calledAt, expiresAt: w.callExpiresAt },
   )
   queueChanged(w.storeId)

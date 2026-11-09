@@ -1,0 +1,173 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  padding: var(--space-8) var(--page-gutter) var(--space-32);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.past {
+  padding-top: var(--space-24);
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* ---------- 표 ---------- */
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.number,
+.numberLarge {
+  margin-top: var(--space-4);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.number span {
+  margin-right: var(--space-4);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 2.75rem;
+  letter-spacing: -0.03em;
+}
+.numberLarge {
+  font-size: 1.5rem;
+}
+.numberLarge span {
+  margin-right: var(--space-8);
+  font-size: 5rem;
+  font-weight: 700;
+  line-height: 5rem;
+  letter-spacing: -0.04em;
+}
+.time {
+  margin-top: var(--space-4);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 2.75rem;
+  letter-spacing: -0.02em;
+}
+.timeLarge {
+  margin-top: var(--space-8);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 3.5rem;
+  letter-spacing: -0.03em;
+}
+.stubLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  margin: -0.75rem 0;
+  color: inherit;
+}
+.more svg {
+  width: 1rem;
+  height: 1rem;
+}
+.called {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.calledTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+}
+.calledTitle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.remaining {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* ---------- 표 상세 팝업 ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-24) var(--space-16);
+  background: var(--color-bg-overlay);
+}
+.popup {
+  position: relative;
+  width: 100%;
+  max-width: 24rem;
+  max-height: 100%;
+  overflow-y: auto;
+  border-radius: var(--radius-16);
+  background: var(--color-bg-surface);
+  outline: none;
+}
+.close {
+  position: absolute;
+  top: var(--space-12);
+  right: var(--space-12);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+}
+.close svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.popupTicket {
+  border-radius: var(--radius-16) var(--radius-16) 0 0;
+}
+.popupTicket .head {
+  padding-right: 2.5rem;
+}
+.popupBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: var(--space-20) var(--space-24) var(--space-24);
+  border-top: 2px dashed var(--color-border-strong);
+}
+.facts {
+  display: grid;
+  gap: var(--space-8);
+}
+.facts div {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: var(--space-12);
+}
+.facts dt {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+.facts dd {
+  font-size: 0.875rem;
+}
+.popupActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+.popupActions > :only-child {
+  grid-column: 1 / -1;
+}
