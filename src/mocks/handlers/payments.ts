@@ -16,6 +16,13 @@ export const MOCK_DEPOSIT_STORES: Record<number, { amount: number; policy: Prepa
   3: { amount: 10_000, policy: 'STANDARD' },
 }
 
+/** 매장 예약금 — 점주가 정책을 저장했으면 그 값, 아니면 목 기본값 */
+export function depositOf(storeId: number) {
+  const deposit = db.stores.find((s) => s.id === storeId)?.deposit
+  if (!deposit) return MOCK_DEPOSIT_STORES[storeId]
+  return deposit.enabled && deposit.policy ? { amount: deposit.amount, policy: deposit.policy } : undefined
+}
+
 const HOLD_MINUTES = 5
 const REFUND_RULES = {
   FLEXIBLE: [{ minDaysBefore: 1, refundRate: 100 }, { minDaysBefore: 0, refundRate: 50 }],
@@ -128,8 +135,8 @@ export const paymentHandlers = [
       hold: true,
     })
     row.holdExpiresAt = toIso(dayjs().add(HOLD_MINUTES, 'minute'))
-    row.depositAmountSnapshot = MOCK_DEPOSIT_STORES[row.storeId]?.amount ?? null
-    row.refundPolicySnapshot = MOCK_DEPOSIT_STORES[row.storeId]?.policy ?? null
+    row.depositAmountSnapshot = depositOf(row.storeId)?.amount ?? null
+    row.refundPolicySnapshot = depositOf(row.storeId)?.policy ?? null
     return saved(HttpResponse.json(toHold(row), { status: 201 }))
   }),
 

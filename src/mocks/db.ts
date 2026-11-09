@@ -11,7 +11,9 @@ import type {
   DayOfWeek,
   Menu,
   ReservationPolicy,
+  RefundPolicy,
   ReservationStatus,
+  SpecialBusinessDay,
   Store,
   StoreTable,
   UserType,
@@ -41,6 +43,10 @@ export interface StoreRow extends Omit<Store, 'categoryName'> {
   policy: ReservationPolicy
   businessHours: BusinessHour[]
   waitingSettings: Omit<WaitingSettings, 'storeId'>
+  /** 특정일 휴무, 영업시간 변경 — 요일별 영업시간보다 우선 */
+  specialDays?: SpecialBusinessDay[]
+  /** 예약금 정책 — 없으면 payments.ts 의 MOCK_DEPOSIT_STORES 기본값 */
+  deposit?: { enabled: boolean; amount: number; policy: RefundPolicy | null }
 }
 
 export interface TableRow extends StoreTable {
@@ -106,6 +112,12 @@ export interface WaitingRow {
   calledAt: string | null
   callExpiresAt: string | null
   callCount?: number
+  /** 호출 다시 보내기 횟수 */
+  recallCount?: number
+  /** 대기 순서 — 순번 연기로 바뀜 (없으면 waitNumber) */
+  queueOrder?: number
+  /** 순번 연기 횟수 (최대 2) */
+  deferCount?: number
   updatedAt: string
   /** 고객이 도착 의사를 응답한 시각 */
   respondedAt?: string | null
@@ -222,6 +234,24 @@ function seed(): Db {
       policy: policy({ bookingDeadlineMinutes: 0 }),
       businessHours: hours('11:30', '22:00', { weekendClose: '02:00' }),
       waitingSettings: waitingSettings(true),
+      specialDays: [
+        {
+          businessDate: dayjs().add(6, 'day').format('YYYY-MM-DD'),
+          closed: true,
+          openTime: null,
+          closingTime: null,
+          breakStartTime: null,
+          breakEndTime: null,
+        },
+        {
+          businessDate: dayjs().add(15, 'day').format('YYYY-MM-DD'),
+          closed: false,
+          openTime: '12:00:00',
+          closingTime: '20:00:00',
+          breakStartTime: null,
+          breakEndTime: null,
+        },
+      ],
     },
     {
       id: 3,
@@ -309,6 +339,16 @@ function seed(): Db {
     },
   ]
 
+  /** 목 매장 사진 — 와이어프레임과 같은 사진 (public/mock/stores) */
+  const STORE_PHOTOS: Record<number, string> = {
+    1: '/mock/stores/sushi.jpg',
+    2: '/mock/stores/izakaya.jpg',
+    3: '/mock/stores/sushi.jpg',
+    4: '/mock/stores/korean.jpg',
+    6: '/mock/stores/brunch.jpg',
+    7: '/mock/stores/lamb.jpg',
+    8: '/mock/stores/pasta.jpg',
+  }
   const STORE_DESCRIPTIONS: Record<number, string> = {
     1: '제철 생선으로 매일 바뀌는 오마카세. 카운터 7석과 프라이빗 룸을 운영해요.',
     2: '퇴근 후 혼자서도 편하게 들르는 꼬치 이자카야.',
@@ -317,7 +357,7 @@ function seed(): Db {
   stores.forEach((s) => {
     s.description = STORE_DESCRIPTIONS[s.id] ?? null
     s.phone = `02-${String(500 + s.id * 37).padStart(4, '0')}-${String(1000 + s.id * 211).padStart(4, '0')}`
-    s.imageUrl = null
+    s.imageUrl = STORE_PHOTOS[s.id] ?? null
   })
 
   let tableId = 0
@@ -627,7 +667,8 @@ function seed(): Db {
         reservationId: 0,
         rating,
         content,
-        imageUrl: null,
+        // 매장마다 앞의 두 리뷰에 사진 1장
+        imageUrl: i < 2 ? (STORE_PHOTOS[store.id] ?? null) : null,
         createdAt: iso(created),
         updatedAt: null,
       })
@@ -676,7 +717,8 @@ function seed(): Db {
 /* ------------------------------------------------------------------ */
 
 // v4: 백엔드 응답에 없는 값(평점·지역·좌석 타입·알림함 등)을 뺌
-// v6: 고객 예약금 결제 시드 (v5 는 점주 매장 관리 브랜치)
+// v5: 특정일 영업, 예약금 정책
+// v6: 고객 예약금 결제 시드
 const STORAGE_KEY = 'catchtable-mock-db-v6'
 
 function load(): Db {

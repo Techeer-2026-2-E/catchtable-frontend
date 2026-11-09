@@ -1,4 +1,16 @@
-import type { BusinessHour, DayOfWeek, Menu, ReservationPolicy, StoreDetail, StoreTable, TableStatus } from '@/entities'
+import type {
+  BusinessHour,
+  DayOfWeek,
+  DepositPolicy,
+  Menu,
+  RefundPolicy,
+  ReservationPolicy,
+  SpecialBusinessDay,
+  StoreCategory,
+  StoreDetail,
+  StoreTable,
+  TableStatus,
+} from '@/entities'
 import { env } from '@/shared/config'
 import { apiClient } from '@/shared/lib'
 
@@ -33,6 +45,38 @@ export interface CreateMenuRequest {
 }
 /** MenuUpdateRequest — 보낸 필드만 수정 */
 export type UpdateMenuRequest = Partial<CreateMenuRequest>
+
+/** StoreInfoUpdateRequest — 전화번호 "0X-XXXX-XXXX", 이미지는 http(s) 주소 (빈 문자열이면 삭제) */
+export interface StoreInfoUpdateRequest {
+  name: string
+  category: StoreCategory
+  address: string
+  description: string
+  phone: string
+  imageUrl: string
+}
+
+/** StoreInfoResponse */
+export interface StoreInfo {
+  id: number
+  name: string
+  category: StoreCategory
+  categoryName: string
+  address: string
+  description: string | null
+  phone: string | null
+  imageUrl: string | null
+}
+
+/** SpecialBusinessDayRequest — 휴무면 시간은 모두 null */
+export type SpecialBusinessDayRequest = Omit<SpecialBusinessDay, 'businessDate'>
+
+/** DepositPolicyRequest — 예약금을 받지 않으면 금액 0, 환불 정책 null */
+export interface DepositPolicyRequest {
+  depositEnabled: boolean
+  depositAmount: number
+  refundPolicy: RefundPolicy | null
+}
 
 export const ownerStoreApi = {
   /**
@@ -88,6 +132,35 @@ export const ownerStoreApi = {
   },
   updateMenu: async (storeId: number, menuId: number, body: UpdateMenuRequest) => {
     const { data } = await apiClient.patch<Menu>(`/owner/stores/${storeId}/menus/${menuId}`, body)
+    return data
+  },
+
+  /* ---------- 매장 정보 — 조회 API 가 없어서 초기값은 매장 상세를 사용 ---------- */
+  updateStoreInfo: async (storeId: number, body: StoreInfoUpdateRequest) => {
+    const { data } = await apiClient.patch<StoreInfo>(`/owner/stores/${storeId}`, body)
+    return data
+  },
+
+  /* ---------- 특정일 휴무, 영업 변경 ---------- */
+  getSpecialDays: async (storeId: number) => {
+    const { data } = await apiClient.get<SpecialBusinessDay[]>(`/owner/stores/${storeId}/special-business-days`)
+    return data
+  },
+  putSpecialDay: async (storeId: number, date: string, body: SpecialBusinessDayRequest) => {
+    const { data } = await apiClient.put<SpecialBusinessDay>(`/owner/stores/${storeId}/special-business-days/${date}`, body)
+    return data
+  },
+  deleteSpecialDay: async (storeId: number, date: string) => {
+    await apiClient.delete(`/owner/stores/${storeId}/special-business-days/${date}`)
+  },
+
+  /* ---------- 예약금 정책 ---------- */
+  getDepositPolicy: async (storeId: number) => {
+    const { data } = await apiClient.get<DepositPolicy>(`/owner/stores/${storeId}/deposit-policy`)
+    return data
+  },
+  replaceDepositPolicy: async (storeId: number, body: DepositPolicyRequest) => {
+    const { data } = await apiClient.put<DepositPolicy>(`/owner/stores/${storeId}/deposit-policy`, body)
     return data
   },
 }

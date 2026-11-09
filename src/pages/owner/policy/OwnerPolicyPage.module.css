@@ -1,3 +1,41 @@
 .spacer {
   height: var(--space-16);
 }
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.75rem;
+}
+
+.amount {
+  position: relative;
+  margin-top: var(--space-8);
+}
+
+.amount input {
+  padding-right: 2.5rem;
+}
+
+/* 라벨(약 1.5rem) 아래 48px 입력의 세로 중앙 */
+.unit {
+  position: absolute;
+  right: var(--space-16);
+  top: calc(1.625rem + 0.75rem);
+  pointer-events: none;
+}
+
+.rules {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: 0.75rem;
+  background: var(--color-bg-subtle);
+}
+
+.rules div {
+  display: flex;
+  justify-content: space-between;
+}

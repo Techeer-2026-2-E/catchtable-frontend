@@ -1,0 +1,1 @@
+export { OwnerStoreInfoPage } from './OwnerStoreInfoPage'

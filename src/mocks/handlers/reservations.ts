@@ -14,7 +14,7 @@ import {
   type BookableError,
 } from '../logic'
 import { API, badRequest, before, body, conflict, memberIdOf, notFound, saved, unauthorized } from '../utils'
-import { MOCK_DEPOSIT_STORES, refundableAmount, refundForCancel } from './payments'
+import { depositOf, refundableAmount, refundForCancel } from './payments'
 
 const BOOKABLE_MESSAGE: Record<BookableError, string> = {
   BOOKING_NOT_OPEN_YET: '아직 예약을 받지 않는 날짜입니다.',
@@ -88,7 +88,7 @@ export const reservationHandlers = [
     const memberId = memberIdOf(request)
     if (!memberId) return unauthorized()
     const b = await body<{ storeId: number; reservationStartAt: string; partySize: number }>(request)
-    if (MOCK_DEPOSIT_STORES[Number(b.storeId)]) {
+    if (depositOf(Number(b.storeId))) {
       return conflict('RESERVATION_PAYMENT_REQUIRED', '예약금 결제가 필요합니다. 선점 생성 → 결제 준비 → 승인 경로를 이용해 주세요.')
     }
     const picked = pickTable(Number(b.storeId), b.reservationStartAt, b.partySize)

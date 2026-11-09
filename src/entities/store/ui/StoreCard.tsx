@@ -1,18 +1,7 @@
 import { Link } from 'react-router'
-import { Badge } from '@/shared/ui'
-import type { Store, StoreCategory } from '../model'
+import { ImagePlaceholder } from '@/shared/ui'
+import type { Store } from '../model'
 import styles from './StoreCard.module.css'
-
-/** 매장 사진이 목록 응답에 없어서 카테고리 그림으로 자리를 채움 */
-export const CATEGORY_EMOJI: Record<StoreCategory, string> = {
-  KOREAN: '🍚',
-  JAPANESE: '🍣',
-  CHINESE: '🥟',
-  WESTERN: '🍝',
-  CAFE: '☕',
-  BAR: '🍶',
-  ETC: '🍽️',
-}
 
 interface StoreCardProps {
   store: Store
@@ -23,14 +12,13 @@ interface StoreCardProps {
   variant?: 'default' | 'compact'
 }
 
-/** 매장 카드 — StoreSummaryResponse(이름, 카테고리, 주소, 웨이팅 가능)만 표시 */
+/** 매장 카드 — 대표 사진 1장, 이름, 카테고리와 주소, 웨이팅 가능 여부 */
 export function StoreCard({ store, to, footer, variant = 'default' }: StoreCardProps) {
+  const photo = store.imageUrl ?? undefined
   if (variant === 'compact') {
     return (
       <Link to={to} className={styles.compact}>
-        <span className={styles.compactThumb} aria-hidden>
-          {CATEGORY_EMOJI[store.category]}
-        </span>
+        <ImagePlaceholder src={photo} className={styles.compactThumb} radius={16} />
         <span className={`${styles.name} t-label-15`}>{store.name}</span>
         <span className="t-caption-12 text-tertiary">{store.categoryName}</span>
         <StoreTags store={store} />
@@ -40,9 +28,7 @@ export function StoreCard({ store, to, footer, variant = 'default' }: StoreCardP
   return (
     <article className={styles.card}>
       <Link to={to} className={styles.link}>
-        <span className={styles.thumb} aria-hidden>
-          {CATEGORY_EMOJI[store.category]}
-        </span>
+        <ImagePlaceholder src={photo} className={styles.thumb} radius={12} />
         <span className={styles.text}>
           <span className={`${styles.name} t-headline-16`}>{store.name}</span>
           <span className={`${styles.meta} t-caption-13 text-tertiary`}>
@@ -56,12 +42,12 @@ export function StoreCard({ store, to, footer, variant = 'default' }: StoreCardP
   )
 }
 
-/** 매장 태그 — 상태가 아니라 매장 속성 */
+/** 매장 태그 — 상자 없이 글씨로만 표시 */
 export function StoreTags({ store }: { store: Store }) {
   if (!store.waitingAvailable) return null
   return (
     <span className={styles.tags}>
-      <Badge tone="primary">웨이팅 가능</Badge>
+      <span className="t-label-13 text-brand">웨이팅 가능</span>
     </span>
   )
 }
