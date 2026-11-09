@@ -104,6 +104,12 @@ export interface WaitingRow {
   calledAt: string | null
   callExpiresAt: string | null
   callCount?: number
+  /** 호출 다시 보내기 횟수 */
+  recallCount?: number
+  /** 대기 순서 — 순번 연기로 바뀜 (없으면 waitNumber) */
+  queueOrder?: number
+  /** 순번 연기 횟수 (최대 2) */
+  deferCount?: number
   updatedAt: string
   /** 고객이 도착 의사를 응답한 시각 */
   respondedAt?: string | null

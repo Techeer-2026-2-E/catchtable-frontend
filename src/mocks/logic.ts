@@ -123,10 +123,15 @@ export function availability(store: StoreRow, date: string, partySize: number) {
 /* 웨이팅                                                               */
 /* ------------------------------------------------------------------ */
 
-export const activeQueue = (storeId: number) =>
-  db.waitings.filter((w) => w.storeId === storeId && ACTIVE_WAITING_STATUSES.includes(w.status)).sort((a, b) => a.waitNumber - b.waitNumber)
+/** 대기 순서 — 순번 연기로 바뀐 queueOrder 우선, 없으면 접수번호 */
+export const queueKey = (w: WaitingRow) => w.queueOrder ?? w.waitNumber
 
-export const teamsAhead = (w: WaitingRow) => activeQueue(w.storeId).filter((x) => x.waitNumber < w.waitNumber).length
+export const activeQueue = (storeId: number) =>
+  db.waitings
+    .filter((w) => w.storeId === storeId && ACTIVE_WAITING_STATUSES.includes(w.status))
+    .sort((a, b) => queueKey(a) - queueKey(b) || a.waitNumber - b.waitNumber)
+
+export const teamsAhead = (w: WaitingRow) => Math.max(0, activeQueue(w.storeId).findIndex((x) => x.waitingId === w.waitingId))
 
 /* ------------------------------------------------------------------ */
 /* 알림 (+ SSE 전송)                                                     */
@@ -255,8 +260,13 @@ export function advanceDemoQueues() {
     }
     // 앞 팀 처리: 대기 → 호출 → 착석 순으로 한 단계씩
     if (dayjs().diff(dayjs(head.updatedAt), 'millisecond') < DEMO_STEP_MS) return
-    head.status = head.status === 'WAITING' ? 'CALLED' : 'SEATED'
-    head.updatedAt = nowIso()
+    if (head.status === 'WAITING') {
+      // 호출 시각·제한시각이 있어야 점주 화면의 남은 시간이 보임
+      callWaiting(head)
+    } else {
+      head.status = 'SEATED'
+      head.updatedAt = nowIso()
+    }
     changed = true
     queueChanged(storeId)
   })

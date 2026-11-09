@@ -32,6 +32,7 @@ export const ROUTES = {
   OWNER_POLICY: '/owner/stores/:storeId/policy',
   OWNER_RESERVATIONS: '/owner/stores/:storeId/reservations',
   OWNER_WAITINGS: '/owner/stores/:storeId/waitings',
+  OWNER_WAITING_SETTINGS: '/owner/stores/:storeId/waitings/settings',
   OWNER_MENUS: '/owner/stores/:storeId/menus',
   OWNER_REVIEWS: '/owner/stores/:storeId/reviews',
 } as const
@@ -54,6 +55,7 @@ export const paths = {
   ownerPolicy: (storeId: Id) => `/owner/stores/${storeId}/policy`,
   ownerReservations: (storeId: Id) => `/owner/stores/${storeId}/reservations`,
   ownerWaitings: (storeId: Id) => `/owner/stores/${storeId}/waitings`,
+  ownerWaitingSettings: (storeId: Id) => `/owner/stores/${storeId}/waitings/settings`,
   ownerMenus: (storeId: Id) => `/owner/stores/${storeId}/menus`,
   ownerReviews: (storeId: Id) => `/owner/stores/${storeId}/reviews`,
 }

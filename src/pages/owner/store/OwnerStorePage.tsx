@@ -1,9 +1,9 @@
-import { CalendarCheck, Clock, ListChecks, NotebookPen, Settings2, Star, Users } from 'lucide-react'
+import { CalendarCheck, Clock, ListChecks, NotebookPen, Settings2, Star, Timer, Users } from 'lucide-react'
 import { useParams } from 'react-router'
 import { toDayOfWeek } from '@/entities'
 import { useOwnerReservations } from '@/features/owner-reservation'
 import { useBusinessHours, useMyStores, useOwnerMenus, useStoreTables } from '@/features/owner-store'
-import { useOwnerWaitings } from '@/features/owner-waiting'
+import { useOwnerWaitings, useWaitingSettings } from '@/features/owner-waiting'
 import { useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -17,6 +17,7 @@ export function OwnerStorePage() {
   const store = useMyStores().data?.find((s) => s.id === id)
   const reservations = useOwnerReservations(id, dayjs().format('YYYY-MM-DD'))
   const waitings = useOwnerWaitings(id)
+  const waitingSettings = useWaitingSettings(id)
   const tables = useStoreTables(id)
   const hours = useBusinessHours(id)
   const menus = useOwnerMenus(id)
@@ -69,6 +70,12 @@ export function OwnerStorePage() {
         to={paths.ownerHours(storeId)}
       />
       <ListItem icon={<Settings2 />} title="예약 정책 관리" to={paths.ownerPolicy(storeId)} />
+      <ListItem
+        icon={<Timer />}
+        title="웨이팅 설정"
+        value={waitingSettings.data ? `도착 제한 ${waitingSettings.data.arrivalLimitMinutes}분` : undefined}
+        to={paths.ownerWaitingSettings(storeId)}
+      />
 
       <p className={styles.group}>더보기</p>
       <ListItem

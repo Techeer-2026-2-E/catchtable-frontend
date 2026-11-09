@@ -28,6 +28,21 @@ export interface WaitingCallResult {
   expiresAt: string
 }
 
+/** POST /recall 응답 — WaitingRecallResponse */
+export interface WaitingRecallResult extends WaitingCallResult {
+  recallCount: number
+  lastRecalledAt: string
+}
+
+/** POST /defer 응답 — WaitingDeferResponse. 순번은 위치(1부터), waitNumber 는 고정 접수번호 */
+export interface WaitingDeferResult {
+  waitingId: number
+  waitNumber: number
+  deferCount: number
+  beforePosition: number
+  afterPosition: number
+}
+
 export const ownerWaitingApi = {
   /** 오늘(한국 시간) 진행 중인 대기 고객 목록 */
   getList: async (storeId: number) => {
@@ -59,10 +74,21 @@ export const ownerWaitingApi = {
     const { data } = await apiClient.post<WaitingCallResult>(`/owner/waitings/${waitingId}/call`)
     return data
   },
-  /** 입장(착석) 처리 — WaitingEnterResponse */
-  enter: async (waitingId: number) => {
+  /** 호출 다시 보내기 — 호출된 고객에게 알림을 다시 보내고 제한시간을 새로 셈 */
+  recall: async (waitingId: number) => {
+    const { data } = await apiClient.post<WaitingRecallResult>(`/owner/waitings/${waitingId}/recall`)
+    return data
+  },
+  /** 순번 연기 — 대기 중인 팀을 바로 뒤 팀과 맞바꿈 (한 웨이팅당 최대 2번) */
+  defer: async (waitingId: number) => {
+    const { data } = await apiClient.post<WaitingDeferResult>(`/owner/waitings/${waitingId}/defer`)
+    return data
+  },
+  /** 입장(착석) 처리 — 앉을 테이블 필수 (WaitingEnterRequest { tableId }) */
+  enter: async ({ waitingId, tableId }: { waitingId: number; tableId: number }) => {
     const { data } = await apiClient.post<{ waitingId: number; status: WaitingStatus; enteredAt: string }>(
       `/owner/waitings/${waitingId}/enter`,
+      { tableId },
     )
     return data
   },
