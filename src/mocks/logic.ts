@@ -293,6 +293,7 @@ export const toStore = (row: StoreRow): Store => ({
   categoryName: STORE_CATEGORY_LABEL[row.category],
   address: row.address,
   waitingAvailable: row.waitingAvailable && row.waitingSettings.open,
+  imageUrl: row.imageUrl ?? null,
 })
 
 export const toStoreDetail = (row: StoreRow): StoreDetail => ({
@@ -300,7 +301,6 @@ export const toStoreDetail = (row: StoreRow): StoreDetail => ({
   reservationEnabled: row.ownerId != null,
   description: row.description ?? null,
   phone: row.phone ?? null,
-  imageUrl: row.imageUrl ?? null,
   businessHours: row.businessHours,
   menus: db.menus.filter((m) => m.storeId === row.id).map(({ storeId: _s, ...menu }) => menu),
 })

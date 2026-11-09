@@ -19,7 +19,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-8) 0;
-  border: 1px solid var(--color-secondary-default);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-8);
   color: var(--color-text-brand);
   font-variant-numeric: tabular-nums;

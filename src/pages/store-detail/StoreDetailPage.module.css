@@ -33,6 +33,46 @@
   display: block;
   color: var(--color-text-tertiary);
 }
+/* 오늘 영업시간 + 요일별 보기 */
+.hourRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.weekToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-tertiary);
+}
+.weekToggle svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.15s ease;
+}
+.chevronOpen {
+  transform: rotate(180deg);
+}
+.weekHours {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: var(--space-8) 0 0;
+  padding: var(--space-12);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-subtle);
+  list-style: none;
+}
+.weekHours li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  color: var(--color-text-secondary);
+}
+.weekHours .today {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
 
 /* ---------- 예약 가능 시간 — 시간표 격자 ---------- */
 .slots {
@@ -46,7 +86,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-8) 0;
-  border: 1px solid var(--color-secondary-default);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-8);
   color: var(--color-text-brand);
 }
