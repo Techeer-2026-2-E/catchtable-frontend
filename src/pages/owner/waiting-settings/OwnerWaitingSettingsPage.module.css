@@ -1,0 +1,8 @@
+.chips {
+  flex-wrap: wrap;
+  row-gap: var(--space-8);
+  margin-bottom: var(--space-16);
+}
+.banner {
+  padding: 0 var(--page-gutter);
+}
