@@ -16,3 +16,6 @@ export const formatTime = (time: string | Date) => {
 /** "01012345678" → "010-1234-5678" */
 export const formatPhone = (phone: string) =>
   phone.replace(/\D/g, '').slice(0, 11).replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3')
+
+/** 주문번호는 길어서 앞뒤만 — "ct-6f1c...a2e9" */
+export const shortOrderId = (orderId: string) => (orderId.length > 14 ? `${orderId.slice(0, 7)}...${orderId.slice(-4)}` : orderId)

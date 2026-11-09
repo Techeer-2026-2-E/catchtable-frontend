@@ -1,0 +1,1 @@
+export { PaymentReceiptPage } from './PaymentReceiptPage'

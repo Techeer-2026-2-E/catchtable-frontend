@@ -1,7 +1,8 @@
 import { http, HttpResponse } from 'msw'
 import { ACTIVE_WAITING_STATUSES } from '@/entities'
+import { dayjs } from '@/shared/lib/dayjs'
 import { db, nextId, type WaitingRow } from '../db'
-import { endWaiting, findStore, nowIso, queueChanged, toWaiting, toWaitingRegistration, toWaitingTermination } from '../logic'
+import { endWaiting, findStore, isStoreOpenAt, nowIso, queueChanged, toWaiting, toWaitingRegistration, toWaitingTermination } from '../logic'
 import { API, badRequest, before, body, conflict, memberIdOf, notFound, saved, unauthorized } from '../utils'
 
 const waitingNotFound = () => notFound('WAITING_NOT_FOUND', '웨이팅을 찾을 수 없습니다.')
@@ -19,6 +20,9 @@ export const waitingHandlers = [
     if (!b.partyCount || b.partyCount < 1 || b.partyCount > 20) return badRequest('인원수는 1~20명이어야 합니다.')
     if (!store.waitingAvailable || !store.waitingSettings.open) {
       return conflict('WAITING_CLOSED', '지금은 웨이팅을 받지 않는 매장입니다.')
+    }
+    if (!isStoreOpenAt(store, dayjs())) {
+      return conflict('WAITING_OUTSIDE_BUSINESS_HOURS', '영업 시간이 아니어서 웨이팅을 신청할 수 없습니다.')
     }
     const existing = db.waitings.find(
       (w) => w.storeId === store.id && w.memberId === memberId && ACTIVE_WAITING_STATUSES.includes(w.status),

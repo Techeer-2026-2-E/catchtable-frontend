@@ -103,3 +103,25 @@ export interface UnconfirmedRefundRequest {
   requestedAt: string
   completedAt: string | null
 }
+
+/** POST /api/user/payments/{paymentId}/cancel — 예약은 그대로 두고 예약금 일부 환불 (RefundResult) */
+export interface RefundResult {
+  paymentId: number
+  reservationId: number
+  currency: string
+  refundAmount: number
+  totalRefundedAmount: number
+  remainingAmount: number
+  paymentStatus: PaymentStatus
+  refundStatus: PaymentRefundStatus
+  refundedAt: string | null
+}
+
+/** 결제 목록·상세 배지 — 예약 확정 없이 승인된 결제는 "환불 필요" 로 강조 */
+export function getPaymentBadge(p: Pick<Payment, 'status' | 'refundRequired'>): { label: string; tone: 'neutral' | 'brand' | 'primary' | 'danger' } {
+  if (p.refundRequired && (p.status === 'DONE' || p.status === 'PARTIAL_REFUNDED')) return { label: '환불 필요', tone: 'danger' }
+  if (p.status === 'DONE') return { label: PAYMENT_STATUS_LABEL.DONE, tone: 'brand' }
+  if (p.status === 'PARTIAL_REFUNDED') return { label: PAYMENT_STATUS_LABEL.PARTIAL_REFUNDED, tone: 'primary' }
+  if (p.status === 'FAILED') return { label: PAYMENT_STATUS_LABEL.FAILED, tone: 'danger' }
+  return { label: PAYMENT_STATUS_LABEL[p.status], tone: 'neutral' }
+}

@@ -1,0 +1,14 @@
+.notice {
+  display: flex;
+  gap: var(--space-8);
+  margin: var(--space-12) var(--page-gutter);
+  padding: var(--space-12);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+}
+.notice svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1.25rem;
+}

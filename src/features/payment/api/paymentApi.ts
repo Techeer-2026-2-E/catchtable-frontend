@@ -1,4 +1,4 @@
-import type { Payment, PaymentDetail, PaymentList, PreparedPayment, UnconfirmedRefundRequest } from '@/entities'
+import type { Payment, PaymentDetail, PaymentList, PreparedPayment, RefundResult, UnconfirmedRefundRequest } from '@/entities'
 import { apiClient, PG_TIMEOUT } from '@/shared/lib'
 
 export interface ConfirmPaymentRequest {
@@ -16,6 +16,14 @@ export const paymentApi = {
   requestUnconfirmedRefund: async (paymentId: number, key: string) => {
     const { data } = await apiClient.post<UnconfirmedRefundRequest>(`/user/payments/${paymentId}/unconfirmed-refund`, undefined,
       { headers: { 'Idempotency-Key': key } })
+    return data
+  },
+  /** 예약은 유지하고 예약금 일부 환불 — 금액은 환불 예상(refund-preview)의 환불 가능액 이하 */
+  refund: async (paymentId: number, key: string, body: { cancelReason: string; cancelAmount: number }) => {
+    const { data } = await apiClient.post<RefundResult>(`/user/payments/${paymentId}/cancel`, body, {
+      headers: { 'Idempotency-Key': key },
+      timeout: PG_TIMEOUT,
+    })
     return data
   },
   /** 저장된 유료 선점으로 주문 준비 — 같은 선점 재요청은 같은 주문·금액·만료시각 */

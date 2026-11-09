@@ -310,6 +310,47 @@ export const paymentHandlers = [
       refundAmount: p.amount - p.canceledAmount, refundStatus: 'REQUESTED', requestedAt: nowIso(), completedAt: null, key }
     return saved(HttpResponse.json(publicRefundRequest(p), { status: 202 }))
   }),
+  /* 예약 유지 부분 환불 — 백엔드 UserPaymentRefundController (PAYMENT_ONLY) */
+  http.post(`${API}/user/payments/:paymentId/cancel`, async ({ params, request }) => {
+    await before()
+    const memberId = memberIdOf(request)
+    if (!memberId) return unauthorized()
+    const key = request.headers.get('Idempotency-Key')
+    const b = await body<{ cancelReason?: string; cancelAmount?: number }>(request)
+    if (!key?.trim() || !b.cancelReason?.trim() || b.cancelReason.length > 500 || (b.cancelAmount != null && b.cancelAmount <= 0)) {
+      return badRequest('입력값이 올바르지 않습니다.')
+    }
+    const p = db.payments.find((row) => row.paymentId === Number(params.paymentId) && row.memberId === memberId)
+    if (!p) return paymentNotFound()
+    const r = db.reservations.find((x) => x.reservationId === p.holdId)
+    if (!r || r.status !== 'CONFIRMED' || r.checkedInAt || !dayjs(r.reservationStartAt).isAfter(dayjs())) {
+      return conflict('RESERVATION_NOT_CANCELLABLE', '취소할 수 없는 예약입니다.')
+    }
+    if (!['DONE', 'PARTIAL_REFUNDED'].includes(p.status)) return conflict('PAYMENT_NOT_REFUNDABLE', '환불할 수 없는 결제입니다.')
+    if (p.refundKeys.includes(key)) return conflict('IDEMPOTENCY_CONFLICT', '이미 처리된 요청입니다.')
+    const limit = refundableAmount(r)
+    const amount = b.cancelAmount ?? limit
+    if (amount > limit) return badRequest('환불 가능 금액을 초과했습니다.', 'REFUND_AMOUNT_EXCEEDED')
+    const refundedAt = nowIso()
+    p.refundKeys.push(key)
+    p.canceledAmount += amount
+    p.status = p.canceledAmount >= p.amount ? 'REFUNDED' : 'PARTIAL_REFUNDED'
+    p.refunds.push({ refundId: nextId('refund'), refundAmount: amount, status: 'COMPLETED', cancelReason: b.cancelReason.trim(), refundedAt })
+    return saved(
+      HttpResponse.json({
+        paymentId: p.paymentId,
+        reservationId: r.reservationId,
+        currency: 'KRW',
+        refundAmount: amount,
+        totalRefundedAmount: p.canceledAmount,
+        remainingAmount: p.amount - p.canceledAmount,
+        paymentStatus: p.status,
+        refundStatus: 'COMPLETED',
+        refundedAt,
+      }),
+    )
+  }),
+
   http.get(`${API}/user/payments/:paymentId`, async ({ params, request }) => {
     await before()
     const payment = db.payments.find((p) => p.paymentId === Number(params.paymentId) && p.memberId === memberIdOf(request))

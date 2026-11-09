@@ -22,6 +22,9 @@ export const ROUTES = {
   PAYMENT_FAIL: '/payments/fail',
   PAYMENTS: '/mypage/payments',
   PAYMENT_DETAIL: '/payments/:paymentId',
+  PAYMENT_RECEIPT: '/payments/:paymentId/receipt',
+  PAYMENT_REFUND: '/payments/:paymentId/refund',
+  NOTIFICATION_SETTINGS: '/mypage/notification-settings',
   /** P2 리뷰 */
   MY_REVIEWS: '/mypage/reviews',
   REVIEW_WRITE: '/reviews/write/:reservationId',
@@ -49,6 +52,8 @@ export const paths = {
   reservationDetail: (reservationId: Id) => `/reservations/${reservationId}`,
   paymentCheckout: (holdId: Id) => `/reservations/holds/${holdId}/payment`,
   paymentDetail: (paymentId: Id) => `/payments/${paymentId}`,
+  paymentReceipt: (paymentId: Id) => `/payments/${paymentId}/receipt`,
+  paymentRefund: (paymentId: Id) => `/payments/${paymentId}/refund`,
   waitingApply: (storeId: Id) => `/stores/${storeId}/waiting`,
   waiting: (waitingId: Id) => `/waitings/${waitingId}`,
   /** 이용 현황 — ticket 을 주면 그 표의 상세 팝업을 연다 */

@@ -16,6 +16,11 @@ export const PaymentSuccessPage = lazy(() => import('@/pages/payment-result').th
 export const PaymentFailPage = lazy(() => import('@/pages/payment-result').then((m) => ({ default: m.PaymentFailPage })))
 export const PaymentsPage = lazy(() => import('@/pages/payments').then((m) => ({ default: m.PaymentsPage })))
 export const PaymentDetailPage = lazy(() => import('@/pages/payment-detail').then((m) => ({ default: m.PaymentDetailPage })))
+export const PaymentReceiptPage = lazy(() => import('@/pages/payment-receipt').then((m) => ({ default: m.PaymentReceiptPage })))
+export const PaymentRefundPage = lazy(() => import('@/pages/payment-refund').then((m) => ({ default: m.PaymentRefundPage })))
+export const NotificationSettingsPage = lazy(() =>
+  import('@/pages/notification-settings').then((m) => ({ default: m.NotificationSettingsPage })),
+)
 export const WaitingApplyPage = lazy(() => import('@/pages/waiting-apply').then((m) => ({ default: m.WaitingApplyPage })))
 export const WaitingPage = lazy(() => import('@/pages/waiting').then((m) => ({ default: m.WaitingPage })))
 export const MyDiningPage = lazy(() => import('@/pages/my-dining').then((m) => ({ default: m.MyDiningPage })))

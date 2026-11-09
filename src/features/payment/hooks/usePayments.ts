@@ -85,3 +85,18 @@ export async function findPaymentByHold(holdId: number) {
     if (!result.hasNext) return null
   }
 }
+
+/** 예약금 일부 환불 — 결제·예약 관련 캐시를 모두 새로 받음 */
+export function useRefundPayment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paymentId, key, cancelReason, cancelAmount }: { paymentId: number; key: string; cancelReason: string; cancelAmount: number }) =>
+      paymentApi.refund(paymentId, key, { cancelReason, cancelAmount }),
+    // 예약 캐시(['reservations', …])에는 환불 예상도 포함된다
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['reservations'] }),
+      ]),
+  })
+}

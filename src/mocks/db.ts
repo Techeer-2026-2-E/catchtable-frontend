@@ -31,6 +31,8 @@ export interface MemberRow {
   name: string
   phone: string
   userType: UserType
+  /** 알림 수신 설정 — 없으면 기본값(모두 켜짐) */
+  notificationSettings?: { reservationEnabled: boolean; waitingEnabled: boolean }
 }
 
 export interface StoreRow extends Omit<Store, 'categoryName'> {
@@ -523,6 +525,60 @@ function seed(): Db {
     tableNumber: 2,
   })
 
+  // 고객(김캐치) 예약금 결제 — 3번 매장(예약금 매장)
+  const payments: PaymentRow[] = []
+  let paymentId = 500
+  let refundId = 900
+  const paid = (
+    reservation: ReservationRow,
+    amount: number,
+    opts: { refunds?: [number, string][]; refundRequired?: boolean } = {},
+  ) => {
+    reservation.depositAmountSnapshot = amount
+    reservation.refundPolicySnapshot = 'STANDARD'
+    const approvedAt = reservation.requestedAt
+    const refunds = (opts.refunds ?? []).map(([refundAmount, cancelReason], i) => ({
+      refundId: ++refundId,
+      refundAmount,
+      status: 'COMPLETED' as const,
+      cancelReason,
+      refundedAt: iso(dayjs(approvedAt).add(i + 1, 'day').hour(11).minute(20)),
+    }))
+    const canceledAmount = refunds.reduce((sum, r) => sum + r.refundAmount, 0)
+    const id = ++paymentId
+    payments.push({
+      paymentId: id,
+      memberId: reservation.memberId,
+      holdId: reservation.reservationId,
+      orderId: `ct-${id}f1c${reservation.reservationId}a2e9`,
+      orderName: `${stores.find((st) => st.id === reservation.storeId)!.name} 예약금`,
+      amount,
+      status: canceledAmount === 0 ? 'DONE' : canceledAmount >= amount ? 'REFUNDED' : 'PARTIAL_REFUNDED',
+      method: '간편결제',
+      approvedAt,
+      canceledAmount,
+      receiptUrl: null,
+      refunds,
+      refundKeys: [],
+      refundRequired: opts.refundRequired ?? false,
+    })
+  }
+  const lastReservation = () => reservations[reservations.length - 1]
+  // 지난 취소 예약 — 전액 환불
+  paid(reservations.find((r) => r.memberId === 1 && r.status === 'CANCELLED' && r.storeId === 3)!, 20_000, {
+    refunds: [[20_000, '고객 요청']],
+  })
+  // 다가오는 예약 — 일부 환불 후 예약 유지
+  addReservation({ storeId: 3, memberId: 1, partySize: 4, status: 'CONFIRMED', start: now.add(6, 'day').hour(18).minute(0), tableNumber: 3 })
+  paid(lastReservation(), 30_000, { refunds: [[10_000, '인원이 줄어서요']] })
+  // 다가오는 예약 — 결제 완료
+  addReservation({ storeId: 3, memberId: 1, partySize: 2, status: 'CONFIRMED', start: now.add(4, 'day').hour(19).minute(0), tableNumber: 1 })
+  paid(lastReservation(), 10_000)
+  // 결제는 승인됐지만 확정되지 못한 예약 — 전액 환불 필요
+  addReservation({ storeId: 3, memberId: 1, partySize: 2, status: 'EXPIRED', start: now.add(1, 'day').hour(19).minute(0), tableNumber: 2 })
+  lastReservation().confirmedAt = null
+  paid(lastReservation(), 20_000, { refundRequired: true })
+
   // 점주(혼술 이자카야) 오늘 예약 현황 — 지금 시각 기준
   addReservation({ storeId: 2, memberId: 10, partySize: 2, status: 'CONFIRMED', start: slot(-60), tableNumber: 1, checkedIn: true })
   addReservation({ storeId: 2, memberId: 11, partySize: 2, status: 'CONFIRMED', start: slot(-30), tableNumber: 2 })
@@ -634,13 +690,23 @@ function seed(): Db {
 
   return {
     seededOn: today,
-    seq: { member: 100, store: 100, table: tableId, menu: menuId, reservation: reservationId, waiting: waitingId, review: reviewId },
+    seq: {
+      member: 100,
+      store: 100,
+      table: tableId,
+      menu: menuId,
+      reservation: reservationId,
+      waiting: waitingId,
+      review: reviewId,
+      payment: paymentId,
+      refund: refundId,
+    },
     members,
     stores,
     tables,
     menus,
     reservations,
-    payments: [],
+    payments,
     waitings,
     reviews,
   }
@@ -652,7 +718,8 @@ function seed(): Db {
 
 // v4: 백엔드 응답에 없는 값(평점·지역·좌석 타입·알림함 등)을 뺌
 // v5: 특정일 영업, 예약금 정책
-const STORAGE_KEY = 'catchtable-mock-db-v5'
+// v6: 고객 예약금 결제 시드
+const STORAGE_KEY = 'catchtable-mock-db-v6'
 
 function load(): Db {
   try {

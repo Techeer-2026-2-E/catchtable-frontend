@@ -60,6 +60,15 @@ export function openingWindow(store: StoreRow, date: string) {
   return { start, end, breakTime }
 }
 
+/** 지금 영업 중인지 — 어제 시작해 새벽에 끝나는 구간과 브레이크타임까지 반영 */
+export function isStoreOpenAt(store: StoreRow, at: dayjs.Dayjs) {
+  return [at.subtract(1, 'day'), at].some((d) => {
+    const w = openingWindow(store, d.format('YYYY-MM-DD'))
+    if (!w || at.isBefore(w.start) || !at.isBefore(w.end)) return false
+    return !(w.breakTime && !at.isBefore(w.breakTime.start) && at.isBefore(w.breakTime.end))
+  })
+}
+
 const overlaps = (aStart: dayjs.Dayjs, aEnd: dayjs.Dayjs, bStart: dayjs.Dayjs, bEnd: dayjs.Dayjs) =>
   aStart.isBefore(bEnd) && bStart.isBefore(aEnd)
 
