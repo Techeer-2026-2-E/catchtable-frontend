@@ -123,7 +123,7 @@ export function PaymentDetailPage() {
           <dt>주문번호</dt>
           <dd className={styles.orderId}>{payment.orderId}</dd>
           <dt>결제 수단</dt>
-          <dd>{payment.method ?? '-'}</dd>
+          <dd>토스페이먼츠</dd>
           <dt>승인 시각</dt>
           <dd className="tnum">{payment.approvedAt ? formatDateTime(payment.approvedAt) : '-'}</dd>
           <dt>환불 금액</dt>

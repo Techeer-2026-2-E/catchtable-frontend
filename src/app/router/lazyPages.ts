@@ -36,5 +36,6 @@ export const OwnerStoreInfoPage = lazy(() => owner().then((m) => ({ default: m.O
 export const OwnerSpecialDaysPage = lazy(() => owner().then((m) => ({ default: m.OwnerSpecialDaysPage })))
 export const OwnerReservationsPage = lazy(() => owner().then((m) => ({ default: m.OwnerReservationsPage })))
 export const OwnerWaitingsPage = lazy(() => owner().then((m) => ({ default: m.OwnerWaitingsPage })))
+export const OwnerWaitingSettingsPage = lazy(() => owner().then((m) => ({ default: m.OwnerWaitingSettingsPage })))
 export const OwnerMenusPage = lazy(() => owner().then((m) => ({ default: m.OwnerMenusPage })))
 export const OwnerReviewsPage = lazy(() => owner().then((m) => ({ default: m.OwnerReviewsPage })))

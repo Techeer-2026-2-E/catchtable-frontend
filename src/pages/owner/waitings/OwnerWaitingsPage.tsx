@@ -14,6 +14,7 @@ import {
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import {
+  Badge,
   BottomSheet,
   Button,
   Card,
@@ -32,7 +33,6 @@ import {
 } from '@/shared/ui'
 import styles from './OwnerWaitingsPage.module.css'
 
-const ARRIVAL_OPTIONS = [5, 10, 15]
 type Pending = { type: 'noShow' | 'cancel'; waiting: OwnerWaiting } | null
 type NoShowReason = OwnerWaitingNoShowRequest['reason']
 const NO_SHOW_REASONS: { value: NoShowReason; label: string }[] = [
@@ -40,12 +40,22 @@ const NO_SHOW_REASONS: { value: NoShowReason; label: string }[] = [
   { value: 'NO_SHOW', label: '미방문(노쇼)' },
 ]
 const REASON_MAX = 300
+const hm = (iso: string) => dayjs(iso).format('HH:mm')
+
+/** 1초마다 현재 시각 — 호출 제한시간 표시용 */
+function useNow() {
+  const [now, setNow] = useState(() => dayjs())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(dayjs()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return now
+}
 
 /**
- * 기능명세「웨이팅 접수 시작·종료」「현재 대기 고객 목록」「웨이팅 고객 호출」「웨이팅 착석 처리」
- * 「웨이팅 미응답·노쇼 처리」「점주 웨이팅 취소」「호출 도착 제한시간 설정」
- * GET /api/owner/stores/{storeId}/waitings + 실시간 구독(SSE, WAITING_CHANGED) · POST /api/owner/waitings/{id}/{call|enter|no-show}
- * DELETE /api/owner/waitings/{id} (사유 필수)
+ * 웨이팅 현황 관리 — 접수 시작·종료, 대기 목록, 호출·다시 호출, 순번 연기, 착석(테이블 선택), 노쇼, 취소
+ * 목록 순서는 서버가 준 대기 순서(queue_order) 그대로 쓴다. 접수번호로 다시 정렬하지 않음 (순번 연기 반영)
+ * 도착 제한시간 설정은 별도 화면(매장 홈 > 웨이팅 설정)
  */
 export function OwnerWaitingsPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -56,24 +66,27 @@ export function OwnerWaitingsPage() {
   const actions = useOwnerWaitingActions(id)
   const memberId = useAuthStore((s) => s.member?.id ?? null)
   useOwnerWaitingStream(id, memberId)
+  const now = useNow()
   const [pending, setPending] = useState<Pending>(null)
   const [noShowReason, setNoShowReason] = useState<NoShowReason>('NO_RESPONSE')
   const [reasonText, setReasonText] = useState('')
-  const [settingOpen, setSettingOpen] = useState(false)
+  const [seating, setSeating] = useState<OwnerWaiting | null>(null)
+  const [tableId, setTableId] = useState<number | null>(null)
 
   const open = settings.data?.open ?? false
   const arrivalLimit = settings.data?.arrivalLimitMinutes ?? 10
-  const active = (waitings.data ?? [])
-    .filter((w) => ACTIVE_WAITING_STATUSES.includes(w.status))
-    .sort((a, b) => a.waitingNumber - b.waitingNumber)
+  const active = (waitings.data ?? []).filter((w) => ACTIVE_WAITING_STATUSES.includes(w.status))
   const onError = (e: unknown) => toast(getErrorMessage(e, '처리하지 못했어요'))
-  const run = (mutation: { mutate: (id: number, o: object) => void }, w: OwnerWaiting, message: string) =>
-    mutation.mutate(w.id, { onSuccess: () => toast(message), onError })
 
   const openPending = (type: 'noShow' | 'cancel', waiting: OwnerWaiting) => {
     setNoShowReason('NO_RESPONSE')
     setReasonText('')
     setPending({ type, waiting })
+  }
+
+  const openSeat = (w: OwnerWaiting) => {
+    setTableId(w.compatibleTables.length === 1 ? w.compatibleTables[0].id : null)
+    setSeating(w)
   }
 
   // 백엔드는 노쇼 상세 사유·취소 사유 모두 공백 불가
@@ -94,6 +107,21 @@ export function OwnerWaitingsPage() {
     } else {
       actions.cancel.mutate({ waitingId: w.id, reason }, { onSuccess, onError })
     }
+  }
+
+  const confirmSeat = () => {
+    if (!seating || tableId == null) return
+    const table = seating.compatibleTables.find((t) => t.id === tableId)
+    actions.enter.mutate(
+      { waitingId: seating.id, tableId },
+      {
+        onSuccess: () => {
+          toast(`${seating.waitingNumber}번 고객을 ${table?.tableNumber ?? ''}번 테이블에 앉혔어요`)
+          setSeating(null)
+        },
+        onError,
+      },
+    )
   }
 
   const toggleOpen = (v: boolean) =>
@@ -123,9 +151,6 @@ export function OwnerWaitingsPage() {
             { label: '도착 제한', value: arrivalLimit, unit: '분' },
           ]}
         />
-        <button type="button" className={`${styles.setting} t-caption-13`} onClick={() => setSettingOpen(true)}>
-          도착 제한시간 바꾸기
-        </button>
       </div>
 
       {waitings.isPending ? (
@@ -138,66 +163,151 @@ export function OwnerWaitingsPage() {
         <ul className={styles.list}>
           {active.map((w) => {
             const called = w.status === 'CALLED' || w.status === 'CONFIRMED'
-            const responded = w.arrivalIntent === 'COMING' && !!w.respondedAt
+            const responded = called && w.arrivalIntent === 'COMING' && !!w.respondedAt
+            const leftSec = called && w.callExpiresAt ? dayjs(w.callExpiresAt).diff(now, 'second') : null
+            const expired = leftSec != null && leftSec <= 0
+            const badge = expired ? { label: '응답 없음', tone: 'danger' as const } : { label: WAITING_STATUS_LABEL[w.status === 'CONFIRMED' ? 'CALLED' : w.status], tone: WAITING_STATUS_TONE[w.status] }
             return (
               <Card as="li" key={w.id} className={styles.card}>
-                <div className={styles.lead}>
-                  <span className={`${styles.leadNumber} tnum`}>{w.waitingNumber}</span>
-                  <span className="t-caption-12 text-tertiary">{w.partySize}명</span>
+                <div className={styles.head}>
+                  <p className={`${styles.number} tnum`}>{w.waitingNumber}번</p>
+                  <Badge tone={badge.tone}>{badge.label}</Badge>
                 </div>
-                <div className={styles.body}>
-                  <span className="status-text" data-tone={WAITING_STATUS_TONE[w.status]}>
-                    {responded ? WAITING_STATUS_LABEL.CONFIRMED : WAITING_STATUS_LABEL[w.status]}
-                    {called && w.callExpiresAt && <ArrivalCountdown expiresAt={w.callExpiresAt} />}
-                  </span>
-                  <p className="t-headline-16">{w.customerName}</p>
-                  <p className="t-caption-13 text-tertiary tnum">
-                    {w.createdAt && `${dayjs(w.createdAt).format('HH:mm')} 접수`}
-                    {called && w.calledAt && `, ${dayjs(w.calledAt).format('HH:mm')} 호출`}
-                    {called && responded && `, ${dayjs(w.respondedAt).format('HH:mm')} 응답`}
+                <div>
+                  <p className="t-body-15">
+                    {w.customerName}, {w.partySize}명
                   </p>
-                  <div className={styles.actions}>
-                    {called ? (
+                  <p className="t-caption-13 text-tertiary tnum">
+                    {hm(w.createdAt)} 접수
+                    {called && w.calledAt && `, ${hm(w.calledAt)} 호출`}
+                  </p>
+                </div>
+
+                {called && (
+                  <div className={styles.callState} data-tone={expired ? 'danger' : undefined}>
+                    <span className="t-body-14">
+                      {expired
+                        ? '도착 제한시간이 지났어요'
+                        : responded
+                          ? `가는 중이라고 응답했어요 (${hm(w.respondedAt!)})`
+                          : '응답을 기다리고 있어요'}
+                    </span>
+                    {leftSec != null && (
+                      <span className={`${styles.callTime} t-label-13 tnum`} role="timer">
+                        {expired
+                          ? `${Math.ceil(-leftSec / 60)}분 지남`
+                          : responded
+                            ? `${hm(w.callExpiresAt!)}까지`
+                            : `${Math.floor(leftSec / 60)}:${String(leftSec % 60).padStart(2, '0')} 남음`}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.actions}>
+                  {called ? (
+                    expired ? (
                       <>
-                        <Button
-                          size="S"
-                          variant="secondary"
-                          disabled={actions.enter.isPending}
-                          onClick={() => run(actions.enter, w, `${w.waitingNumber}번 고객을 착석 처리했어요`)}
-                        >
-                          착석 처리
+                        <Button size="M" variant="outline" disabled={actions.recall.isPending} onClick={() => recall(w)}>
+                          다시 호출
                         </Button>
-                        <Button size="S" variant="ghost" onClick={() => openPending('noShow', w)}>
-                          미응답 노쇼
+                        <Button size="M" variant="outline" onClick={() => openPending('noShow', w)}>
+                          노쇼 처리
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button
-                          size="S"
-                          variant="secondary"
-                          disabled={actions.call.isPending}
-                          onClick={() => run(actions.call, w, `${w.waitingNumber}번 고객을 호출했어요`)}
-                        >
-                          호출
+                        <Button size="M" onClick={() => openSeat(w)}>
+                          착석 처리
                         </Button>
-                        <Button size="S" variant="ghost" onClick={() => openPending('cancel', w)}>
-                          웨이팅 취소
+                        <Button size="M" variant="outline" disabled={actions.recall.isPending} onClick={() => recall(w)}>
+                          다시 호출
                         </Button>
                       </>
-                    )}
-                  </div>
+                    )
+                  ) : (
+                    <>
+                      <Button
+                        size="M"
+                        disabled={actions.call.isPending}
+                        onClick={() =>
+                          actions.call.mutate(w.id, { onSuccess: () => toast(`${w.waitingNumber}번 고객을 호출했어요`), onError })
+                        }
+                      >
+                        호출
+                      </Button>
+                      <Button
+                        size="M"
+                        variant="outline"
+                        disabled={actions.defer.isPending}
+                        onClick={() =>
+                          actions.defer.mutate(w.id, {
+                            onSuccess: (r) => toast(`${w.waitingNumber}번을 ${r.afterPosition}번째 순서로 미뤘어요 (${r.deferCount}/2)`),
+                            onError,
+                          })
+                        }
+                      >
+                        한 팀 뒤로
+                      </Button>
+                      <Button size="M" variant="outline" onClick={() => openPending('cancel', w)}>
+                        웨이팅 취소
+                      </Button>
+                    </>
+                  )}
                 </div>
+                {!called && <p className="t-caption-12 text-tertiary">손님이 부탁하면 바로 뒤 팀과 순서를 바꿔요. 최대 2번까지 돼요.</p>}
               </Card>
             )
           })}
         </ul>
       )}
 
+      <BottomSheet
+        isOpen={!!seating}
+        onClose={() => setSeating(null)}
+        title={seating ? `${seating.waitingNumber}번 ${seating.customerName}님 착석` : ''}
+        footer={
+          <Button fullWidth disabled={tableId == null || actions.enter.isPending} onClick={confirmSeat}>
+            {tableId == null
+              ? '테이블을 골라주세요'
+              : `${seating?.compatibleTables.find((t) => t.id === tableId)?.tableNumber}번 테이블에 착석 처리`}
+          </Button>
+        }
+      >
+        {seating && (
+          <>
+            <p className="t-body-14 text-secondary">{seating.partySize}명이 앉을 테이블을 골라주세요</p>
+            {seating.compatibleTables.length === 0 ? (
+              <p className={`${styles.noTable} t-body-14`}>인원에 맞는 운영 중 테이블이 없어요. 테이블 설정을 확인해주세요.</p>
+            ) : (
+              <ul className={styles.tables} role="radiogroup" aria-label="테이블">
+                {seating.compatibleTables.map((t) => (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={tableId === t.id}
+                      className={styles.table}
+                      onClick={() => setTableId(t.id)}
+                    >
+                      <span className="t-label-15">{t.tableNumber}번 테이블</span>
+                      <span className="t-caption-12 text-secondary">
+                        {t.minCapacity === t.capacity ? `${t.capacity}인석` : `${t.minCapacity}~${t.capacity}인석`}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="t-caption-12 text-tertiary">이미 다른 손님이 앉은 테이블인지는 직접 확인해주세요.</p>
+          </>
+        )}
+      </BottomSheet>
+
       <Dialog
         isOpen={!!pending}
         onClose={() => setPending(null)}
-        title={pending?.type === 'noShow' ? '미응답 노쇼로 처리할까요?' : '웨이팅을 취소할까요?'}
+        title={pending?.type === 'noShow' ? '노쇼로 처리할까요?' : '웨이팅을 취소할까요?'}
         confirmLabel={pending?.type === 'noShow' ? '노쇼 처리' : '웨이팅 취소'}
         onConfirm={confirmPending}
       >
@@ -215,50 +325,20 @@ export function OwnerWaitingsPage() {
         )}
         <Textarea
           label={pending?.type === 'noShow' ? '상세 사유' : '취소 사유'}
-          placeholder={pending?.type === 'noShow' ? '예) 호출 후 10분 동안 응답 없음' : '예) 재료 소진으로 오늘 영업 마감'}
+          placeholder={pending?.type === 'noShow' ? `예) 호출 후 ${arrivalLimit}분 동안 응답 없음` : '예) 재료 소진으로 오늘 영업 마감'}
           maxLength={REASON_MAX}
           rows={3}
           value={reasonText}
           onChange={(e) => setReasonText(e.target.value)}
         />
       </Dialog>
-
-      <BottomSheet isOpen={settingOpen} onClose={() => setSettingOpen(false)} title="웨이팅 운영 설정">
-        <p className="t-body-14 text-secondary">호출 후 이 시간 안에 응답하거나 도착하지 않으면 순번이 만료돼요.</p>
-        <ChipGroup label="도착 제한시간" className={styles.sheetChips}>
-          {ARRIVAL_OPTIONS.map((m) => (
-            <Chip
-              key={m}
-              selected={arrivalLimit === m}
-              onClick={() =>
-                settingMutations.update.mutate(
-                  { arrivalLimitMinutes: m },
-                  { onSuccess: () => toast(`도착 제한시간을 ${m}분으로 바꿨어요`), onError },
-                )
-              }
-            >
-              {m}분
-            </Chip>
-          ))}
-        </ChipGroup>
-      </BottomSheet>
     </Page>
   )
-}
 
-/** 호출 응답 제한 시각까지 남은 시간 — 1초마다 이 컴포넌트만 다시 그림 */
-function ArrivalCountdown({ expiresAt }: { expiresAt: string }) {
-  const [now, setNow] = useState(() => dayjs())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(dayjs()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
-
-  const leftSec = dayjs(expiresAt).diff(now, 'second')
-  if (leftSec <= 0) return <span className="text-danger">, 도착 제한시간 초과</span>
-  return (
-    <span className="tnum" role="timer">
-      , {Math.floor(leftSec / 60)}:{String(leftSec % 60).padStart(2, '0')} 남음
-    </span>
-  )
+  function recall(w: OwnerWaiting) {
+    actions.recall.mutate(w.id, {
+      onSuccess: () => toast(`${w.waitingNumber}번 고객을 다시 호출했어요. 제한시간이 처음부터 다시 흘러요`),
+      onError,
+    })
+  }
 }

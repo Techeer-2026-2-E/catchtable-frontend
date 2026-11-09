@@ -50,27 +50,27 @@
 
 /* ---------- 음식 종류 ---------- */
 .categories {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  row-gap: var(--space-16);
-  padding: var(--space-12) var(--page-gutter) var(--space-20);
-}
-.category {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: var(--space-8);
-  color: var(--color-text-primary);
+  padding: var(--space-4) var(--page-gutter) var(--space-16);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.categoryIcon {
+.categories::-webkit-scrollbar {
+  display: none;
+}
+/* 음식 종류 — 칩 모양 링크 (Chip 컴포넌트 M 크기와 같은 모양) */
+.category {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: var(--radius-16);
+  height: 2.25rem;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-full);
   background: var(--color-secondary-soft);
-  font-size: 1.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-brand);
 }
 
 /* ---------- 추천 ---------- */

@@ -110,6 +110,12 @@ export interface WaitingRow {
   calledAt: string | null
   callExpiresAt: string | null
   callCount?: number
+  /** 호출 다시 보내기 횟수 */
+  recallCount?: number
+  /** 대기 순서 — 순번 연기로 바뀜 (없으면 waitNumber) */
+  queueOrder?: number
+  /** 순번 연기 횟수 (최대 2) */
+  deferCount?: number
   updatedAt: string
   /** 고객이 도착 의사를 응답한 시각 */
   respondedAt?: string | null
@@ -331,6 +337,16 @@ function seed(): Db {
     },
   ]
 
+  /** 목 매장 사진 — 와이어프레임과 같은 사진 (public/mock/stores) */
+  const STORE_PHOTOS: Record<number, string> = {
+    1: '/mock/stores/sushi.jpg',
+    2: '/mock/stores/izakaya.jpg',
+    3: '/mock/stores/sushi.jpg',
+    4: '/mock/stores/korean.jpg',
+    6: '/mock/stores/brunch.jpg',
+    7: '/mock/stores/lamb.jpg',
+    8: '/mock/stores/pasta.jpg',
+  }
   const STORE_DESCRIPTIONS: Record<number, string> = {
     1: '제철 생선으로 매일 바뀌는 오마카세. 카운터 7석과 프라이빗 룸을 운영해요.',
     2: '퇴근 후 혼자서도 편하게 들르는 꼬치 이자카야.',
@@ -339,7 +355,7 @@ function seed(): Db {
   stores.forEach((s) => {
     s.description = STORE_DESCRIPTIONS[s.id] ?? null
     s.phone = `02-${String(500 + s.id * 37).padStart(4, '0')}-${String(1000 + s.id * 211).padStart(4, '0')}`
-    s.imageUrl = null
+    s.imageUrl = STORE_PHOTOS[s.id] ?? null
   })
 
   let tableId = 0
@@ -595,7 +611,8 @@ function seed(): Db {
         reservationId: 0,
         rating,
         content,
-        imageUrl: null,
+        // 매장마다 앞의 두 리뷰에 사진 1장
+        imageUrl: i < 2 ? (STORE_PHOTOS[store.id] ?? null) : null,
         createdAt: iso(created),
         updatedAt: null,
       })

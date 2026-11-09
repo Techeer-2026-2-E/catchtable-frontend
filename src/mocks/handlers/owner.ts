@@ -28,6 +28,7 @@ import {
   toIso,
   toOwnerReservation,
   toOwnerWaiting,
+  queueKey,
   toWaitingTermination,
   validateBookable,
 } from '../logic'
@@ -556,12 +557,56 @@ const waitingHandlers = [
     return saved(HttpResponse.json(callResult(found.w)))
   }),
 
-  /** 입장(착석) 처리 */
+  /** 호출 다시 보내기 — 호출된 고객만, 제한시간을 새로 셈 */
+  http.post(`${API}/owner/waitings/:waitingId/recall`, async ({ params, request }) => {
+    await before()
+    const found = ownWaiting(request, Number(params.waitingId))
+    if ('error' in found) return found.error
+    if (found.w.status !== 'CALLED' && found.w.status !== 'CONFIRMED') {
+      return conflict('WAITING_NOT_RECALLABLE', '호출 재전송할 수 없는 웨이팅입니다.')
+    }
+    callWaiting(found.w)
+    found.w.recallCount = (found.w.recallCount ?? 0) + 1
+    queueChanged(found.store.id)
+    return saved(HttpResponse.json({ ...callResult(found.w), recallCount: found.w.recallCount, lastRecalledAt: found.w.calledAt }))
+  }),
+
+  /** 순번 연기 — 대기 중인 팀을 바로 뒤 진행 중 팀과 맞바꿈, 최대 2번 */
+  http.post(`${API}/owner/waitings/:waitingId/defer`, async ({ params, request }) => {
+    await before()
+    const found = ownWaiting(request, Number(params.waitingId))
+    if ('error' in found) return found.error
+    const queue = activeQueue(found.store.id)
+    const index = queue.findIndex((x) => x.waitingId === found.w.waitingId)
+    const next = queue[index + 1]
+    if (found.w.status !== 'WAITING' || !next) return conflict('WAITING_NOT_DEFERRABLE', '순번을 연기할 수 없는 웨이팅입니다.')
+    if ((found.w.deferCount ?? 0) >= 2) return conflict('WAITING_DEFER_LIMIT_EXCEEDED', '순번은 최대 2회까지 연기할 수 있습니다.')
+    queue.forEach((x) => (x.queueOrder = queueKey(x)))
+    ;[found.w.queueOrder, next.queueOrder] = [next.queueOrder, found.w.queueOrder]
+    found.w.deferCount = (found.w.deferCount ?? 0) + 1
+    found.w.updatedAt = nowIso()
+    queueChanged(found.store.id)
+    return saved(
+      HttpResponse.json({
+        waitingId: found.w.waitingId,
+        waitNumber: found.w.waitNumber,
+        deferCount: found.w.deferCount,
+        beforePosition: index + 1,
+        afterPosition: index + 2,
+      }),
+    )
+  }),
+
+  /** 입장(착석) 처리 — 본문 { tableId } 필수, 인원에 맞는 운영 중 테이블만 */
   http.post(`${API}/owner/waitings/:waitingId/enter`, async ({ params, request }) => {
     await before()
     const found = ownWaiting(request, Number(params.waitingId))
     if ('error' in found) return found.error
-    if (!ACTIVE_WAITING_STATUSES.includes(found.w.status)) return conflict('WAITING_NOT_ACTIVE', '이미 종료된 웨이팅입니다.')
+    if (!ACTIVE_WAITING_STATUSES.includes(found.w.status)) return conflict('WAITING_NOT_ENTERABLE', '입장 처리할 수 없는 웨이팅입니다.')
+    const b = await body<{ tableId?: number }>(request)
+    if (b.tableId == null) return badRequest('앉을 테이블을 선택해주세요.')
+    const table = toOwnerWaiting(found.w).compatibleTables.find((t) => t.id === b.tableId && t.status === 'ACTIVE')
+    if (!table) return conflict('WAITING_TABLE_NOT_SEATABLE', '운영 중이 아니거나 신청 인원을 수용할 수 없는 테이블입니다.')
     found.w.status = 'SEATED'
     found.w.updatedAt = nowIso()
     queueChanged(found.store.id)

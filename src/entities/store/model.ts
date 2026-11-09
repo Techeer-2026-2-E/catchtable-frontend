@@ -62,6 +62,8 @@ export interface Store {
   categoryName: string
   address: string
   waitingAvailable: boolean
+  /** 대표 사진 1장 (http(s) URL). 없으면 null */
+  imageUrl: string | null
 }
 
 /** GET /api/user/stores — StoreListResponse */
@@ -79,7 +81,6 @@ export interface StoreDetail extends Store {
   description: string | null
   /** 0X-XXXX-XXXX */
   phone: string | null
-  imageUrl: string | null
   businessHours: BusinessHour[]
   /** 매장 메뉴 — 백엔드는 별도 메뉴 조회 API 없이 상세에 포함 */
   menus: Menu[]
