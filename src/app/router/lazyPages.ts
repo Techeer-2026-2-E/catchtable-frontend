@@ -19,6 +19,7 @@ export const PaymentDetailPage = lazy(() => import('@/pages/payment-detail').the
 export const WaitingApplyPage = lazy(() => import('@/pages/waiting-apply').then((m) => ({ default: m.WaitingApplyPage })))
 export const WaitingPage = lazy(() => import('@/pages/waiting').then((m) => ({ default: m.WaitingPage })))
 export const MyDiningPage = lazy(() => import('@/pages/my-dining').then((m) => ({ default: m.MyDiningPage })))
+export const UsageStatusPage = lazy(() => import('@/pages/usage-status').then((m) => ({ default: m.UsageStatusPage })))
 export const MyPage = lazy(() => import('@/pages/mypage').then((m) => ({ default: m.MyPage })))
 export const ProfileEditPage = lazy(() => import('@/pages/profile-edit').then((m) => ({ default: m.ProfileEditPage })))
 export const MyReviewsPage = lazy(() => import('@/pages/my-reviews').then((m) => ({ default: m.MyReviewsPage })))
