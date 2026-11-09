@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek } from '@/entities'
+import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek, type BusinessHour, type ReviewSort } from '@/entities'
 import { ReservationSheet, useAvailability } from '@/features/reservation'
 import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
-import { Button, Divider, EmptyState, ErrorState, ImagePlaceholder, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
+import { Button, Chip, ChipGroup, Divider, EmptyState, ErrorState, ImagePlaceholder, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
 import styles from './StoreDetailPage.module.css'
 
 type Tab = 'home' | 'menu' | 'review' | 'info'
@@ -17,8 +18,17 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'info', label: '매장정보' },
 ]
 
+const REVIEW_SORTS: { value: ReviewSort; label: string }[] = [
+  { value: 'LATEST', label: '최신순' },
+  { value: 'RATING', label: '별점순' },
+]
+
 /** "18:00:00" → "18:00" */
 const hhmm = (t: string) => t.slice(0, 5)
+
+/** 영업시간 한 줄 — "11:30 ~ 22:00" (다음날 마감이면 표시) */
+const hourRange = (h: BusinessHour) =>
+  `${hhmm(h.openTime)} ~ ${h.closingTime <= h.openTime ? '다음날 ' : ''}${hhmm(h.closingTime)}`
 
 export function StoreDetailPage() {
   const { storeId } = useParams<{ storeId: string }>()
@@ -38,7 +48,9 @@ export function StoreDetailPage() {
   const id = Number(storeId)
   const { data: store, isPending, isError, refetch } = useStoreDetail(id)
   const menus = useStoreMenus(id)
-  const reviews = useStoreReviews(id)
+  const [reviewSort, setReviewSort] = useState<ReviewSort>('LATEST')
+  const [weekOpen, setWeekOpen] = useState(false)
+  const reviews = useStoreReviews(id, reviewSort)
   const today = dayjs().format('YYYY-MM-DD')
   const todaySlots = useAvailability(id, today, 2, store?.reservationEnabled === true)
 
@@ -62,7 +74,6 @@ export function StoreDetailPage() {
   const todayHour = store.businessHours.find((h) => h.dayOfWeek === toDayOfWeek(dayjs().day()))
   const openDays = store.businessHours.map((h) => h.dayOfWeek)
   const closedDays = DAYS_OF_WEEK.filter((d) => !openDays.includes(d)).map((d) => DAY_OF_WEEK_LABEL[d])
-  const overnight = todayHour && todayHour.closingTime <= todayHour.openTime
   const openSlots = todaySlots.data?.slots ?? []
 
   return (
@@ -94,18 +105,51 @@ export function StoreDetailPage() {
         <h1 className="t-title-24">{store.name}</h1>
         <StoreTags store={store} />
         {!store.reservationEnabled && (
-          <p id="reservation-support" className="t-caption-13 text-tertiary">예약 미지원 · 정보 조회 전용 매장입니다.</p>
+          <p id="reservation-support" className="t-caption-13 text-tertiary">예약을 받지 않는 매장이에요. 매장 정보만 볼 수 있어요.</p>
         )}
         <dl className={styles.facts}>
           <dt>주소</dt>
           <dd>{store.address}</dd>
           <dt>오늘</dt>
           <dd className="tnum">
-            {todayHour ? `${hhmm(todayHour.openTime)} ~ ${overnight ? '다음날 ' : ''}${hhmm(todayHour.closingTime)}` : store.reservationEnabled ? '휴무' : '영업시간 정보 없음'}
+            <span className={styles.hourRow}>
+              {todayHour ? hourRange(todayHour) : store.reservationEnabled ? '휴무' : '영업시간 정보 없음'}
+              {store.businessHours.length > 0 && (
+                <button
+                  type="button"
+                  className={`${styles.weekToggle} t-caption-12`}
+                  aria-expanded={weekOpen}
+                  aria-controls="week-hours"
+                  onClick={() => setWeekOpen((v) => !v)}
+                >
+                  요일별 보기
+                  <ChevronDown aria-hidden className={weekOpen ? styles.chevronOpen : undefined} />
+                </button>
+              )}
+            </span>
             {todayHour?.breakStartTime && todayHour.breakEndTime && (
               <span className={styles.sub}>
                 쉬는 시간 {hhmm(todayHour.breakStartTime)} ~ {hhmm(todayHour.breakEndTime)}
               </span>
+            )}
+            {weekOpen && (
+              <ul id="week-hours" className={styles.weekHours}>
+                {DAYS_OF_WEEK.map((day) => {
+                  const h = store.businessHours.find((b) => b.dayOfWeek === day)
+                  const isToday = day === toDayOfWeek(dayjs().day())
+                  return (
+                    <li key={day} className={isToday ? styles.today : undefined}>
+                      <span>{DAY_OF_WEEK_LABEL[day]}</span>
+                      <span>
+                        {h ? hourRange(h) : '휴무'}
+                        {h?.breakStartTime && h.breakEndTime && (
+                          <span className="text-tertiary"> (쉬는 시간 {hhmm(h.breakStartTime)} ~ {hhmm(h.breakEndTime)})</span>
+                        )}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </dd>
           {store.reservationEnabled && closedDays.length > 0 && (
@@ -168,7 +212,18 @@ export function StoreDetailPage() {
       )}
 
       {(tab === 'home' || tab === 'review') && (
-        <Section title={`리뷰 ${reviews.data?.reviewCount ?? 0}`}>
+        <Section
+          title={`리뷰 ${reviews.data?.reviewCount ?? 0}`}
+          action={
+            <ChipGroup label="리뷰 정렬">
+              {REVIEW_SORTS.map((o) => (
+                <Chip key={o.value} size="S" selected={reviewSort === o.value} onClick={() => setReviewSort(o.value)}>
+                  {o.label}
+                </Chip>
+              ))}
+            </ChipGroup>
+          }
+        >
           {reviews.isPending ? (
             <LoadingState compact />
           ) : !reviews.data?.reviews.length ? (

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Bell, ChevronRight, Search } from 'lucide-react'
 import { Link } from 'react-router'
-import { CATEGORY_EMOJI, StoreCard, type Store } from '@/entities'
+import { StoreCard, type Store } from '@/entities'
 import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -12,7 +12,7 @@ import styles from './HomePage.module.css'
 const TONIGHT = { time: '19:00', partySize: 2 }
 
 /**
- * 홈 — 검색바, 음식 종류, 식당 추천
+ * 홈 — 검색바, 음식 종류 칩, 식당 추천
  * 추천은 백엔드가 주는 값으로만 구성 (웨이팅 가능, 오늘 저녁 빈자리). 거리순·인기순은 위치·평점 API 가 생기면 추가
  */
 export function HomePage() {
@@ -42,10 +42,7 @@ export function HomePage() {
       <nav className={styles.categories} aria-label="음식 종류">
         {(categories ?? []).map(({ code, name }) => (
           <Link key={code} to={`${ROUTES.SEARCH}?category=${code}`} className={styles.category}>
-            <span className={styles.categoryIcon} aria-hidden>
-              {CATEGORY_EMOJI[code]}
-            </span>
-            <span className="t-caption-13">{name}</span>
+            {name}
           </Link>
         ))}
       </nav>
