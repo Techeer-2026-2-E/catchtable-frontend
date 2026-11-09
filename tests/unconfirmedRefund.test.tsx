@@ -22,13 +22,13 @@ test('an unconfirmed approved payment offers a full refund request and shows acc
     return detail
   })
   renderDetail()
-  fireEvent.click(await screen.findByRole('button',{name:'전액 환불 요청',exact:true}))
+  fireEvent.click(await screen.findByRole('button',{name:/^[\d,]+원 전액 환불 요청$/}))
   fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button',{name:'환불 요청',exact:true}))
   await screen.findByText('전액 환불 요청을 접수했어요. 처리 결과를 확인해주세요.')
   expect(posts).toHaveLength(1)
   expect(posts[0].key).toEqual(expect.any(String))
   expect(posts[0].body).toBeUndefined()
-  expect(screen.queryByRole('button',{name:'전액 환불 요청',exact:true})).toBeNull()
+  expect(screen.queryByRole('button',{name:/^[\d,]+원 전액 환불 요청$/})).toBeNull()
 })
 
 test('a lost enqueue response is recovered by status lookup and refresh preserves the same key',async()=>{
@@ -42,7 +42,7 @@ test('a lost enqueue response is recovered by status lookup and refresh preserve
     return detail
   })
   const view=renderDetail()
-  fireEvent.click(await screen.findByRole('button',{name:'전액 환불 요청',exact:true}))
+  fireEvent.click(await screen.findByRole('button',{name:/^[\d,]+원 전액 환불 요청$/}))
   fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button',{name:'환불 요청',exact:true}))
   await screen.findByText('전액 환불 요청을 접수했어요. 처리 결과를 확인해주세요.')
   const key=localStorage.getItem('catchtable:refund-key:unconfirmed-refund:31')
@@ -58,7 +58,7 @@ test('unknown refunds offer status checking and keep the request key instead of 
   restore=mockApi(config=>config.url?.endsWith('/unconfirmed-refund')?{...requested,refundStatus:'UNKNOWN'}:detail)
   renderDetail()
   await screen.findByText('환불 결과를 확인하고 있어요. 새로 요청하지 말고 결과를 확인해주세요.')
-  expect(screen.queryByRole('button',{name:'전액 환불 요청',exact:true})).toBeNull()
+  expect(screen.queryByRole('button',{name:/^[\d,]+원 전액 환불 요청$/})).toBeNull()
   expect(localStorage.getItem('catchtable:refund-key:unconfirmed-refund:31')).toBe('same-refund-key')
 })
 
@@ -68,14 +68,14 @@ test('a completed refund refreshes payment details and removes the retry key',as
   renderDetail()
   await screen.findByText('예약이 확정되지 않은 결제의 전액 환불을 완료했어요.')
   await waitFor(()=>expect(localStorage.getItem('catchtable:refund-key:unconfirmed-refund:31')).toBeNull())
-  expect(screen.queryByRole('button',{name:'전액 환불 요청',exact:true})).toBeNull()
+  expect(screen.queryByRole('button',{name:/^[\d,]+원 전액 환불 요청$/})).toBeNull()
 })
 
-test('a normal confirmed payment keeps its existing reservation actions and cannot request an unconfirmed refund',async()=>{
+test('a normal confirmed payment shows the receipt action and cannot request an unconfirmed refund',async()=>{
   restore=mockApi(()=>({...detail,refundRequired:false}))
   renderDetail()
-  await screen.findByRole('button',{name:'예약 보기'})
-  expect(screen.queryByRole('button',{name:'전액 환불 요청',exact:true})).toBeNull()
+  await screen.findByRole('button',{name:'영수증 보기'})
+  expect(screen.queryByRole('button',{name:/^[\d,]+원 전액 환불 요청$/})).toBeNull()
 })
 
 test('only an explicit retry after confirmed failure creates a new key',async()=>{
@@ -105,6 +105,6 @@ test('failed request-status lookup blocks a new refund until the saved result is
   })
   renderDetail()
   await screen.findByText('환불 요청 내역을 확인하지 못했어요. 먼저 결과를 확인해주세요.')
-  expect(screen.queryByRole('button',{name:'전액 환불 요청',exact:true})).toBeNull()
+  expect(screen.queryByRole('button',{name:/^[\d,]+원 전액 환불 요청$/})).toBeNull()
   expect(screen.getByRole('button',{name:'요청 내역 다시 확인'})).toBeTruthy()
 })

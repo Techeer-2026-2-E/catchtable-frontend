@@ -36,4 +36,24 @@ export const memberHandlers = [
     if (b.phone !== undefined) found.member.phone = b.phone
     return saved(HttpResponse.json(toProfile(found.member)))
   }),
+
+  /* 알림 수신 설정 — 백엔드 UserNotificationSettingController */
+  http.get(`${API}/user/members/me/notification-settings`, async ({ request }) => {
+    await before()
+    const found = customerOf(request)
+    if ('error' in found) return found.error
+    return HttpResponse.json(found.member.notificationSettings ?? { reservationEnabled: true, waitingEnabled: true })
+  }),
+
+  http.put(`${API}/user/members/me/notification-settings`, async ({ request }) => {
+    await before()
+    const found = customerOf(request)
+    if ('error' in found) return found.error
+    const b = await body<{ reservationEnabled?: boolean; waitingEnabled?: boolean }>(request)
+    if (typeof b.reservationEnabled !== 'boolean' || typeof b.waitingEnabled !== 'boolean') {
+      return badRequest('알림 설정 값을 모두 입력해주세요.')
+    }
+    found.member.notificationSettings = { reservationEnabled: b.reservationEnabled, waitingEnabled: b.waitingEnabled }
+    return saved(HttpResponse.json(found.member.notificationSettings))
+  }),
 ]

@@ -13,3 +13,10 @@
   background: var(--color-status-success);
   box-shadow: 0 0 0 3px var(--color-status-success-soft);
 }
+.banner {
+  padding: var(--space-8) var(--page-gutter) 0;
+}
+.status[data-closed] .dot {
+  background: var(--color-icon-subtle);
+  box-shadow: none;
+}

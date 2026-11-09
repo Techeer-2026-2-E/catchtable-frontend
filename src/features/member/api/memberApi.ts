@@ -1,4 +1,4 @@
-import type { MemberProfile } from '@/entities'
+import type { MemberProfile, NotificationSettings } from '@/entities'
 import { apiClient } from '@/shared/lib'
 
 /** 백엔드 MemberUpdateRequest — phone 은 "010-1234-5678" 형식 */
@@ -17,6 +17,16 @@ export const memberApi = {
   /** PATCH /api/user/members/me */
   updateMe: async (body: UpdateMeRequest) => {
     const { data } = await apiClient.patch<MemberProfile>('/user/members/me', body)
+    return data
+  },
+  /** GET /api/user/members/me/notification-settings */
+  getNotificationSettings: async () => {
+    const { data } = await apiClient.get<NotificationSettings>('/user/members/me/notification-settings')
+    return data
+  },
+  /** PUT /api/user/members/me/notification-settings — 두 값 모두 필수 */
+  updateNotificationSettings: async (body: NotificationSettings) => {
+    const { data } = await apiClient.put<NotificationSettings>('/user/members/me/notification-settings', body)
     return data
   },
 }

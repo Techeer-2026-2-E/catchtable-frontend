@@ -15,3 +15,11 @@ export interface MemberProfile {
 export interface Member extends MemberProfile {
   userType: UserType
 }
+
+/** GET·PUT /api/user/members/me/notification-settings — 설정 전이면 기본값(모두 켜짐) */
+export interface NotificationSettings {
+  /** 예약 확정, 변경, 취소, 방문 전 안내 */
+  reservationEnabled: boolean
+  /** 순번 변동, 가까워짐 안내 */
+  waitingEnabled: boolean
+}

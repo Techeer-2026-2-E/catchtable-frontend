@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { describeNextOpen, getOpenState } from '@/entities'
 import { useStoreDetail } from '@/features/store-detail'
 import { useRegisterWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
-import { getErrorMessage } from '@/shared/lib'
-import { Button, ErrorState, LoadingState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
+import { getErrorCode, getErrorMessage } from '@/shared/lib'
+import { Banner, Button, ErrorState, LoadingState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
 import styles from './WaitingApplyPage.module.css'
 
 /** 백엔드 WaitingCreateRequest 의 인원 범위 */
@@ -27,6 +28,9 @@ export function WaitingApplyPage() {
     )
   }
 
+  const { open, nextOpenAt } = getOpenState(store.businessHours)
+  const accepting = store.waitingAvailable && open
+
   const submit = () =>
     register.mutate(
       { storeId: store.id, partyCount: partySize },
@@ -35,24 +39,42 @@ export function WaitingApplyPage() {
           toast(`대기번호 ${waiting.waitNumber}번, 앞에 ${waiting.teamsAhead}팀`)
           navigate(paths.waiting(waiting.waitingId), { replace: true })
         },
-        onError: (e) => toast(getErrorMessage(e, '웨이팅을 신청하지 못했어요')),
+        onError: (e) =>
+          toast(
+            getErrorCode(e) === 'WAITING_OUTSIDE_BUSINESS_HOURS'
+              ? '지금은 영업시간이 아니라 웨이팅을 받지 않아요'
+              : getErrorMessage(e, '웨이팅을 신청하지 못했어요'),
+          ),
       },
     )
 
   return (
     <Page
       bottom={
-        <Button fullWidth onClick={submit} disabled={!store.waitingAvailable || register.isPending}>
-          {register.isPending ? '신청 중…' : `${partySize}명 웨이팅 신청하기`}
+        <Button fullWidth onClick={submit} disabled={!accepting || register.isPending}>
+          {register.isPending
+            ? '신청 중…'
+            : store.waitingAvailable && !open
+              ? '영업시간에 신청할 수 있어요'
+              : `${partySize}명 웨이팅 신청하기`}
         </Button>
       }
     >
       <TopBar title="웨이팅 신청" />
 
-      <div className={styles.status}>
-        <span className={styles.dot} aria-hidden />
-        <p className="t-body-14-strong">{store.waitingAvailable ? '웨이팅 접수 중' : '지금은 웨이팅을 받지 않아요'}</p>
-      </div>
+      {store.waitingAvailable && !open ? (
+        <div className={styles.banner}>
+          <Banner tone="notice">
+            지금은 영업시간이 아니라 웨이팅을 받지 않아요.
+            {nextOpenAt && ` ${describeNextOpen(nextOpenAt)} 신청할 수 있어요.`}
+          </Banner>
+        </div>
+      ) : (
+        <div className={styles.status} data-closed={!accepting || undefined}>
+          <span className={styles.dot} aria-hidden />
+          <p className="t-body-14-strong">{accepting ? '웨이팅 접수 중' : '지금은 웨이팅을 받지 않아요'}</p>
+        </div>
+      )}
 
       <Section>
         <h2 className="t-title-18">{store.name}</h2>
