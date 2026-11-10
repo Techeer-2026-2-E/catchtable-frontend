@@ -5,6 +5,15 @@ import styles from './MapView.module.css'
 import { createMyLocationElement, createPinElement } from './pinElement'
 import type { MapViewProps } from './types'
 
+/** 지점이 가운데보다 offsetY(px) 위에 보이게 하는 새 가운데 */
+function shifted(maps: KakaoMaps, map: KakaoMap, lat: number, lng: number, offsetY: number) {
+  const target = new maps.LatLng(lat, lng)
+  if (!offsetY) return target
+  const projection = map.getProjection()
+  const p = projection.containerPointFromCoords(target)
+  return projection.coordsFromContainerPoint(new maps.Point(p.x, p.y + offsetY))
+}
+
 /** 기본 확대 단계 — 3 은 골목, 4 는 동네(약 1~2km 폭) */
 const DEFAULT_LEVEL = 4
 
@@ -12,6 +21,7 @@ const DEFAULT_LEVEL = 4
 export function KakaoMapView({
   maps,
   initialCenter,
+  initialOffsetY = 0,
   pins,
   myLocation,
   onIdle,
@@ -23,7 +33,7 @@ export function KakaoMapView({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<KakaoMap | null>(null)
   // 가운데는 처음 값만 쓴다 (이후 이동은 panTo)
-  const [start] = useState(initialCenter)
+  const [start] = useState(() => ({ ...initialCenter, offsetY: initialOffsetY }))
   // 콜백은 매번 새로 만들어지므로 최신 값을 ref 로 들고 리스너는 한 번만 단다
   const handlers = useRef({ onIdle, onPinClick, onMapClick })
   useLayoutEffect(() => {
@@ -31,7 +41,10 @@ export function KakaoMapView({
   })
 
   useImperativeHandle(ref, () => ({
-    panTo: ({ lat, lng }) => mapRef.current?.panTo(new maps.LatLng(lat, lng)),
+    panTo: ({ lat, lng }, options) => {
+      const map = mapRef.current
+      if (map) map.panTo(shifted(maps, map, lat, lng, options?.offsetY ?? 0))
+    },
   }), [maps])
 
   // 지도 만들기 — 처음 한 번
@@ -40,6 +53,7 @@ export function KakaoMapView({
     if (!el) return
     const map = new maps.Map(el, { center: new maps.LatLng(start.lat, start.lng), level: DEFAULT_LEVEL })
     mapRef.current = map
+    if (start.offsetY) map.setCenter(shifted(maps, map, start.lat, start.lng, start.offsetY))
     const report = () => {
       const b = map.getBounds()
       const sw = b.getSouthWest()

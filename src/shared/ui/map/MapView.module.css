@@ -31,15 +31,14 @@
 }
 .zoom {
   position: absolute;
-  top: 50%;
-  right: var(--space-12);
+  top: 7.25rem;
+  right: var(--page-gutter);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--radius-8);
   background: var(--color-bg-canvas);
   box-shadow: var(--shadow-floating);
-  transform: translateY(-50%);
 }
 .zoom button {
   display: inline-flex;

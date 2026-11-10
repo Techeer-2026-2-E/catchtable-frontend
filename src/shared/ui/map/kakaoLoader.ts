@@ -7,10 +7,20 @@ export interface KakaoLatLngBounds {
   getSouthWest(): KakaoLatLng
   getNorthEast(): KakaoLatLng
 }
+export interface KakaoPoint {
+  x: number
+  y: number
+}
+export interface KakaoProjection {
+  containerPointFromCoords(latlng: KakaoLatLng): KakaoPoint
+  coordsFromContainerPoint(point: KakaoPoint): KakaoLatLng
+}
 export interface KakaoMap {
   getBounds(): KakaoLatLngBounds
   getCenter(): KakaoLatLng
   getLevel(): number
+  getProjection(): KakaoProjection
+  setCenter(latlng: KakaoLatLng): void
   panTo(latlng: KakaoLatLng): void
   relayout(): void
 }
@@ -20,6 +30,7 @@ export interface KakaoCustomOverlay {
 export interface KakaoMaps {
   load(callback: () => void): void
   LatLng: new (lat: number, lng: number) => KakaoLatLng
+  Point: new (x: number, y: number) => KakaoPoint
   Map: new (container: HTMLElement, options: { center: KakaoLatLng; level: number }) => KakaoMap
   CustomOverlay: new (options: {
     position: KakaoLatLng

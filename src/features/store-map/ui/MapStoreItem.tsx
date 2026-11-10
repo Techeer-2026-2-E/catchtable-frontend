@@ -13,7 +13,7 @@ interface MapStoreItemProps {
   variant?: 'row' | 'card'
 }
 
-/** 지도 검색 결과 한 칸 — 사진, 이름, 평점, 지역과 음식 종류, 영업 상태와 거리, 예약/웨이팅 */
+/** 지도 검색 결과 한 칸 — 사진, 이름, 평점, 지역과 음식 종류, 영업 상태와 거리, 예약/웨이팅 (없는 값은 줄째 숨김, 와이어프레임 MapStoreItem) */
 export function MapStoreItem({ store, to, variant = 'row' }: MapStoreItemProps) {
   const open = describeOpenStatus(store)
   const distance = formatDistance(store.distanceMeters)
@@ -24,11 +24,7 @@ export function MapStoreItem({ store, to, variant = 'row' }: MapStoreItemProps) 
       <span className={styles.text}>
         <span className={`${styles.name} t-headline-16`}>{store.name}</span>
         <span className={styles.line}>
-          {store.ratingAverage != null ? (
-            <Rating value={store.ratingAverage} count={store.reviewCount} />
-          ) : (
-            <span className="t-caption-12 text-tertiary">리뷰 없음</span>
-          )}
+          {store.ratingAverage != null && <Rating value={store.ratingAverage} count={store.reviewCount} />}
           {meta && <span className="t-caption-13 text-secondary">{meta}</span>}
         </span>
         {(open || distance) && (
@@ -42,10 +38,12 @@ export function MapStoreItem({ store, to, variant = 'row' }: MapStoreItemProps) 
             {distance && <span className="text-tertiary">{distance}</span>}
           </span>
         )}
-        <span className={styles.tags}>
-          {store.reservationEnabled ? <span className="t-label-13 text-brand">예약 가능</span> : <span className="t-caption-12 text-tertiary">예약 미지원</span>}
-          {store.waitingAvailable && <span className="t-label-13 text-brand">웨이팅 가능</span>}
-        </span>
+        {(store.reservationEnabled || store.waitingAvailable) && (
+          <span className={styles.tags}>
+            {store.reservationEnabled && <span className="t-label-13 text-brand">예약 가능</span>}
+            {store.waitingAvailable && <span className="t-label-13 text-brand">웨이팅 가능</span>}
+          </span>
+        )}
       </span>
     </Link>
   )

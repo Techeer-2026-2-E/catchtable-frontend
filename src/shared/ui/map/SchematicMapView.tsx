@@ -28,18 +28,30 @@ function unproject(x: number, y: number, zoom: number): GeoPoint {
  * 키 없이 그리는 간이 지도 — 카카오맵 키가 없거나 SDK 를 못 불러왔을 때
  * 바탕 그림 없이 격자 위에 핀만 그린다. 끌어서 이동, 휠이나 +/- 로 확대
  */
-export function SchematicMapView({ initialCenter, pins, myLocation, onIdle, onPinClick, onMapClick, ref, className }: MapViewProps) {
+export function SchematicMapView({ initialCenter, initialOffsetY = 0, pins, myLocation, onIdle, onPinClick, onMapClick, ref, className }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
-  const [center, setCenter] = useState(() => project(initialCenter, DEFAULT_ZOOM))
+  const [center, setCenter] = useState(() => {
+    const p = project(initialCenter, DEFAULT_ZOOM)
+    return { x: p.x, y: p.y + initialOffsetY }
+  })
   const drag = useRef<{ x: number; y: number; moved: boolean; id: number } | null>(null)
   const handlers = useRef({ onIdle, onMapClick })
   useLayoutEffect(() => {
     handlers.current = { onIdle, onMapClick }
   })
 
-  useImperativeHandle(ref, () => ({ panTo: (point) => setCenter(project(point, zoom)) }), [zoom])
+  useImperativeHandle(
+    ref,
+    () => ({
+      panTo: (point, options) => {
+        const p = project(point, zoom)
+        setCenter({ x: p.x, y: p.y + (options?.offsetY ?? 0) })
+      },
+    }),
+    [zoom],
+  )
 
   useLayoutEffect(() => {
     const el = containerRef.current
