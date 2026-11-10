@@ -1,0 +1,111 @@
+.map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-bg-subtle);
+  touch-action: none;
+}
+.loading {
+  background: var(--color-bg-muted);
+}
+
+/* ---------- 간이 지도 — 움직이는 격자 ---------- */
+.schematic {
+  cursor: grab;
+  background-color: #eef0eb;
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.06) 1px, transparent 1px);
+  background-size: 64px 64px;
+  user-select: none;
+}
+.schematic:active {
+  cursor: grabbing;
+}
+.placed {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.placed.pinSelected {
+  transform: translate(-50%, -100%);
+}
+.zoom {
+  position: absolute;
+  top: 50%;
+  right: var(--space-12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-8);
+  background: var(--color-bg-canvas);
+  box-shadow: var(--shadow-floating);
+  transform: translateY(-50%);
+}
+.zoom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-icon-default);
+}
+.zoom button + button {
+  border-top: 1px solid var(--color-border-default);
+}
+.zoom button:disabled {
+  color: var(--color-icon-disabled);
+}
+.zoom svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.notice {
+  position: absolute;
+  top: 7.25rem;
+  left: var(--page-gutter);
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-4);
+  background: rgb(255 255 255 / 0.85);
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+/* ---------- 핀 — 간이 지도, 카카오 오버레이 공통 ---------- */
+.pin {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  border: 3px solid var(--white);
+  border-radius: 50%;
+  background: var(--color-primary-default);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+.pinSelected {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: 2rem;
+  padding: 0 var(--space-12);
+  border: 2px solid var(--white);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-inverse);
+  white-space: nowrap;
+}
+.pinLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-inverse);
+}
+.me {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  border: 3px solid var(--white);
+  border-radius: 50%;
+  background: var(--blue-600);
+  box-shadow: 0 0 0 6px rgb(37 99 235 / 0.2);
+  pointer-events: none;
+}

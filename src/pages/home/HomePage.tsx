@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Bell, ChevronRight, Search } from 'lucide-react'
+import { Bell, ChevronRight, MapPin, Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { StoreCard, type Store } from '@/entities'
 import { useCategories, useStoreSearch } from '@/features/store-search'
@@ -36,6 +36,10 @@ export function HomePage() {
         <Link to={ROUTES.SEARCH} className={styles.search}>
           <Search aria-hidden />
           <span>식당 이름으로 검색</span>
+        </Link>
+        <Link to={ROUTES.STORE_MAP} className={styles.mapLink}>
+          <MapPin aria-hidden />
+          <span>내 주변</span>
         </Link>
       </div>
 
