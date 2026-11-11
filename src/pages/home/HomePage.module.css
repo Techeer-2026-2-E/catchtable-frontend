@@ -28,11 +28,14 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  display: flex;
+  gap: var(--space-8);
   padding: var(--space-4) var(--page-gutter) var(--space-12);
   background: var(--color-bg-canvas);
 }
 .search {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-8);
   height: 3.25rem;
@@ -46,6 +49,26 @@
   width: 1.25rem;
   height: 1.25rem;
   color: var(--color-icon-default);
+}
+
+/* 알림 — 검색창 옆 (지도로 찾기는 헤더 오른쪽) */
+.mapLink {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: var(--radius-12);
+  background: var(--color-bg-subtle);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.mapLink svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* ---------- 음식 종류 ---------- */

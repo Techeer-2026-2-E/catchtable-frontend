@@ -15,6 +15,11 @@ export const env = {
    * 서버의 TOSS_SECRET_KEY 와 짝인 테스트 키만 넣는다
    */
   tossClientKey: import.meta.env.VITE_TOSS_CLIENT_KEY ?? '',
+  /**
+   * 카카오맵 JavaScript 키. 비어 있으면 지도 화면이 키 없이 그리는 간이 지도로 대신한다
+   * 카카오 개발자 콘솔 > 플랫폼 > Web 에 이 앱의 도메인(localhost:5173 포함)을 등록해야 지도가 뜬다
+   */
+  kakaoMapKey: import.meta.env.VITE_KAKAO_MAP_KEY ?? '',
   /** 개발 서버의 MSW 또는 명시적으로 선택한 로컬 fake PG 전용. 배포에서는 항상 꺼짐 */
   tossSimulation: import.meta.env.DEV && (apiMocking || import.meta.env.VITE_TOSS_SIMULATION === 'true'),
   /**

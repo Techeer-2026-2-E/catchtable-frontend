@@ -181,3 +181,74 @@ export interface DepositPolicy {
   depositAmount: number
   refundPolicy: RefundPolicy | null
 }
+
+/* ---------- 지도 검색 — 백엔드 feat/266-map-stores ---------- */
+
+/** 위도, 경도 (WGS84) */
+export interface LatLng {
+  lat: number
+  lng: number
+}
+
+/** 지도 화면 사각형 — 남서, 북동 모서리 */
+export interface MapBounds {
+  swLat: number
+  swLng: number
+  neLat: number
+  neLng: number
+}
+
+/** 지금 시각 기준 영업 상태 — 영업시간 정보가 없는 매장은 null */
+export type OpenStatus = 'OPEN' | 'BREAK' | 'BEFORE_OPEN' | 'CLOSED'
+
+export const OPEN_STATUS_LABEL: Record<OpenStatus, string> = {
+  OPEN: '영업 중',
+  BREAK: '브레이크타임',
+  BEFORE_OPEN: '영업 전',
+  CLOSED: '영업 종료',
+}
+
+/** 지도 매장 목록 한 건 — MapStoreResponse */
+export interface MapStore {
+  id: number
+  name: string
+  categoryName: string
+  imageUrl: string | null
+  latitude: number
+  longitude: number
+  /** 주소의 구 이름 ("강남구"). 형식이 다르면 null */
+  area: string | null
+  /** 현재 위치를 보낸 조회에서만 값이 있음 */
+  distanceMeters: number | null
+  /** 점주가 있는 입점 매장만 true */
+  reservationEnabled: boolean
+  waitingAvailable: boolean
+  openStatus: OpenStatus | null
+  /** 다음에 영업 상태가 바뀌는 한국 시각 (LocalDateTime) */
+  nextChangeAt: string | null
+  /** 소수 첫째 자리, 리뷰가 없으면 null */
+  ratingAverage: number | null
+  reviewCount: number
+}
+
+/** GET /api/user/stores/map/radius · /map/bounds — MapStoreListResponse */
+export interface MapStoreList {
+  stores: MapStore[]
+  page: number
+  size: number
+  hasNext: boolean
+}
+
+/** 지도 핀 하나 — MapMarkerResponse */
+export interface MapMarker {
+  id: number
+  name: string
+  latitude: number
+  longitude: number
+}
+
+/** GET /api/user/stores/map/bounds/markers — truncated 면 화면 안 매장이 상한(1000)보다 많아 일부만 옴 */
+export interface MapMarkerList {
+  stores: MapMarker[]
+  truncated: boolean
+}

@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { CalendarDays, ChevronDown, SearchX } from 'lucide-react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { CalendarDays, ChevronDown, Map as MapIcon, SearchX } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from '@/entities'
 import { useAvailability } from '@/features/reservation'
 import { useStoreSearch } from '@/features/store-search'
-import { paths } from '@/shared/config'
+import { paths, ROUTES } from '@/shared/config'
 import { useDebounce } from '@/shared/hooks'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
@@ -112,6 +112,10 @@ export function SearchPage() {
               조건 지우기
             </button>
           )}
+          <Link to={ROUTES.STORE_MAP} className={styles.mapLink}>
+            <MapIcon aria-hidden />
+            지도로 보기
+          </Link>
         </div>
 
         <nav className={styles.categories} aria-label="카테고리">

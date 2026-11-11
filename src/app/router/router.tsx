@@ -39,6 +39,7 @@ import {
   ReviewWritePage,
   SearchPage,
   StoreDetailPage,
+  StoreMapPage,
   WaitingApplyPage,
   WaitingPage,
 } from './lazyPages'
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
       { path: ROUTES.HOME, element: <HomePage /> },
       { path: ROUTES.LOGIN, element: <LoginPage /> },
       { path: ROUTES.SEARCH, element: <SearchPage /> },
+      { path: ROUTES.STORE_MAP, element: <StoreMapPage /> },
       { path: ROUTES.STORE_DETAIL, element: <StoreDetailPage /> },
 
       // 로그인 필요

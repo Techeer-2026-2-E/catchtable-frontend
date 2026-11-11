@@ -7,6 +7,7 @@ import { lazy } from 'react'
  */
 export const HomePage = lazy(() => import('@/pages/home').then((m) => ({ default: m.HomePage })))
 export const LoginPage = lazy(() => import('@/pages/login').then((m) => ({ default: m.LoginPage })))
+export const StoreMapPage = lazy(() => import('@/pages/store-map').then((m) => ({ default: m.StoreMapPage })))
 export const SearchPage = lazy(() => import('@/pages/search').then((m) => ({ default: m.SearchPage })))
 export const StoreDetailPage = lazy(() => import('@/pages/store-detail').then((m) => ({ default: m.StoreDetailPage })))
 export const ReservationPage = lazy(() => import('@/pages/reservation').then((m) => ({ default: m.ReservationPage })))
