@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
-import { ChevronLeft, ChevronUp, List, LocateFixed, Map as MapIcon, RotateCw, Search, X } from 'lucide-react'
-import { Link, useNavigate } from 'react-router'
+import { ChevronUp, List, LocateFixed, Map as MapIcon, RotateCw, Search, X } from 'lucide-react'
+import { Link } from 'react-router'
 import type { LatLng, MapBounds } from '@/entities'
 import { useStoreDetail } from '@/features/store-detail'
 import {
@@ -40,7 +40,6 @@ const DRAG_THRESHOLD = 30
  * - 시트 손잡이: 위로 끌거나 누르면 펼치고, 아래로 끌면 접는다
  */
 export function StoreMapPage() {
-  const navigate = useNavigate()
   const geo = useGeolocation()
   const pageRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapHandle>(null)
@@ -147,14 +146,6 @@ export function StoreMapPage() {
       />
 
       <div className={styles.top}>
-        <button
-          type="button"
-          className={styles.back}
-          aria-label="뒤로"
-          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate(ROUTES.HOME))}
-        >
-          <ChevronLeft aria-hidden />
-        </button>
         <Link to={ROUTES.SEARCH} className={styles.searchBar}>
           <Search aria-hidden />
           <span>어떤 맛집 찾으시나요?</span>
