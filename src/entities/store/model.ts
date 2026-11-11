@@ -252,3 +252,20 @@ export interface MapMarkerList {
   stores: MapMarker[]
   truncated: boolean
 }
+
+/* ---------- 매출 — 기능32 GET /api/owner/stores/{storeId}/sales?from=&to= ---------- */
+
+/**
+ * 기간 매출 (SalesResponse) — 승인 시각이 기간 안인 성공 결제 기준, 서울 시간
+ * 환불액은 같은 결제들의 현재 누적 환불액이라 나중에 환불되면 지난 기간 값도 바뀜
+ */
+export interface SalesSummary {
+  from: string
+  to: string
+  approvedAmount: number
+  refundedAmount: number
+  /** approvedAmount - refundedAmount */
+  netAmount: number
+  /** 테스트 결제 기반 모의 집계 안내 — 그대로 보여줌 */
+  notice: string
+}

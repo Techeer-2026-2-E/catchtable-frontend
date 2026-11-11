@@ -4,7 +4,7 @@ import type { StoreTable } from '@/entities'
 import { useStoreTableMutations, useStoreTables } from '@/features/owner-store'
 import { useParams } from 'react-router'
 import { getErrorMessage } from '@/shared/lib'
-import { BottomSheet, Button, Card, ErrorState, LoadingState, Page, Stepper, toast, Toggle, TopBar } from '@/shared/ui'
+import { BottomSheet, Button, Card, ErrorState, ListSkeleton, Page, Stepper, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerTablesPage.module.css'
 
 /** 새 테이블 — StoreTableCreateRequest (등록 후에는 운영 상태만 바꿀 수 있음) */
@@ -61,7 +61,7 @@ export function OwnerTablesPage() {
       </p>
 
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={5} variant="card" trailing />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : (

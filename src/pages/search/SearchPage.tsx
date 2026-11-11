@@ -8,20 +8,7 @@ import { paths, ROUTES } from '@/shared/config'
 import { useDebounce } from '@/shared/hooks'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
-import {
-  BottomSheet,
-  Button,
-  Calendar,
-  Chip,
-  ChipGroup,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  Page,
-  SearchBar,
-  Stepper,
-  TopBar,
-} from '@/shared/ui'
+import { BottomSheet, Button, Calendar, Chip, ChipGroup, EmptyState, ErrorState, ListSkeleton, Page, SearchBar, Stepper, TopBar } from '@/shared/ui'
 import styles from './SearchPage.module.css'
 
 const TIMES = ['11:30', '12:00', '12:30', '13:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00']
@@ -137,7 +124,7 @@ export function SearchPage() {
       </div>
 
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={5} thumb="small" variant="card" />
       ) : isError && !results?.length ? (
         <ErrorState onRetry={() => refetch()} />
       ) : (

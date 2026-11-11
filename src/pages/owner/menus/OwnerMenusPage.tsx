@@ -5,7 +5,7 @@ import type { Menu } from '@/entities'
 import { useMenuMutations, useOwnerMenus } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
 import { formatPrice } from '@/shared/lib/format'
-import { BottomSheet, Button, Card, EmptyState, ErrorState, LoadingState, Page, TextField, Textarea, toast, TopBar } from '@/shared/ui'
+import { BottomSheet, Button, Card, EmptyState, ErrorState, ListSkeleton, Page, Textarea, TextField, toast, TopBar } from '@/shared/ui'
 import styles from './OwnerMenusPage.module.css'
 
 interface Draft {
@@ -60,7 +60,7 @@ export function OwnerMenusPage() {
       <TopBar title="메뉴 설정" />
 
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={4} thumb="small" trailing />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : menus.length === 0 ? (

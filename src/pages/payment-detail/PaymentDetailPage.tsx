@@ -9,7 +9,7 @@ import { paths } from '@/shared/config'
 import { getErrorMessage, refundKeyStorage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, shortOrderId } from '@/shared/lib/format'
-import { Badge, Banner, Button, Dialog, ErrorState, LoadingState, Page, toast, TopBar } from '@/shared/ui'
+import { Badge, Banner, Button, DetailSkeleton, Dialog, ErrorState, Page, toast, TopBar } from '@/shared/ui'
 import styles from './PaymentDetailPage.module.css'
 
 const formatDateTime = (value: string) => dayjs(value).format('M월 D일 A h:mm')
@@ -43,7 +43,7 @@ export function PaymentDetailPage() {
     return (
       <Page>
         <TopBar title="결제 상세" />
-        {detail.isPending ? <LoadingState /> : <ErrorState message="결제를 찾을 수 없어요" onRetry={() => detail.refetch()} />}
+        {detail.isPending ? <DetailSkeleton sections={2} /> : <ErrorState message="결제를 찾을 수 없어요" onRetry={() => detail.refetch()} />}
       </Page>
     )
   }

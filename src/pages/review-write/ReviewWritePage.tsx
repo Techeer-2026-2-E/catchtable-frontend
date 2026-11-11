@@ -8,7 +8,7 @@ import { storeDetailKeys } from '@/features/store-detail'
 import { ROUTES } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Button, ErrorState, LoadingState, Page, StarRating, Textarea, toast, TopBar } from '@/shared/ui'
+import { Button, DetailSkeleton, ErrorState, Page, StarRating, Textarea, toast, TopBar } from '@/shared/ui'
 import styles from './ReviewWritePage.module.css'
 
 /** 백엔드 ReviewCreateRequest — 공백 불가, 1000자 이내 */
@@ -44,7 +44,7 @@ export function ReviewWritePage() {
       <Page>
         <TopBar title={title} leading="close" />
         {query.isPending ? (
-          <LoadingState />
+          <DetailSkeleton sections={1} />
         ) : (
           <ErrorState message={editing ? '리뷰를 찾을 수 없어요' : '방문 정보를 찾을 수 없어요'} onRetry={() => query.refetch()} />
         )}

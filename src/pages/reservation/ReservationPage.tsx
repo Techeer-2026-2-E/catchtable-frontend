@@ -8,7 +8,7 @@ import { paths } from '@/shared/config'
 import { getErrorCode, getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPhone, formatTime } from '@/shared/lib/format'
-import { Button, EmptyState, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { Button, DetailSkeleton, EmptyState, ErrorState, Page, Section, toast, TopBar } from '@/shared/ui'
 import styles from './ReservationPage.module.css'
 
 type Step = 'datetime' | 'confirm'
@@ -41,7 +41,7 @@ export function ReservationPage() {
     return (
       <Page>
         <TopBar leading="close" />
-        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+        {isPending ? <DetailSkeleton sections={1} /> : <ErrorState onRetry={() => refetch()} />}
       </Page>
     )
   }

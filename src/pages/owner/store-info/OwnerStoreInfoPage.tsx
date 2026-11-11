@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, type StoreCategory, type StoreDetail } from '@/entities'
 import { useMyStores, useUpdateStoreInfo } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
-import { Button, Chip, ChipGroup, ErrorState, ImagePlaceholder, LoadingState, Page, TextField, Textarea, toast, TopBar } from '@/shared/ui'
+import { Button, Chip, ChipGroup, DetailSkeleton, ErrorState, ImagePlaceholder, Page, Textarea, TextField, toast, TopBar } from '@/shared/ui'
 import styles from './OwnerStoreInfoPage.module.css'
 
 const CATEGORIES = Object.keys(STORE_CATEGORY_LABEL) as StoreCategory[]
@@ -24,7 +24,7 @@ export function OwnerStoreInfoPage() {
     return (
       <Page>
         <TopBar title="매장 정보 수정" />
-        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+        {isPending ? <DetailSkeleton hero sections={2} /> : <ErrorState onRetry={() => refetch()} />}
       </Page>
     )
   }

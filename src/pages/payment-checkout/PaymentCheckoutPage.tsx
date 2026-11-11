@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
-import { findPaymentByHold, requestTossPayment, usePreparedPayment } from '@/features/payment'
+import { findPaymentByHold, isTestPayment, requestTossPayment, usePreparedPayment } from '@/features/payment'
 import { useHold, useHoldCountdown, useReleaseHold } from '@/features/reservation'
 import { useStoreDetail } from '@/features/store-detail'
 import { paths, ROUTES } from '@/shared/config'
 import { getErrorCode, getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
-import { Banner, Button, Dialog, EmptyState, ErrorState, LoadingState, Page, toast, TopBar } from '@/shared/ui'
+import { Banner, Button, DetailSkeleton, Dialog, EmptyState, ErrorState, Page, toast, TopBar } from '@/shared/ui'
 import styles from './PaymentCheckoutPage.module.css'
 
 const formatRemaining = (seconds: number) =>
@@ -56,7 +56,7 @@ export function PaymentCheckoutPage() {
     return (
       <Page>
         <TopBar title="예약금 결제" />
-        {hold.isPending ? <LoadingState /> : <ErrorState message="선점 정보를 찾을 수 없어요" onRetry={() => hold.refetch()} />}
+        {hold.isPending ? <DetailSkeleton sections={1} /> : <ErrorState message="선점 정보를 찾을 수 없어요" onRetry={() => hold.refetch()} />}
       </Page>
     )
   }
@@ -145,6 +145,10 @@ export function PaymentCheckoutPage() {
           <span className="t-body-14 text-secondary">결제 남은 시간</span>
           <strong className={`${styles.remaining} tnum`}>{formatRemaining(remaining)}</strong>
         </div>
+
+        {isTestPayment && (
+          <Banner tone="info">테스트 결제예요. 카드 정보를 넣어도 실제로 돈이 나가지 않아요.</Banner>
+        )}
 
         {awaitingResult && (
           <Banner tone="notice">진행 중인 결제가 있을 수 있어요. 새로 결제하지 말고 결과를 먼저 확인해주세요.</Banner>

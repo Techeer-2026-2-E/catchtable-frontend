@@ -304,6 +304,36 @@ const storeHandlers = [
     return saved(new HttpResponse(null, { status: 204 }))
   }),
 
+  /* ---------- 매출 — 기능32 ---------- */
+  /** 승인 시각이 기간 안인 DONE, PARTIAL_REFUNDED, REFUNDED 결제의 승인액과 현재 누적 환불액 */
+  http.get(`${API}/owner/stores/:storeId/sales`, async ({ params, request }) => {
+    await before()
+    const own = ownStore(request, Number(params.storeId))
+    if ('error' in own) return own.error
+    const q = new URL(request.url).searchParams
+    const from = q.get('from') ?? ''
+    const to = q.get('to') ?? ''
+    const valid = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && dayjs(d).isValid()
+    if (!valid(from) || !valid(to) || from > to) return badRequest('조회 기간을 확인해주세요.')
+    const reservationIds = new Set(db.reservations.filter((r) => r.storeId === own.store.id).map((r) => r.reservationId))
+    const hits = db.payments.filter((p) => {
+      if (!reservationIds.has(p.holdId) || !p.approvedAt) return false
+      if (!['DONE', 'PARTIAL_REFUNDED', 'REFUNDED'].includes(p.status)) return false
+      const day = dayjs(p.approvedAt).format('YYYY-MM-DD')
+      return day >= from && day <= to
+    })
+    const approvedAmount = hits.reduce((sum, p) => sum + p.amount, 0)
+    const refundedAmount = hits.reduce((sum, p) => sum + p.canceledAmount, 0)
+    return HttpResponse.json({
+      from,
+      to,
+      approvedAmount,
+      refundedAmount,
+      netAmount: approvedAmount - refundedAmount,
+      notice: '실제 매출·세금·PG 수수료·점주 정산액이 아닌 테스트 결제 기반 모의 집계입니다.',
+    })
+  }),
+
   /* ---------- 예약금 정책 ---------- */
   http.get(`${API}/owner/stores/:storeId/deposit-policy`, async ({ params, request }) => {
     await before()

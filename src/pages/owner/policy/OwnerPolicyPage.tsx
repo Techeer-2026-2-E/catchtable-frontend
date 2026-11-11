@@ -8,7 +8,7 @@ import {
   useReservationPolicy,
 } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
-import { Banner, Button, Chip, ChipGroup, Divider, ErrorState, LoadingState, Page, Section, Stepper, TextField, toast, Toggle, TopBar } from '@/shared/ui'
+import { Banner, Button, Chip, ChipGroup, Divider, ErrorState, ListSkeleton, Page, Section, Stepper, TextField, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerPolicyPage.module.css'
 
 const REFUND_POLICIES: RefundPolicy[] = ['FLEXIBLE', 'STANDARD', 'STRICT']
@@ -30,7 +30,7 @@ export function OwnerPolicyPage() {
     return (
       <Page>
         <TopBar title="예약 정책 관리" />
-        {policy.isError || deposit.isError ? <ErrorState onRetry={retry} /> : <LoadingState />}
+        {policy.isError || deposit.isError ? <ErrorState onRetry={retry} /> : <ListSkeleton rows={4} trailing />}
       </Page>
     )
   }

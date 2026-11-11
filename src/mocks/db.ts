@@ -603,6 +603,14 @@ function seed(): Db {
       })
     }
   }
+  // 점주 매출 보기용 — 최근 40일 이용 완료 예약 중 일부에 테스트 결제 (일부는 환불)
+  reservations
+    .filter((r) => r.storeId === 2 && r.status === 'COMPLETED' && dayjs(r.requestedAt).isAfter(now.subtract(40, 'day')))
+    .forEach((r, i) => {
+      if (i % 2) return
+      const amount = i % 6 === 0 ? 20_000 : 10_000
+      paid(r, amount, i % 10 === 0 ? { refunds: [[amount / 2, '인원이 줄어서요']] } : {})
+    })
 
   /* ---------- 웨이팅 ---------- */
   let waitingId = 200
@@ -719,7 +727,7 @@ function seed(): Db {
 // v4: 백엔드 응답에 없는 값(평점·지역·좌석 타입·알림함 등)을 뺌
 // v5: 특정일 영업, 예약금 정책
 // v6: 고객 예약금 결제 시드
-const STORAGE_KEY = 'catchtable-mock-db-v6'
+const STORAGE_KEY = 'catchtable-mock-db-v7'
 
 function load(): Db {
   try {

@@ -1,3 +1,3 @@
 export * from './model'
-export { StoreCard, StoreTags } from './ui/StoreCard'
+export { StoreCard, StoreTags, type StoreCardData } from './ui/StoreCard'
 export * from './hours'

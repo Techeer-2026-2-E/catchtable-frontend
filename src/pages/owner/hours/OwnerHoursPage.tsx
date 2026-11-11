@@ -5,7 +5,7 @@ import { useBusinessHours, useReplaceBusinessHours, type BusinessHourRequest } f
 import { getErrorMessage } from '@/shared/lib'
 import { CalendarDays } from 'lucide-react'
 import { paths } from '@/shared/config'
-import { Banner, Button, ErrorState, ListItem, LoadingState, Page, Section, toast, Toggle, TopBar } from '@/shared/ui'
+import { Banner, Button, ErrorState, ListItem, ListSkeleton, Page, Section, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerHoursPage.module.css'
 
 /** 화면 편집용 — 휴무 요일도 시간 값을 유지해서 다시 켜면 복원되게 함 */
@@ -67,7 +67,7 @@ export function OwnerHoursPage() {
     return (
       <Page>
         <TopBar title="영업시간 관리" />
-        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+        {isPending ? <ListSkeleton rows={7} trailing /> : <ErrorState onRetry={() => refetch()} />}
       </Page>
     )
   }

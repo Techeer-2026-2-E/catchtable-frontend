@@ -7,4 +7,5 @@ export const ownerStoreKeys = {
   menus: (storeId: number) => [...ownerStoreKeys.all, storeId, 'menus'] as const,
   specialDays: (storeId: number) => [...ownerStoreKeys.all, storeId, 'special-days'] as const,
   deposit: (storeId: number) => [...ownerStoreKeys.all, storeId, 'deposit-policy'] as const,
+  sales: (storeId: number, from: string, to: string) => [...ownerStoreKeys.all, storeId, 'sales', from, to] as const,
 }

@@ -21,19 +21,7 @@ import { paths } from "@/shared/config";
 import { getErrorCode, getErrorMessage } from "@/shared/lib";
 import { dayjs } from "@/shared/lib/dayjs";
 import { formatTime } from "@/shared/lib/format";
-import {
-  Button,
-  Chip,
-  ChipGroup,
-  Dialog,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  Page,
-  Tabs,
-  toast,
-  TopBar,
-} from "@/shared/ui";
+import { Button, Chip, ChipGroup, Dialog, EmptyState, ErrorState, ListSkeleton, Page, Tabs, toast, TopBar } from "@/shared/ui";
 import styles from "./MyDiningPage.module.css";
 
 type Tab = "ALL" | HistoryType;
@@ -139,7 +127,7 @@ export function MyDiningPage() {
       </div>
 
       {history.isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={4} thumb="small" variant="card" />
       ) : history.isError ? (
         <ErrorState onRetry={() => history.refetch()} />
       ) : groups.length === 0 ? (

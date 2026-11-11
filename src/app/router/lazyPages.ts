@@ -46,3 +46,4 @@ export const OwnerWaitingsPage = lazy(() => owner().then((m) => ({ default: m.Ow
 export const OwnerWaitingSettingsPage = lazy(() => owner().then((m) => ({ default: m.OwnerWaitingSettingsPage })))
 export const OwnerMenusPage = lazy(() => owner().then((m) => ({ default: m.OwnerMenusPage })))
 export const OwnerReviewsPage = lazy(() => owner().then((m) => ({ default: m.OwnerReviewsPage })))
+export const OwnerSalesPage = lazy(() => owner().then((m) => ({ default: m.OwnerSalesPage })))

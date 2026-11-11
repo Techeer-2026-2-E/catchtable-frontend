@@ -39,3 +39,9 @@ export async function requestTossPayment(prepare: () => Promise<PreparedPayment>
     failUrl,
   })
 }
+
+/**
+ * 테스트 결제인지 — 토스 테스트 키(test_ 로 시작)나 가짜 결제(목 API)면 실제로 돈이 나가지 않음
+ * 라이브 키를 넣으면 false 가 되어 안내를 숨긴다
+ */
+export const isTestPayment = env.tossSimulation || !env.tossClientKey.startsWith('live_')

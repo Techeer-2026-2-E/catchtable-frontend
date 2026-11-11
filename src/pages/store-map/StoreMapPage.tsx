@@ -15,7 +15,7 @@ import {
 import { paths, ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib/cn'
 import { useGeolocation } from '@/shared/lib/useGeolocation'
-import { Button, ErrorState, ImagePlaceholder, LoadingState, toast } from '@/shared/ui'
+import { Button, ErrorState, ImagePlaceholder, ListSkeleton, toast } from '@/shared/ui'
 import { MapView, type MapHandle, type MapPin } from '@/shared/ui/map'
 import styles from './StoreMapPage.module.css'
 
@@ -236,7 +236,7 @@ export function StoreMapPage() {
             {!searched ? (
               <p className={cn(styles.empty, 't-body-14 text-tertiary')}>지도를 확대해 검색해 주세요</p>
             ) : list.isPending ? (
-              <LoadingState compact />
+              <ListSkeleton rows={3} thumb="square" inset={false} />
             ) : list.isError ? (
               <ErrorState onRetry={() => list.refetch()} />
             ) : stores.length === 0 ? (
@@ -312,7 +312,7 @@ function SheetHandle({ mode, onChange }: { mode: SheetMode; onChange: (mode: She
 /** 목록에 아직 안 불러온 매장의 핀을 눌렀을 때 — 매장 상세로 이름, 종류, 주소만 */
 function SelectedFallback({ storeId }: { storeId: number }) {
   const { data, isPending, isError } = useStoreDetail(storeId)
-  if (isPending) return <div className={styles.fallbackCard}><LoadingState compact /></div>
+  if (isPending) return <div className={styles.fallbackCard}><ListSkeleton rows={1} thumb="square" inset={false} /></div>
   if (isError || !data) return <div className={styles.fallbackCard}><p className="t-body-14 text-tertiary">매장 정보를 불러오지 못했어요</p></div>
   return (
     <Link to={paths.storeDetail(storeId)} className={styles.fallbackCard}>

@@ -13,21 +13,7 @@ import { useReservationPolicy, useStoreTables } from '@/features/owner-store'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPhone, formatTime } from '@/shared/lib/format'
-import {
-  Button,
-  Card,
-  Chip,
-  ChipGroup,
-  Dialog,
-  EmptyState,
-  ErrorState,
-  IconButton,
-  LoadingState,
-  Page,
-  Textarea,
-  toast,
-  TopBar,
-} from '@/shared/ui'
+import { Button, Card, Chip, ChipGroup, Dialog, EmptyState, ErrorState, IconButton, ListSkeleton, Page, Textarea, toast, TopBar } from '@/shared/ui'
 import { ChangeReservationSheet } from './ChangeReservationSheet'
 import { ReservationDetailSheet } from './ReservationDetailSheet'
 import styles from './OwnerReservationsPage.module.css'
@@ -121,7 +107,7 @@ export function OwnerReservationsPage() {
       </div>
 
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={4} variant="card" trailing />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : list.length === 0 ? (

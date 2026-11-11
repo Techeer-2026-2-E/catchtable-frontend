@@ -4,6 +4,7 @@ import type {
   DepositPolicy,
   Menu,
   RefundPolicy,
+  SalesSummary,
   ReservationPolicy,
   SpecialBusinessDay,
   StoreCategory,
@@ -161,6 +162,11 @@ export const ownerStoreApi = {
   },
   replaceDepositPolicy: async (storeId: number, body: DepositPolicyRequest) => {
     const { data } = await apiClient.put<DepositPolicy>(`/owner/stores/${storeId}/deposit-policy`, body)
+    return data
+  },
+  /** 기간 매출 — from, to 는 yyyy-MM-dd (서울 시간, 양 끝 포함) */
+  getSales: async (storeId: number, from: string, to: string) => {
+    const { data } = await apiClient.get<SalesSummary>(`/owner/stores/${storeId}/sales`, { params: { from, to } })
     return data
   },
 }

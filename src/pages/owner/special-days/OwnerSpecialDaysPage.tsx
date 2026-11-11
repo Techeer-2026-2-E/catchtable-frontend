@@ -5,7 +5,7 @@ import type { SpecialBusinessDay } from '@/entities'
 import { useSpecialDayMutations, useSpecialDays, type SpecialBusinessDayRequest } from '@/features/owner-store'
 import { getErrorCode, getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Badge, BottomSheet, Button, EmptyState, ErrorState, LoadingState, Page, TextField, toast, Toggle, TopBar } from '@/shared/ui'
+import { Badge, BottomSheet, Button, EmptyState, ErrorState, ListSkeleton, Page, TextField, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerSpecialDaysPage.module.css'
 
 const hhmm = (time: string | null) => time?.slice(0, 5) ?? ''
@@ -51,7 +51,7 @@ export function OwnerSpecialDaysPage() {
         요일별 영업시간과 다르게 여는 날이나 쉬는 날을 날짜별로 정해요. 지난 날짜는 바꿀 수 없어요.
       </p>
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={3} trailing />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : days.length === 0 ? (

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useWaitingSettings, useWaitingSettingsMutations } from '@/features/owner-waiting'
 import { getErrorMessage } from '@/shared/lib'
-import { Banner, Button, Chip, ChipGroup, ErrorState, LoadingState, Page, Section, toast, TopBar } from '@/shared/ui'
+import { Banner, Button, Chip, ChipGroup, ErrorState, ListSkeleton, Page, Section, toast, TopBar } from '@/shared/ui'
 import styles from './OwnerWaitingSettingsPage.module.css'
 
 /** 백엔드 허용 범위는 1~60분. 화면은 자주 쓰는 값만 칩으로 보여준다 */
@@ -25,7 +25,7 @@ export function OwnerWaitingSettingsPage() {
     return (
       <Page>
         <TopBar title="웨이팅 설정" />
-        <LoadingState />
+        <ListSkeleton rows={3} trailing />
       </Page>
     )
   }

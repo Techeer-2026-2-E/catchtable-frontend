@@ -23,17 +23,7 @@ import { useModal } from "@/shared/hooks/useModal";
 import { getErrorMessage } from "@/shared/lib";
 import { dayjs } from "@/shared/lib/dayjs";
 import { formatPhone } from "@/shared/lib/format";
-import {
-  Button,
-  Dialog,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  Page,
-  Ticket,
-  toast,
-  TopBar,
-} from "@/shared/ui";
+import { Button, Dialog, EmptyState, ErrorState, ListSkeleton, Page, Ticket, toast, TopBar } from "@/shared/ui";
 import styles from "./UsageStatusPage.module.css";
 
 const PAST_LIMIT = 10;
@@ -83,7 +73,7 @@ export function UsageStatusPage() {
     <Page>
       <TopBar title="이용 현황" />
       {history.isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={3} variant="card" trailing />
       ) : history.isError ? (
         <ErrorState onRetry={() => history.refetch()} />
       ) : items.length === 0 ? (
