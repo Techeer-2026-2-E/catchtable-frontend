@@ -4,7 +4,7 @@ import type { StoreTable } from '@/entities'
 import { useStoreTableMutations, useStoreTables } from '@/features/owner-store'
 import { useParams } from 'react-router'
 import { getErrorMessage } from '@/shared/lib'
-import { Badge, BottomSheet, Button, Card, ErrorState, LoadingState, Page, Stepper, toast, Toggle, TopBar } from '@/shared/ui'
+import { BottomSheet, Button, Card, ErrorState, LoadingState, Page, Stepper, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerTablesPage.module.css'
 
 /** 새 테이블 — StoreTableCreateRequest (등록 후에는 운영 상태만 바꿀 수 있음) */
@@ -74,7 +74,6 @@ export function OwnerTablesPage() {
                   <span className="t-body-15">{table.tableNumber}번 테이블</span>
                   <span className="t-caption-13 text-tertiary">수용 {capacityLabel(table)}</span>
                 </div>
-                {inactive && <Badge>미운영</Badge>}
                 <Toggle checked={!inactive} label={`${table.tableNumber}번 테이블 운영`} onChange={(on) => toggleActive(table, on)} />
               </Card>
             )
