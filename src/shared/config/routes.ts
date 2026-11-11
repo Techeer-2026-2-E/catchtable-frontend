@@ -3,7 +3,7 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   SEARCH: '/search',
-  /** 지도로 매장 찾기 — 하단 탭바 없는 전체 화면 */
+  /** 지도로 매장 찾기 — 하단 탭 '지도' */
   STORE_MAP: '/map',
   STORE_DETAIL: '/stores/:storeId',
   RESERVATION: '/stores/:storeId/reservation',

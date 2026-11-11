@@ -1,8 +1,8 @@
-/* 지도 전체 화면 — 하단 탭바 없이 프레임 높이를 꽉 채운다 */
+/* 지도 탭 — 하단 탭바를 뺀 높이를 꽉 채운다 */
 .page {
   position: relative;
   flex: 1;
-  height: 100dvh;
+  height: calc(100dvh - var(--bottomnav-height));
   overflow: hidden;
 }
 
@@ -21,21 +21,6 @@
 }
 .top > * {
   pointer-events: auto;
-}
-.back {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 50%;
-  background: var(--color-bg-canvas);
-  box-shadow: var(--shadow-floating);
-}
-.back svg {
-  width: 1.5rem;
-  height: 1.5rem;
 }
 .searchBar {
   display: flex;
@@ -272,7 +257,7 @@
   text-align: center;
 }
 .toMap {
-  position: fixed;
+  position: absolute;
   bottom: calc(var(--space-24) + env(safe-area-inset-bottom));
   left: 50%;
   z-index: 25;

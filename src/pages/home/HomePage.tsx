@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Bell, ChevronRight, MapPin, Search } from 'lucide-react'
+import { Bell, ChevronRight, Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { StoreCard, type Store } from '@/entities'
 import { DEFAULT_CENTER, formatDistance, useNearbyStores } from '@/features/store-map'
@@ -33,9 +33,6 @@ export function HomePage() {
     <Page>
       <header className={styles.header}>
         <span className={styles.brand}>캐치테이블</span>
-        <Link to={ROUTES.STORE_MAP} className={styles.bell} aria-label="지도로 내 주변 매장 찾기">
-          <MapPin aria-hidden />
-        </Link>
       </header>
       <div className={styles.searchWrap}>
         <Link to={ROUTES.SEARCH} className={styles.search}>
