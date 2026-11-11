@@ -11,17 +11,6 @@
   letter-spacing: -0.02em;
   color: var(--color-text-brand);
 }
-.bell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-}
-.bell svg {
-  width: 1.5rem;
-  height: 1.5rem;
-}
 
 /* ---------- 검색바 ---------- */
 .searchWrap {
