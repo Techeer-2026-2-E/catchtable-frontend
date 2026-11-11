@@ -51,7 +51,7 @@
   color: var(--color-icon-default);
 }
 
-/* 지도로 찾기 — 검색창 옆 */
+/* 알림 — 검색창 옆 (지도로 찾기는 헤더 오른쪽) */
 .mapLink {
   display: flex;
   flex-shrink: 0;
