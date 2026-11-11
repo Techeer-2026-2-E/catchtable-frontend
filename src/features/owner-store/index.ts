@@ -26,3 +26,4 @@ export {
   useUpdateStoreInfo,
 } from './hooks/useOwnerStores'
 export { useStoreTableMutations, useStoreTables } from './hooks/useStoreTables'
+export { useDailySales, useSales } from './hooks/useSales'

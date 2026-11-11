@@ -2,7 +2,7 @@ import { Info } from 'lucide-react'
 import type { NotificationSettings } from '@/entities'
 import { useNotificationSettings, useUpdateNotificationSettings } from '@/features/member'
 import { getErrorMessage } from '@/shared/lib'
-import { ErrorState, ListItem, LoadingState, Page, toast, Toggle, TopBar } from '@/shared/ui'
+import { ErrorState, ListItem, ListSkeleton, Page, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './NotificationSettingsPage.module.css'
 
 const ITEMS: { key: keyof NotificationSettings; title: string; description: string }[] = [
@@ -27,7 +27,7 @@ export function NotificationSettingsPage() {
     <Page>
       <TopBar title="알림 설정" />
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={4} trailing />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : (

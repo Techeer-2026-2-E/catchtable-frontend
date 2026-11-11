@@ -5,7 +5,7 @@ import { useWaitingActions, useWaitingDetail } from '@/features/waiting'
 import { paths, ROUTES } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import { Button, Dialog, ErrorState, LoadingState, Page, Ticket, toast, TopBar } from '@/shared/ui'
+import { Button, DetailSkeleton, Dialog, ErrorState, Page, Ticket, toast, TopBar } from '@/shared/ui'
 import styles from './WaitingPage.module.css'
 
 const ENDED_MESSAGE: Partial<Record<WaitingStatus, string>> = {
@@ -34,7 +34,7 @@ export function WaitingPage() {
     return (
       <Page>
         <TopBar title="웨이팅" />
-        {isPending ? <LoadingState /> : <ErrorState message="웨이팅을 찾을 수 없어요" onRetry={() => refetch()} />}
+        {isPending ? <DetailSkeleton sections={1} /> : <ErrorState message="웨이팅을 찾을 수 없어요" onRetry={() => refetch()} />}
       </Page>
     )
   }

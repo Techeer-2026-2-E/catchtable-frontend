@@ -4,7 +4,7 @@ import { usePaymentDetail } from '@/features/payment'
 import { useReservationDetail } from '@/features/reservation'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, shortOrderId } from '@/shared/lib/format'
-import { ErrorState, LoadingState, Page, TopBar } from '@/shared/ui'
+import { DetailSkeleton, ErrorState, Page, TopBar } from '@/shared/ui'
 import styles from './PaymentReceiptPage.module.css'
 
 /**
@@ -20,7 +20,7 @@ export function PaymentReceiptPage() {
     return (
       <Page>
         <TopBar title="영수증" leading="close" />
-        {detail.isPending ? <LoadingState /> : <ErrorState message="결제를 찾을 수 없어요" onRetry={() => detail.refetch()} />}
+        {detail.isPending ? <DetailSkeleton sections={2} /> : <ErrorState message="결제를 찾을 수 없어요" onRetry={() => detail.refetch()} />}
       </Page>
     )
   }

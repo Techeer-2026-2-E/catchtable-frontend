@@ -4,7 +4,7 @@ import { STORE_CATEGORY_LABEL } from '@/entities'
 import { useAuthStore, useLogout } from '@/features/auth'
 import { useMyStores } from '@/features/owner-store'
 import { paths, ROUTES } from '@/shared/config'
-import { EmptyState, ErrorState, IconButton, LoadingState, Page, Section, TopBar } from '@/shared/ui'
+import { EmptyState, ErrorState, IconButton, ListSkeleton, Page, Section, TopBar } from '@/shared/ui'
 import styles from './OwnerDashboardPage.module.css'
 
 /** 점주 — 내 매장 목록 (점주 매장 목록 API 가 없어 VITE_OWNER_STORE_IDS 의 매장) */
@@ -33,7 +33,7 @@ export function OwnerDashboardPage() {
       />
       <p className={`${styles.greeting} t-body-14 text-secondary`}>{owner?.name} 사장님, 오늘도 좋은 하루 되세요</p>
       <Section>
-        {isPending && <LoadingState compact />}
+        {isPending && <ListSkeleton rows={2} thumb="small" variant="card" inset={false} />}
         {isError && <ErrorState onRetry={() => refetch()} />}
         {stores?.length === 0 && <EmptyState title="연결된 매장이 없어요" description=".env 의 VITE_OWNER_STORE_IDS 를 확인해주세요" />}
         <ul className={styles.list}>

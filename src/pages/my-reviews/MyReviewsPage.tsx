@@ -7,7 +7,7 @@ import { reservationKeys } from '@/features/reservation'
 import { useMyReviews, useReviewMutations } from '@/features/review'
 import { paths } from '@/shared/config'
 import { getErrorMessage } from '@/shared/lib'
-import { Button, Card, Dialog, EmptyState, ErrorState, LoadingState, Page, toast, TopBar } from '@/shared/ui'
+import { Button, Card, Dialog, EmptyState, ErrorState, ListSkeleton, Page, toast, TopBar } from '@/shared/ui'
 import styles from './MyReviewsPage.module.css'
 
 /**
@@ -39,7 +39,7 @@ export function MyReviewsPage() {
       <TopBar title={`내가 쓴 리뷰${mine.data ? ` (${mine.data.length})` : ''}`} />
 
       {mine.isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={3} />
       ) : mine.isError ? (
         <ErrorState onRetry={() => mine.refetch()} />
       ) : mine.data.length === 0 ? (

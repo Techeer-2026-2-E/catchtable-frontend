@@ -1,4 +1,4 @@
-import { CalendarCheck, CalendarDays, Clock, ListChecks, NotebookPen, Settings2, Star, Store, Timer, Users } from 'lucide-react'
+import { CalendarCheck, CalendarDays, ChartColumn, Clock, ListChecks, NotebookPen, Settings2, Star, Store, Timer, Users } from 'lucide-react'
 import { useParams } from 'react-router'
 import { toDayOfWeek } from '@/entities'
 import { useOwnerReservations } from '@/features/owner-reservation'
@@ -98,6 +98,7 @@ export function OwnerStorePage() {
       <ListItem icon={<Store />} title="매장 정보 수정" description="사진, 이름, 카테고리, 연락처" to={paths.ownerStoreInfo(storeId)} />
 
       <p className={styles.group}>더보기</p>
+      <ListItem icon={<ChartColumn />} title="매출 보기" to={paths.ownerSales(storeId)} />
       <ListItem
         icon={<NotebookPen />}
         title="메뉴 설정"

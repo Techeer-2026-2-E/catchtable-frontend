@@ -1,0 +1,99 @@
+/* 스켈레톤 — 은은하게 빛이 지나가는 회색 블록. 움직임 줄이기 설정이면 멈춤 */
+.block {
+  display: block;
+  flex-shrink: 0;
+  /* 글자색을 옅게 섞어서 밝은, 어두운 화면 둘 다 보이게 */
+  --skeleton-base: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --skeleton-shine: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .block {
+    animation: none;
+    background: var(--skeleton-base);
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+.inset {
+  padding: var(--space-8) var(--page-gutter);
+}
+.cards {
+  gap: var(--space-8);
+}
+.cards .row {
+  padding: var(--space-16);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-16);
+}
+.divided .row {
+  padding: var(--space-16) 0;
+}
+.divided .row + .row {
+  border-top: 1px solid var(--color-border-default);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.shelf {
+  display: flex;
+  gap: var(--space-12);
+  overflow: hidden;
+  padding: 0 var(--page-gutter) var(--space-16);
+}
+.shelfCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 136px;
+  flex-shrink: 0;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+}
+.hero {
+  width: 100%;
+}
+.detailBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-20) var(--page-gutter);
+}
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding-top: var(--space-20);
+}

@@ -7,7 +7,7 @@ import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
-import { Button, Chip, ChipGroup, Divider, EmptyState, ErrorState, ImagePlaceholder, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
+import { Button, Chip, ChipGroup, DetailSkeleton, Divider, EmptyState, ErrorState, ImagePlaceholder, ListSkeleton, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
 import styles from './StoreDetailPage.module.css'
 
 type Tab = 'home' | 'menu' | 'review' | 'info'
@@ -58,7 +58,7 @@ export function StoreDetailPage() {
     return (
       <Page>
         <TopBar />
-        <LoadingState />
+        <DetailSkeleton hero sections={2} />
       </Page>
     )
   }
@@ -195,7 +195,7 @@ export function StoreDetailPage() {
       {(tab === 'home' || tab === 'menu') && (
         <>
           <Section title="메뉴">
-            {menus.isPending && <LoadingState compact />}
+            {menus.isPending && <ListSkeleton rows={2} trailing inset={false} />}
             {menus.data?.length === 0 && <p className="t-caption-13 text-tertiary">등록된 메뉴가 없어요</p>}
             <ul className={styles.menuList}>
               {menus.data?.map((menu) => (

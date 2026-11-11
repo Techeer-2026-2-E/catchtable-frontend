@@ -13,24 +13,7 @@ import {
 } from '@/features/owner-waiting'
 import { getErrorMessage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
-import {
-  Badge,
-  BottomSheet,
-  Button,
-  Card,
-  Chip,
-  ChipGroup,
-  Dialog,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  Page,
-  StatLine,
-  Textarea,
-  toast,
-  Toggle,
-  TopBar,
-} from '@/shared/ui'
+import { Badge, BottomSheet, Button, Card, Chip, ChipGroup, Dialog, EmptyState, ErrorState, ListSkeleton, Page, StatLine, Textarea, toast, Toggle, TopBar } from '@/shared/ui'
 import styles from './OwnerWaitingsPage.module.css'
 
 type Pending = { type: 'noShow' | 'cancel'; waiting: OwnerWaiting } | null
@@ -154,7 +137,7 @@ export function OwnerWaitingsPage() {
       </div>
 
       {waitings.isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={4} variant="card" trailing />
       ) : waitings.isError ? (
         <ErrorState onRetry={() => waitings.refetch()} />
       ) : active.length === 0 ? (

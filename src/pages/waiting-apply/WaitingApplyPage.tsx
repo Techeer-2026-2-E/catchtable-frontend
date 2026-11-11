@@ -5,7 +5,7 @@ import { useStoreDetail } from '@/features/store-detail'
 import { useRegisterWaiting } from '@/features/waiting'
 import { paths } from '@/shared/config'
 import { getErrorCode, getErrorMessage } from '@/shared/lib'
-import { Banner, Button, ErrorState, LoadingState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
+import { Banner, Button, DetailSkeleton, ErrorState, Page, Section, Stepper, toast, TopBar } from '@/shared/ui'
 import styles from './WaitingApplyPage.module.css'
 
 /** 백엔드 WaitingCreateRequest 의 인원 범위 */
@@ -23,7 +23,7 @@ export function WaitingApplyPage() {
     return (
       <Page>
         <TopBar title="웨이팅 신청" />
-        {isPending ? <LoadingState /> : <ErrorState onRetry={() => refetch()} />}
+        {isPending ? <DetailSkeleton sections={1} /> : <ErrorState onRetry={() => refetch()} />}
       </Page>
     )
   }

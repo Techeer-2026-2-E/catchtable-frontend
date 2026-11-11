@@ -6,7 +6,7 @@ import { useRefundPreview } from '@/features/reservation'
 import { paths } from '@/shared/config'
 import { getErrorCode, getErrorMessage, refundKeyStorage } from '@/shared/lib'
 import { formatPrice } from '@/shared/lib/format'
-import { Banner, Button, Chip, ChipGroup, ErrorState, LoadingState, Page, TextField, Textarea, toast, TopBar } from '@/shared/ui'
+import { Banner, Button, Chip, ChipGroup, DetailSkeleton, ErrorState, Page, Textarea, TextField, toast, TopBar } from '@/shared/ui'
 import styles from './PaymentRefundPage.module.css'
 
 const QUICK_AMOUNTS = [5_000, 10_000]
@@ -36,7 +36,7 @@ export function PaymentRefundPage() {
     return (
       <Page>
         <TopBar title="환불 요청" />
-        <LoadingState />
+        <DetailSkeleton sections={2} />
       </Page>
     )
   }

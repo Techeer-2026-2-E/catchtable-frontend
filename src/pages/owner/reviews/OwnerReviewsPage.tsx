@@ -2,7 +2,7 @@ import { MessageSquareText } from 'lucide-react'
 import { useParams } from 'react-router'
 import { ReviewItem } from '@/entities'
 import { useStoreReviews } from '@/features/store-detail'
-import { Card, EmptyState, ErrorState, LoadingState, Page, StarRating, TopBar } from '@/shared/ui'
+import { Card, EmptyState, ErrorState, ListSkeleton, Page, StarRating, TopBar } from '@/shared/ui'
 import styles from './OwnerReviewsPage.module.css'
 
 /** 백엔드 페이지 최대 크기 */
@@ -21,7 +21,7 @@ export function OwnerReviewsPage() {
       <TopBar title={`리뷰${data?.reviewCount ? ` (${data.reviewCount})` : ''}`} />
 
       {isPending ? (
-        <LoadingState />
+        <ListSkeleton rows={4} />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : data.reviews.length === 0 ? (

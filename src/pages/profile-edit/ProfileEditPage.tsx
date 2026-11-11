@@ -5,7 +5,7 @@ import { useAuthStore } from '@/features/auth'
 import { useMe, useUpdateMe } from '@/features/member'
 import { getErrorMessage } from '@/shared/lib'
 import { formatPhone } from '@/shared/lib/format'
-import { Button, ErrorState, LoadingState, Page, TextField, toast, TopBar } from '@/shared/ui'
+import { Button, ErrorState, ListSkeleton, Page, TextField, toast, TopBar } from '@/shared/ui'
 import styles from './ProfileEditPage.module.css'
 
 const NAME_MAX = 50
@@ -19,7 +19,7 @@ export function ProfileEditPage() {
   return (
     <Page>
       <TopBar title="이름, 연락처 설정" />
-      {isPending ? <LoadingState /> : isError ? <ErrorState onRetry={() => refetch()} /> : <ProfileForm me={me} />}
+      {isPending ? <ListSkeleton rows={2} /> : isError ? <ErrorState onRetry={() => refetch()} /> : <ProfileForm me={me} />}
     </Page>
   )
 }

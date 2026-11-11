@@ -7,7 +7,7 @@ import { paths, ROUTES } from '@/shared/config'
 import { getErrorCode, getErrorMessage, refundKeyStorage } from '@/shared/lib'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
-import { Button, Dialog, ErrorState, LoadingState, Page, Ticket, toast, TopBar } from '@/shared/ui'
+import { Button, DetailSkeleton, Dialog, ErrorState, Page, Ticket, toast, TopBar } from '@/shared/ui'
 import styles from './ReservationDetailPage.module.css'
 
 /**
@@ -28,7 +28,7 @@ export function ReservationDetailPage() {
     return (
       <Page>
         <TopBar title="예약 상세" />
-        {isPending ? <LoadingState /> : <ErrorState message="예약을 찾을 수 없어요" onRetry={() => refetch()} />}
+        {isPending ? <DetailSkeleton sections={2} /> : <ErrorState message="예약을 찾을 수 없어요" onRetry={() => refetch()} />}
       </Page>
     )
   }
