@@ -1,4 +1,5 @@
 export * from './model'
 export { StoreCard, StoreTags, type StoreCardData } from './ui/StoreCard'
+export { CategoryIcon } from './ui/CategoryIcon'
 export * from './hours'
 export * from './image'

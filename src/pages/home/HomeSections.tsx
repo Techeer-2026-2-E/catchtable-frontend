@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronRight, Map as MapIcon } from 'lucide-react'
+import { ChevronRight, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
-import { getCategoryPhoto, getStoreImageSrc, type Category, type LatLng, type MapStore, type StoreCategory } from '@/entities'
+import { CategoryIcon, getStoreImageSrc, type Category, type LatLng, type MapStore, type StoreCategory } from '@/entities'
 import { useNearbyStores } from '@/features/store-map'
 import { paths, ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib/cn'
@@ -71,7 +71,7 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 음식 종류 바로가기 — 사진 동그라미 격자                                 */
+/* 음식 종류 바로가기 — 직접 그린 선 아이콘 격자                           */
 /* ------------------------------------------------------------------ */
 
 export function CategoryGrid({ categories }: { categories: Category[] }) {
@@ -79,13 +79,15 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
     <nav className={styles.categoryGrid} aria-label="음식 종류">
       {categories.map(({ code, name }) => (
         <Link key={code} to={`${ROUTES.SEARCH}?category=${code}`} className={styles.categoryTile}>
-          <img src={getCategoryPhoto(code)} alt="" className={styles.categoryIcon} />
+          <span className={styles.categoryIcon}>
+            <CategoryIcon category={code} />
+          </span>
           <span className="t-caption-12">{name}</span>
         </Link>
       ))}
       <Link to={ROUTES.STORE_MAP} className={styles.categoryTile}>
-        <span className={cn(styles.categoryIcon, styles.categoryIconMap)}>
-          <MapIcon aria-hidden />
+        <span className={styles.categoryIcon}>
+          <MapPin aria-hidden />
         </span>
         <span className="t-caption-12">지도</span>
       </Link>
@@ -155,18 +157,21 @@ export function RegionSection({ regions }: { regions: Region[] }) {
 
 /** 큰 사진 카드 — 지역 추천 줄 */
 function WideStoreCard({ store }: { store: MapStore }) {
-  const meta = [store.categoryName, store.area].filter(Boolean).join(' · ')
+  const meta = [store.area, store.categoryName].filter(Boolean).join(', ')
   return (
     <Link to={paths.storeDetail(store.id)} className={styles.wideCard}>
-      <span className={styles.wideThumbWrap}>
-        <ImagePlaceholder src={getStoreImageSrc(store)} className={styles.wideThumb} radius={16} />
-        {store.reservationEnabled && <span className={cn(styles.badge, 't-micro-11')}>예약 가능</span>}
-      </span>
+      <ImagePlaceholder src={getStoreImageSrc(store)} className={styles.wideThumb} radius={16} />
       <span className={cn(styles.wideName, 't-headline-16')}>{store.name}</span>
       <span className={styles.wideMeta}>
         {store.ratingAverage != null && <Rating value={store.ratingAverage} count={store.reviewCount} />}
         <span className="t-caption-13 text-tertiary">{meta}</span>
       </span>
+      {(store.reservationEnabled || store.waitingAvailable) && (
+        <span className={styles.tags}>
+          {store.reservationEnabled && <span className="t-label-13 text-brand">예약 가능</span>}
+          {store.waitingAvailable && <span className="t-label-13 text-brand">웨이팅 가능</span>}
+        </span>
+      )}
     </Link>
   )
 }
