@@ -6,7 +6,7 @@ import styles from './StoreCard.module.css'
 
 /** 카드에 필요한 값만 — 지도 매장(MapStore)처럼 주소가 없는 응답도 compact 로 그릴 수 있게 */
 export type StoreCardData = Pick<Store, 'name' | 'categoryName' | 'waitingAvailable' | 'imageUrl'> &
-  Partial<Pick<Store, 'category'>> & { address?: string }
+  Partial<Pick<Store, 'id' | 'category'>> & { address?: string }
 
 interface StoreCardProps {
   store: StoreCardData

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, getStoreImageSrc, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek, type BusinessHour, type ReviewSort } from '@/entities'
+import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek, type BusinessHour, type ReviewSort } from '@/entities'
 import { ReservationSheet, useAvailability } from '@/features/reservation'
-import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store-detail'
+import { StorePhotoCarousel, useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatPrice, formatTime } from '@/shared/lib/format'
-import { Button, Chip, ChipGroup, DetailSkeleton, Divider, EmptyState, ErrorState, ImagePlaceholder, ListSkeleton, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
+import { Button, Chip, ChipGroup, DetailSkeleton, Divider, EmptyState, ErrorState, ListSkeleton, LoadingState, Page, Section, Tabs, TopBar } from '@/shared/ui'
 import styles from './StoreDetailPage.module.css'
 
 type Tab = 'home' | 'menu' | 'review' | 'info'
@@ -93,7 +93,7 @@ export function StoreDetailPage() {
     >
       <div className={styles.hero}>
         <TopBar transparent />
-        <ImagePlaceholder src={getStoreImageSrc(store)} alt={store.imageUrl ? store.name : ''} radius={0} className={styles.heroImage} />
+        <StorePhotoCarousel store={store} />
       </div>
 
       <section className={styles.summary}>

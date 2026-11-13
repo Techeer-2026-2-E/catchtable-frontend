@@ -20,6 +20,7 @@ import type {
 } from '@/entities'
 import { ACTIVE_WAITING_STATUSES, STORE_CATEGORY_LABEL, toDayOfWeek } from '@/entities'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
+import { SEED_STORE_COORDS } from './mapData'
 import { db, persist, type ReservationRow, type ReviewRow, type StoreRow, type TableRow, type WaitingRow } from './db'
 
 export const now = () => dayjs()
@@ -327,7 +328,16 @@ export const toStoreDetail = (row: StoreRow): StoreDetail => ({
   phone: row.phone ?? null,
   businessHours: row.businessHours,
   menus: db.menus.filter((m) => m.storeId === row.id).map(({ storeId: _s, ...menu }) => menu),
+  ...coordsOf(row),
 })
+
+/** 공공데이터 목 매장은 행에 좌표가 있고, 시드 매장은 SEED_STORE_COORDS 에서 찾는다 */
+function coordsOf(row: StoreRow): { latitude: number | null; longitude: number | null } {
+  const located = row as StoreRow & { latitude?: number; longitude?: number }
+  if (located.latitude != null && located.longitude != null) return { latitude: located.latitude, longitude: located.longitude }
+  const seed = SEED_STORE_COORDS[row.id]
+  return { latitude: seed?.[0] ?? null, longitude: seed?.[1] ?? null }
+}
 
 export function toReservation(r: ReservationRow): Reservation {
   return {

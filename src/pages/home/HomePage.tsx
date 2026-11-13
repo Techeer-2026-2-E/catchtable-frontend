@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Bell, ChevronRight, Search } from 'lucide-react'
 import { Link } from 'react-router'
-import { StoreCard, type Store } from '@/entities'
+import { getCategoryPhoto, StoreCard, type Store } from '@/entities'
 import { DEFAULT_CENTER, formatDistance, useNearbyStores } from '@/features/store-map'
 import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
@@ -9,12 +9,23 @@ import { dayjs } from '@/shared/lib/dayjs'
 import { useGeolocation } from '@/shared/lib/useGeolocation'
 import { Button, Divider, EmptyState, ErrorState, ListSkeleton, Page, ShelfSkeleton, Skeleton } from '@/shared/ui'
 import styles from './HomePage.module.css'
+import { BannerCarousel, CategoryBest, CategoryGrid, RegionSection, type Banner, type Region } from './HomeSections'
 
 /** 오늘 저녁 추천 기준 — 7시, 2명 */
 const TONIGHT = { time: '19:00', partySize: 2 }
 
 /** 내 주변 매장 줄에 보여줄 개수 */
 const NEARBY_SIZE = 10
+
+/** 지역 바로가기 — 데모 입점 매장이 있는 곳 먼저 */
+const REGIONS: Region[] = [
+  { name: '강남역', center: { lat: 37.4979, lng: 127.0276 } },
+  { name: '성수', center: { lat: 37.5446, lng: 127.0559 } },
+  { name: '홍대입구', center: { lat: 37.5572, lng: 126.9245 } },
+  { name: '잠실', center: { lat: 37.5133, lng: 127.1001 } },
+  { name: '종로', center: { lat: 37.5704, lng: 126.9921 } },
+  { name: '여의도', center: { lat: 37.5219, lng: 126.9245 } },
+]
 
 /**
  * 홈 — 검색바, 음식 종류 칩, 식당 추천
@@ -28,6 +39,12 @@ export function HomePage() {
   const stores = all.data ?? []
   const waitingNow = stores.filter((s) => s.waitingAvailable)
   const tonightLink = `${ROUTES.SEARCH}?date=${today}&time=${TONIGHT.time}&party=${TONIGHT.partySize}`
+  const banners: Banner[] = [
+    { eyebrow: '오늘 저녁 7시, 2명', title: '지금 바로 예약할 수 있는 식당', to: tonightLink, image: getCategoryPhoto('KOREAN', 1) },
+    { eyebrow: '성수 카페 산책', title: '디저트가 맛있는 성수 카페', to: paths.mapAt(37.5446, 127.0559), image: getCategoryPhoto('CAFE', 2) },
+    { eyebrow: '홍대 밤 한 잔', title: '퇴근 후 들르기 좋은 술집', to: paths.mapAt(37.5572, 126.9245), image: getCategoryPhoto('BAR', 7) },
+    { eyebrow: '줄 서지 말고 원격 웨이팅', title: '차례가 되면 알림으로 불러드려요', to: ROUTES.STORE_MAP, image: getCategoryPhoto('JAPANESE', 0) },
+  ]
 
   return (
     <Page>
@@ -45,13 +62,8 @@ export function HomePage() {
         </Link>
       </div>
 
-      <nav className={styles.categories} aria-label="음식 종류">
-        {(categories ?? []).map(({ code, name }) => (
-          <Link key={code} to={`${ROUTES.SEARCH}?category=${code}`} className={styles.category}>
-            {name}
-          </Link>
-        ))}
-      </nav>
+      <BannerCarousel banners={banners} />
+      <CategoryGrid categories={categories ?? []} />
 
       <Divider thick />
 
@@ -77,12 +89,15 @@ export function HomePage() {
       ) : (
         <>
           <NearbyShelf />
+          <RegionSection regions={REGIONS} />
+          <Divider thick />
           <Shelf
             title="오늘 저녁 7시, 2명 자리 있어요"
             description="지금 바로 예약할 수 있는 매장이에요"
             stores={tonight.data ?? []}
             more={tonightLink}
           />
+          <CategoryBest regions={REGIONS} categories={categories ?? []} />
           <Shelf title="지금 웨이팅 가능해요" description="원격으로 웨이팅하고 차례가 되면 알림을 받아요" stores={waitingNow} />
           <Divider thick />
           <section className={styles.section}>

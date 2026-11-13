@@ -84,6 +84,9 @@ export interface StoreDetail extends Store {
   businessHours: BusinessHour[]
   /** 매장 메뉴 — 백엔드는 별도 메뉴 조회 API 없이 상세에 포함 */
   menus: Menu[]
+  /** 위도·경도 (WGS84). 좌표가 없는 매장은 null, 필드가 없는 예전 서버 응답이면 undefined */
+  latitude?: number | null
+  longitude?: number | null
 }
 
 /** store.entity.TableStatus */

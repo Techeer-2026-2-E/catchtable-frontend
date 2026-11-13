@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { ChevronUp, List, LocateFixed, Map as MapIcon, RotateCw, Search, X } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { getStoreImageSrc, type LatLng, type MapBounds } from '@/entities'
 import { useStoreDetail } from '@/features/store-detail'
 import {
   DEFAULT_CENTER,
   isSearchable,
+  readMapFocus,
   MapStoreItem,
   MAX_SIDE_KM,
   nearlySameBounds,
@@ -41,25 +42,29 @@ const DRAG_THRESHOLD = 30
  */
 export function StoreMapPage() {
   const geo = useGeolocation()
+  const [searchParams] = useSearchParams()
+  // 처음 연 주소의 매장만 본다 (이후 주소가 바뀌어도 지도를 다시 옮기지 않음)
+  const [focus] = useState(() => readMapFocus(searchParams))
   const pageRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapHandle>(null)
   const [view, setView] = useState<Viewport | null>(null)
   const [searched, setSearched] = useState<Viewport | null>(null)
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [sheet, setSheet] = useState<SheetMode>('half')
+  const [selectedId, setSelectedId] = useState<number | null>(focus?.storeId ?? null)
+  const [sheet, setSheet] = useState<SheetMode>(focus?.storeId ? 'peek' : 'half')
 
   /** 다음 멈춤에서 자동으로 검색할지 — 처음 열 때, 내 위치로 옮길 때 */
   const autoSearch = useRef(true)
   const geoSettled = useRef(false)
-  const centeredOnMe = useRef(false)
+  // 매장을 보러 왔으면 내 위치가 잡혀도 그 매장에서 움직이지 않는다
+  const centeredOnMe = useRef(focus != null)
 
   /** 지금 시트가 가리는 만큼 지점을 위로 올려 보여 줄 px — 시트 높이의 절반 */
   const focusOffset = (mode: SheetMode = sheet) => {
     const height = pageRef.current?.clientHeight ?? window.innerHeight
     return mode === 'half' ? Math.round((height * HALF_RATIO) / 2) : mode === 'peek' ? 40 : 0
   }
-  // 처음 그릴 때의 오프셋 — 시트가 half 로 시작
-  const [initialOffset] = useState(() => Math.round((window.innerHeight * HALF_RATIO) / 2))
+  // 처음 그릴 때의 오프셋 — 시트가 half 로 시작 (매장을 보러 왔으면 아래 카드만큼)
+  const [initialOffset] = useState(() => (focus?.storeId ? 80 : Math.round((window.innerHeight * HALF_RATIO) / 2)))
 
   useEffect(() => {
     geoSettled.current = geo.status !== 'idle' && geo.status !== 'pending'
@@ -79,7 +84,7 @@ export function StoreMapPage() {
     setView(next)
     if ((autoSearch.current || !searched) && isSearchable(bounds)) {
       setSearched(next)
-      if (geoSettled.current) autoSearch.current = false
+      if (geoSettled.current || focus) autoSearch.current = false
     }
   }
 
@@ -136,7 +141,7 @@ export function StoreMapPage() {
     <div ref={pageRef} className={styles.page}>
       <MapView
         ref={mapRef}
-        initialCenter={DEFAULT_CENTER}
+        initialCenter={focus?.point ?? DEFAULT_CENTER}
         initialOffsetY={initialOffset}
         pins={pins}
         myLocation={geo.position}

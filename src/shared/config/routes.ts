@@ -51,6 +51,10 @@ type Id = number | string
 
 export const paths = {
   storeDetail: (storeId: Id) => `/stores/${storeId}`,
+  /** 지도로 매장 찾기 — 이 매장을 가운데 두고 카드를 띄운 채로 연다 */
+  storeOnMap: (storeId: Id, lat: number, lng: number) => `/map?storeId=${storeId}&lat=${lat}&lng=${lng}`,
+  /** 지도로 매장 찾기 — 이 지점을 가운데 두고 연다 */
+  mapAt: (lat: number, lng: number) => `/map?lat=${lat}&lng=${lng}`,
   reservation: (storeId: Id) => `/stores/${storeId}/reservation`,
   reservationDetail: (reservationId: Id) => `/reservations/${reservationId}`,
   paymentCheckout: (holdId: Id) => `/reservations/holds/${holdId}/payment`,
