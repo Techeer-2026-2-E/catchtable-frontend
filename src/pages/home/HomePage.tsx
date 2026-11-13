@@ -97,7 +97,7 @@ export function HomePage() {
             stores={tonight.data ?? []}
             more={tonightLink}
           />
-          <CategoryBest regions={REGIONS} categories={categories ?? []} />
+          <CategoryBest categories={categories ?? []} />
           <Shelf title="지금 웨이팅 가능해요" description="원격으로 웨이팅하고 차례가 되면 알림을 받아요" stores={waitingNow} />
           <Divider thick />
           <section className={styles.section}>
