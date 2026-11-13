@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { env } from '@/shared/config'
 
 export interface GeoPosition {
   lat: number
@@ -12,8 +13,17 @@ const OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 8000, max
 /**
  * 브라우저 현재 위치 — 권한을 거절하거나 지원하지 않으면 position 은 null
  * auto 면 처음 그릴 때 한 번 묻는다
+ * 목 위치(env.mockLocation)가 있으면 권한을 묻지 않고 늘 그 위치를 준다
  */
-export function useGeolocation({ auto = true }: { auto?: boolean } = {}) {
+export function useGeolocation(options: { auto?: boolean } = {}) {
+  const mock = env.mockLocation
+  const real = useRealGeolocation({ auto: !mock && (options.auto ?? true) })
+  const mockRequest = useCallback(() => Promise.resolve(mock), [mock])
+  if (mock) return { position: mock, status: 'granted' as GeolocationStatus, request: mockRequest, mocked: true }
+  return { ...real, mocked: false }
+}
+
+function useRealGeolocation({ auto }: { auto: boolean }) {
   const supported = typeof navigator !== 'undefined' && 'geolocation' in navigator
   const [position, setPosition] = useState<GeoPosition | null>(null)
   const [status, setStatus] = useState<GeolocationStatus>(supported ? 'idle' : 'unsupported')
