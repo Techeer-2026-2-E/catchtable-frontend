@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import type { MapStore } from '@/entities'
+import { getStoreImageSrc, type MapStore } from '@/entities'
 import { cn } from '@/shared/lib/cn'
 import { ImagePlaceholder, Rating } from '@/shared/ui'
 import { formatDistance } from '../lib/geo'
@@ -20,7 +20,7 @@ export function MapStoreItem({ store, to, variant = 'row' }: MapStoreItemProps) 
   const meta = [store.area, store.categoryName].filter(Boolean).join(', ')
   return (
     <Link to={to} className={cn(styles.item, variant === 'card' && styles.card)}>
-      <ImagePlaceholder src={store.imageUrl ?? undefined} className={styles.thumb} radius={8} />
+      <ImagePlaceholder src={getStoreImageSrc(store)} className={styles.thumb} radius={8} />
       <span className={styles.text}>
         <span className={`${styles.name} t-headline-16`}>{store.name}</span>
         <span className={styles.line}>
