@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
 import { CategoryIcon, getStoreImageSrc, type Category, type LatLng, type MapStore, type StoreCategory } from '@/entities'
-import { useNearbyStores } from '@/features/store-map'
+import { RECOMMEND_FETCH_SIZE, useNearbyStores, useRecommendedStores } from '@/features/store-map'
 import { paths, ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib/cn'
 import { Chip, ChipGroup, ImagePlaceholder, Rating, ShelfSkeleton, Skeleton } from '@/shared/ui'
@@ -104,8 +104,6 @@ export interface Region {
   center: LatLng
 }
 
-/** 주변 조회 한 번에 받을 매장 수 — 이 중 입점 매장을 앞에 세운다 */
-const REGION_FETCH_SIZE = 30
 
 /** 입점(예약 가능) 매장 먼저, 그다음 별점 높은 순 */
 const byRecommendation = (a: MapStore, b: MapStore) =>
@@ -114,7 +112,7 @@ const byRecommendation = (a: MapStore, b: MapStore) =>
 export function RegionSection({ regions }: { regions: Region[] }) {
   const [selected, setSelected] = useState(0)
   const region = regions[selected]
-  const { data, isPending } = useNearbyStores(region.center, REGION_FETCH_SIZE)
+  const { data, isPending } = useNearbyStores(region.center, RECOMMEND_FETCH_SIZE)
   const stores = useMemo(() => [...(data?.stores ?? [])].sort(byRecommendation).slice(0, 8), [data])
 
   return (
@@ -182,18 +180,8 @@ function WideStoreCard({ store }: { store: MapStore }) {
 
 const RANK_SIZE = 5
 
-export function CategoryBest({ regions, categories }: { regions: Region[]; categories: Category[] }) {
-  // 지역 바로가기와 같은 조회를 함께 써서 요청이 늘지 않게 (같은 키)
-  const a = useNearbyStores(regions[0]?.center ?? null, REGION_FETCH_SIZE)
-  const b = useNearbyStores(regions[1]?.center ?? null, REGION_FETCH_SIZE)
-  const c = useNearbyStores(regions[2]?.center ?? null, REGION_FETCH_SIZE)
-  const pool = useMemo(() => {
-    const byId = new Map<number, MapStore>()
-    for (const s of [...(a.data?.stores ?? []), ...(b.data?.stores ?? []), ...(c.data?.stores ?? [])]) {
-      if (s.reservationEnabled && s.reviewCount > 0) byId.set(s.id, s)
-    }
-    return [...byId.values()]
-  }, [a.data, b.data, c.data])
+export function CategoryBest({ categories }: { categories: Category[] }) {
+  const { stores: pool, isPending: loading } = useRecommendedStores()
 
   // 순위를 만들 수 있는 음식 종류만 탭으로
   const tabs = categories.filter((cat) => pool.some((s) => s.categoryName === cat.name))
@@ -202,10 +190,8 @@ export function CategoryBest({ regions, categories }: { regions: Region[]; categ
   const ranked = current
     ? pool
         .filter((s) => s.categoryName === current.name)
-        .sort((x, y) => (y.ratingAverage ?? 0) - (x.ratingAverage ?? 0) || y.reviewCount - x.reviewCount)
         .slice(0, RANK_SIZE)
     : []
-  const loading = a.isPending || b.isPending || c.isPending
 
   if (!loading && tabs.length === 0) return null
   return (

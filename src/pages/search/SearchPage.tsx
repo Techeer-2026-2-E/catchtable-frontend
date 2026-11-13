@@ -3,12 +3,13 @@ import { CalendarDays, ChevronDown, Map as MapIcon, SearchX } from 'lucide-react
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from '@/entities'
 import { useAvailability } from '@/features/reservation'
-import { useStoreSearch } from '@/features/store-search'
+import { useRecentSearches, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
 import { useDebounce } from '@/shared/hooks'
 import { dayjs } from '@/shared/lib/dayjs'
 import { formatTime } from '@/shared/lib/format'
 import { BottomSheet, Button, Calendar, Chip, ChipGroup, EmptyState, ErrorState, ListSkeleton, Page, SearchBar, Stepper, TopBar } from '@/shared/ui'
+import { SearchLanding } from './SearchLanding'
 import styles from './SearchPage.module.css'
 
 const TIMES = ['11:30', '12:00', '12:30', '13:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00']
@@ -34,6 +35,7 @@ export function SearchPage() {
   const query = useDebounce(keyword.trim())
   const [sheetOpen, setSheetOpen] = useState(false)
   const [draft, setDraft] = useState<Condition>(() => condition ?? { date: dayjs().format('YYYY-MM-DD'), time: '19:00', partySize: 2 })
+  const recent = useRecentSearches()
 
   const setParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams)
@@ -59,19 +61,29 @@ export function SearchPage() {
     keyword: query || undefined,
   })
 
+  /** 검색어를 확정 — 주소에 남기고 최근 검색어에 더함 */
+  const submitKeyword = (value: string) => {
+    const k = value.trim()
+    setKeyword(k)
+    setParams({ q: k || null })
+    if (k) recent.add(k)
+  }
+  // 아무 조건도 없으면 결과 대신 검색 전 화면
+  const landing = !query && !keyword.trim() && !category && !condition
+
   const slotDate = condition?.date ?? dayjs().format('YYYY-MM-DD')
   const slotPartySize = condition?.partySize ?? 2
 
   return (
     <Page muted>
       <div className={styles.head}>
-        <TopBar title="검색" leading="none" large />
+        <TopBar title="검색" />
         <div className={styles.searchRow}>
           <SearchBar
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onBlur={() => setParams({ q: keyword.trim() || null })}
-            onKeyDown={(e) => e.key === 'Enter' && setParams({ q: keyword.trim() || null })}
+            onKeyDown={(e) => e.key === 'Enter' && submitKeyword(keyword)}
             placeholder="식당 이름으로 검색"
             autoFocus={!category && !condition}
           />
@@ -123,7 +135,18 @@ export function SearchPage() {
         </nav>
       </div>
 
-      {isPending ? (
+      {landing ? (
+        <SearchLanding
+          recent={recent.items}
+          onKeyword={submitKeyword}
+          onRemoveRecent={recent.remove}
+          onClearRecent={recent.clear}
+          onCondition={(c) => {
+            setDraft({ date: c.date, time: c.time, partySize: c.partySize })
+            setParams({ date: c.date, time: c.time, party: String(c.partySize) })
+          }}
+        />
+      ) : isPending ? (
         <ListSkeleton rows={5} thumb="small" variant="card" />
       ) : isError && !results?.length ? (
         <ErrorState onRetry={() => refetch()} />

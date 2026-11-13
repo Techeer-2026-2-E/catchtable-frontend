@@ -129,3 +129,111 @@
   justify-content: space-between;
   margin-top: var(--space-20);
 }
+
+/* ---------- 검색 전 화면 ---------- */
+.landing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding-bottom: var(--space-32);
+}
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-20) var(--page-gutter);
+  background: var(--color-bg-canvas);
+}
+.blockHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.textButton {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+
+/* 최근 검색어 — 칩 모양 (검색어 누르기 + 지우기 버튼) */
+.recentList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.recentItem {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-canvas);
+}
+.recentKeyword {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 100%;
+  padding: 0 var(--space-4) 0 var(--space-12);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+.recentKeyword svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-icon-subtle);
+}
+.recentRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 100%;
+  color: var(--color-icon-subtle);
+}
+.recentRemove svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* 빈자리 바로 찾기 */
+.quickList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quickItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-12) 0;
+  text-align: left;
+}
+.quickItem > svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-brand);
+}
+.quickItem .quickChevron {
+  margin-left: auto;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-icon-subtle);
+}
+.quickList li + li {
+  border-top: 1px solid var(--color-border-default);
+}
+
+.recommendList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
