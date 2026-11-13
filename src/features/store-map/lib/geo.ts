@@ -46,3 +46,15 @@ export function formatDistance(meters: number | null) {
   if (meters == null) return null
   return meters < 1000 ? `${Math.round(meters / 10) * 10}m` : `${(meters / 1000).toFixed(1)}km`
 }
+
+/**
+ * 특정 지점으로 열기 — /map?lat=&lng= (홈 지역 바로가기), storeId 가 있으면 그 매장 카드도 (paths.storeOnMap)
+ */
+export function readMapFocus(params: URLSearchParams): { storeId: number | null; point: LatLng } | null {
+  const lat = Number(params.get('lat'))
+  const lng = Number(params.get('lng'))
+  if (!params.get('lat') || !params.get('lng') || !Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
+  const storeId = Number(params.get('storeId'))
+  return { storeId: Number.isInteger(storeId) && storeId > 0 ? storeId : null, point: { lat, lng } }
+}

@@ -1,0 +1,51 @@
+import { describe, expect, it } from 'vitest'
+import { getStoreImageSrc, getStorePhotos } from '@/entities'
+import { readMapFocus } from '@/features/store-map'
+
+describe('매장 목 사진', () => {
+  it('실제 사진이 있으면 그 사진을 쓴다', () => {
+    expect(getStoreImageSrc({ id: 1, imageUrl: 'https://img.test/a.jpg', category: 'KOREAN' })).toBe('https://img.test/a.jpg')
+  })
+
+  it('사진이 없으면 같은 매장은 늘 같은 카테고리 사진을 받는다', () => {
+    const a = getStoreImageSrc({ id: 47723, imageUrl: null, category: 'KOREAN' })
+    expect(a).toMatch(/^\/images\/stores\/photos\/korean-\d{2}\.webp$/)
+    expect(getStoreImageSrc({ id: 47723, imageUrl: null, category: 'KOREAN' })).toBe(a)
+  })
+
+  it('카테고리 코드가 없으면 이름으로, id 도 없으면 기본 그림으로', () => {
+    expect(getStoreImageSrc({ id: 3, imageUrl: null, categoryName: '카페' })).toMatch(/\/photos\/cafe-/)
+    expect(getStoreImageSrc({ imageUrl: null, category: 'BAR' })).toBe('/images/stores/bar.svg')
+  })
+
+  it('이웃 매장끼리 사진이 고르게 퍼진다', () => {
+    const used = new Set(Array.from({ length: 40 }, (_, i) => getStoreImageSrc({ id: 1000 + i, imageUrl: null, category: 'JAPANESE' })))
+    expect(used.size).toBeGreaterThanOrEqual(7)
+  })
+
+  it('상세 사진은 겹치지 않고, 실제 사진이 맨 앞', () => {
+    const photos = getStorePhotos({ id: 9, imageUrl: null, category: 'KOREAN' })
+    expect(photos).toHaveLength(4)
+    expect(new Set(photos).size).toBe(4)
+    expect(getStorePhotos({ id: 9, imageUrl: 'https://img.test/a.jpg', category: 'KOREAN' })[0]).toBe('https://img.test/a.jpg')
+  })
+})
+
+describe('지도 진입 위치', () => {
+  const q = (s: string) => new URLSearchParams(s)
+
+  it('매장과 좌표를 함께 읽는다', () => {
+    expect(readMapFocus(q('storeId=47723&lat=37.55&lng=126.92'))).toEqual({ storeId: 47723, point: { lat: 37.55, lng: 126.92 } })
+  })
+
+  it('좌표만 있으면 그 지점만', () => {
+    expect(readMapFocus(q('lat=37.5&lng=127'))).toEqual({ storeId: null, point: { lat: 37.5, lng: 127 } })
+  })
+
+  it('좌표가 없거나 잘못되면 무시한다', () => {
+    expect(readMapFocus(q('storeId=1'))).toBeNull()
+    expect(readMapFocus(q('lat=abc&lng=127'))).toBeNull()
+    expect(readMapFocus(q('lat=95&lng=127'))).toBeNull()
+    expect(readMapFocus(q('lat=37.5&lng=127&storeId=-3'))?.storeId).toBeNull()
+  })
+})
