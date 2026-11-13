@@ -140,7 +140,11 @@ function NearbyShelf() {
         <div>
           <h2 className="t-title-18">내 주변 매장</h2>
           <p className="t-caption-13 text-tertiary">
-            {geo.position || !settled ? '지금 있는 곳에서 가까운 순서예요' : '위치를 허용하면 내 주변으로 보여드려요. 지금은 강남역 근처예요'}
+            {geo.mocked
+              ? '체험용 위치(강남역)에서 가까운 순서예요'
+              : geo.position || !settled
+                ? '지금 있는 곳에서 가까운 순서예요'
+                : '위치를 허용하면 내 주변으로 보여드려요. 지금은 강남역 근처예요'}
           </p>
         </div>
         <Link to={ROUTES.STORE_MAP} className={`${styles.more} t-body-14`}>

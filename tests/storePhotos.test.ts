@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getStoreImageSrc, getStorePhotos } from '@/entities'
-import { readMapFocus } from '@/features/store-map'
+import { readMapFocus, toMapStore } from '@/features/store-map'
 
 describe('매장 목 사진', () => {
   it('실제 사진이 있으면 그 사진을 쓴다', () => {
@@ -47,5 +47,26 @@ describe('지도 진입 위치', () => {
     expect(readMapFocus(q('lat=abc&lng=127'))).toBeNull()
     expect(readMapFocus(q('lat=95&lng=127'))).toBeNull()
     expect(readMapFocus(q('lat=37.5&lng=127&storeId=-3'))?.storeId).toBeNull()
+  })
+})
+
+describe('검색 매장 → 지도 목록 한 칸', () => {
+  const base = { id: 1, name: '김장독', category: 'KOREAN' as const, categoryName: '한식', address: '서울 마포구', waitingAvailable: true, imageUrl: null }
+
+  it('좌표와 내 위치가 있으면 거리를 m 로 계산한다', () => {
+    const item = toMapStore({ ...base, latitude: 37.4989, longitude: 127.0276, ratingAverage: 4.5, reviewCount: 3, openStatus: 'OPEN' }, { lat: 37.4979, lng: 127.0276 })
+    expect(item.distanceMeters).toBeGreaterThan(100)
+    expect(item.distanceMeters).toBeLessThan(120)
+    expect(item.ratingAverage).toBe(4.5)
+    expect(item.openStatus).toBe('OPEN')
+  })
+
+  it('예전 서버처럼 값이 없으면 숨김용 값으로 둔다', () => {
+    const item = toMapStore(base, { lat: 37.4979, lng: 127.0276 })
+    expect(item.distanceMeters).toBeNull()
+    expect(item.ratingAverage).toBeNull()
+    expect(item.reviewCount).toBe(0)
+    expect(item.openStatus).toBeNull()
+    expect(item.reservationEnabled).toBe(false)
   })
 })
