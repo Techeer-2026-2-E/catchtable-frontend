@@ -173,22 +173,18 @@
   color: var(--color-text-secondary);
 }
 .categoryIcon {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: var(--radius-full);
-  object-fit: cover;
-  background: var(--color-bg-subtle);
-}
-.categoryIconMap {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-full);
   background: var(--color-secondary-soft);
   color: var(--color-text-brand);
 }
-.categoryIconMap svg {
-  width: 1.5rem;
-  height: 1.5rem;
+.categoryIcon svg {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 /* ---------- 지역 + 큰 카드 ---------- */
@@ -201,23 +197,14 @@
   gap: var(--space-4);
   width: 15rem;
 }
-.wideThumbWrap {
-  position: relative;
-  margin-bottom: var(--space-4);
-}
 .wideThumb {
   width: 15rem;
   height: 10rem;
+  margin-bottom: var(--space-4);
 }
-.badge {
-  position: absolute;
-  top: var(--space-8);
-  left: var(--space-8);
-  padding: var(--space-2) var(--space-8);
-  border-radius: var(--radius-full);
-  background: var(--color-bg-canvas);
-  color: var(--color-text-brand);
-  font-weight: 700;
+.tags {
+  display: flex;
+  gap: var(--space-8);
 }
 .wideName {
   overflow: hidden;
