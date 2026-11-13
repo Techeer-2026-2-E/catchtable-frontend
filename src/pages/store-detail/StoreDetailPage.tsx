@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek, type BusinessHour, type ReviewSort } from '@/entities'
+import { DAY_OF_WEEK_LABEL, DAYS_OF_WEEK, getStoreImageSrc, ReviewItem, STORE_CATEGORY_LABEL, StoreTags, toDayOfWeek, type BusinessHour, type ReviewSort } from '@/entities'
 import { ReservationSheet, useAvailability } from '@/features/reservation'
 import { useStoreDetail, useStoreMenus, useStoreReviews } from '@/features/store-detail'
 import { paths } from '@/shared/config'
@@ -91,14 +91,10 @@ export function StoreDetailPage() {
         </>
       }
     >
-      {store.imageUrl ? (
-        <div className={styles.hero}>
-          <TopBar transparent />
-          <ImagePlaceholder src={store.imageUrl} alt={store.name} radius={0} className={styles.heroImage} />
-        </div>
-      ) : (
-        <TopBar />
-      )}
+      <div className={styles.hero}>
+        <TopBar transparent />
+        <ImagePlaceholder src={getStoreImageSrc(store)} alt={store.imageUrl ? store.name : ''} radius={0} className={styles.heroImage} />
+      </div>
 
       <section className={styles.summary}>
         <p className="t-label-13 text-brand">{STORE_CATEGORY_LABEL[store.category]}</p>

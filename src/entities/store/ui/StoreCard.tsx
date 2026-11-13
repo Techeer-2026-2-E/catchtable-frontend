@@ -1,10 +1,12 @@
 import { Link } from 'react-router'
 import { ImagePlaceholder } from '@/shared/ui'
+import { getStoreImageSrc } from '../image'
 import type { Store } from '../model'
 import styles from './StoreCard.module.css'
 
 /** 카드에 필요한 값만 — 지도 매장(MapStore)처럼 주소가 없는 응답도 compact 로 그릴 수 있게 */
-export type StoreCardData = Pick<Store, 'name' | 'categoryName' | 'waitingAvailable' | 'imageUrl'> & { address?: string }
+export type StoreCardData = Pick<Store, 'name' | 'categoryName' | 'waitingAvailable' | 'imageUrl'> &
+  Partial<Pick<Store, 'category'>> & { address?: string }
 
 interface StoreCardProps {
   store: StoreCardData
@@ -19,7 +21,7 @@ interface StoreCardProps {
 
 /** 매장 카드 — 대표 사진 1장, 이름, 카테고리와 주소, 웨이팅 가능 여부 */
 export function StoreCard({ store, to, footer, variant = 'default', meta }: StoreCardProps) {
-  const photo = store.imageUrl ?? undefined
+  const photo = getStoreImageSrc(store)
   if (variant === 'compact') {
     return (
       <Link to={to} className={styles.compact}>
