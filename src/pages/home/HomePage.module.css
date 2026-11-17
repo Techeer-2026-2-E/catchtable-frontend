@@ -1,26 +1,16 @@
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--topbar-height);
-  padding: 0 var(--space-8) 0 var(--page-gutter);
-}
-.brand {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text-brand);
-}
-
-/* ---------- 검색바 ---------- */
+/* ---------- 상단: 로고 + 검색바 + 알림 (Figma 홈 Search 줄) ---------- */
 .searchWrap {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
+  align-items: center;
   gap: var(--space-8);
-  padding: var(--space-4) var(--page-gutter) var(--space-12);
+  padding: var(--space-12) var(--page-gutter);
   background: var(--color-bg-canvas);
+}
+.logo {
+  flex-shrink: 0;
 }
 .search {
   display: flex;
@@ -40,7 +30,7 @@
   color: var(--color-icon-default);
 }
 
-/* 알림 — 검색창 옆 (지도로 찾기는 헤더 오른쪽) */
+/* 알림 — 검색창 오른쪽 */
 .mapLink {
   display: flex;
   flex-shrink: 0;

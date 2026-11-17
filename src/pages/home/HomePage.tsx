@@ -7,7 +7,7 @@ import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
 import { useGeolocation } from '@/shared/lib/useGeolocation'
-import { Button, Divider, EmptyState, ErrorState, ListSkeleton, Page, ShelfSkeleton, Skeleton } from '@/shared/ui'
+import { Button, Divider, EmptyState, ErrorState, ListSkeleton, Logo, Page, ShelfSkeleton, Skeleton } from '@/shared/ui'
 import styles from './HomePage.module.css'
 import { BannerCarousel, CategoryBest, CategoryGrid, RegionSection, type Banner, type Region } from './HomeSections'
 
@@ -48,10 +48,9 @@ export function HomePage() {
 
   return (
     <Page>
-      <header className={styles.header}>
-        <span className={styles.brand}>캐치테이블</span>
-      </header>
-      <div className={styles.searchWrap}>
+      <header className={styles.searchWrap}>
+        <h1 className="sr-only">캐치테이블</h1>
+        <Logo className={styles.logo} />
         <Link to={ROUTES.SEARCH} className={styles.search}>
           <Search aria-hidden />
           <span>식당 이름으로 검색</span>
@@ -60,7 +59,7 @@ export function HomePage() {
           <Bell aria-hidden />
           <span>알림</span>
         </Link>
-      </div>
+      </header>
 
       <BannerCarousel banners={banners} />
       <CategoryGrid categories={categories ?? []} />
