@@ -1,5 +1,6 @@
 import { useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useExitTransition } from '@/shared/hooks/useExitTransition'
 import { useModal } from '@/shared/hooks/useModal'
 import { Button } from './Button'
 import styles from './Overlay.module.css'
@@ -27,10 +28,11 @@ export function Dialog({
   const titleId = useId()
   const ref = useRef<HTMLDivElement>(null)
   useModal(isOpen, onClose, ref)
-  if (!isOpen) return null
+  const { mounted, closing } = useExitTransition(isOpen, 150)
+  if (!mounted) return null
 
   return createPortal(
-    <div className={`${styles.overlay} ${styles.center}`} onClick={onClose}>
+    <div className={`${styles.overlay} ${styles.center}`} data-closing={closing || undefined} onClick={onClose}>
       <div
         ref={ref}
         tabIndex={-1}
@@ -38,6 +40,7 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         className={styles.dialog}
+        data-closing={closing || undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className={`${styles.dialogTitle} t-headline-16`}>

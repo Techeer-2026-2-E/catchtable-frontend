@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronRight, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
-import { CategoryIcon, getStoreImageSrc, type Category, type LatLng, type MapStore, type StoreCategory } from '@/entities'
+import { CategoryIcon, getStoreFallbackImage, getStoreImageSrc, type Category, type LatLng, type MapStore, type StoreCategory } from '@/entities'
 import { RECOMMEND_FETCH_SIZE, useNearbyStores, useRecommendedStores } from '@/features/store-map'
 import { paths, ROUTES } from '@/shared/config'
 import { cn } from '@/shared/lib/cn'
@@ -52,9 +52,17 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
         onTouchStart={() => (paused.current = true)}
         onTouchEnd={() => (paused.current = false)}
       >
-        {banners.map((b) => (
-          <Link key={b.title} to={b.to} className={styles.banner}>
-            <img src={b.image} alt="" className={styles.bannerImage} />
+        {banners.map((b, i) => (
+          <Link key={b.title} to={b.to} className={styles.banner} viewTransition>
+            {/* 첫 장은 화면에서 가장 큰 요소(LCP)라 먼저 받고, 나머지는 넘길 때 받는다. 첫 장 주소는 index.html 의 preload 와 같아야 함 */}
+            <img
+              src={b.image}
+              alt=""
+              className={styles.bannerImage}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              fetchPriority={i === 0 ? 'high' : 'auto'}
+              decoding={i === 0 ? 'sync' : 'async'}
+            />
             <span className={styles.bannerShade} aria-hidden />
             <span className={styles.bannerText}>
               <span className="t-label-13">{b.eyebrow}</span>
@@ -157,8 +165,8 @@ export function RegionSection({ regions }: { regions: Region[] }) {
 function WideStoreCard({ store }: { store: MapStore }) {
   const meta = [store.area, store.categoryName].filter(Boolean).join(', ')
   return (
-    <Link to={paths.storeDetail(store.id)} className={styles.wideCard}>
-      <ImagePlaceholder src={getStoreImageSrc(store)} className={styles.wideThumb} radius={16} />
+    <Link to={paths.storeDetail(store.id)} className={styles.wideCard} viewTransition>
+      <ImagePlaceholder src={getStoreImageSrc(store)} fallbackSrc={getStoreFallbackImage(store)} sizes="240px" className={styles.wideThumb} radius={16} />
       <span className={cn(styles.wideName, 't-headline-16')}>{store.name}</span>
       <span className={styles.wideMeta}>
         {store.ratingAverage != null && <Rating value={store.ratingAverage} count={store.reviewCount} />}
@@ -222,9 +230,9 @@ export function CategoryBest({ categories }: { categories: Category[] }) {
           <ol className={styles.rankList}>
             {ranked.map((store, i) => (
               <li key={store.id}>
-                <Link to={paths.storeDetail(store.id)} className={styles.rankItem}>
+                <Link to={paths.storeDetail(store.id)} className={styles.rankItem} viewTransition>
                   <span className={cn(styles.rankNo, i < 3 && styles.rankTop, 't-title-18 tnum')}>{i + 1}</span>
-                  <ImagePlaceholder src={getStoreImageSrc(store)} className={styles.rankThumb} radius={8} />
+                  <ImagePlaceholder src={getStoreImageSrc(store)} fallbackSrc={getStoreFallbackImage(store)} sizes="56px" className={styles.rankThumb} radius={8} />
                   <span className={styles.rankText}>
                     <span className="t-headline-16">{store.name}</span>
                     <span className={styles.wideMeta}>

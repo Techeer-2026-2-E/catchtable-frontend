@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { ImagePlaceholder } from '@/shared/ui'
-import { getStoreImageSrc } from '../image'
+import { getStoreFallbackImage, getStoreImageSrc } from '../image'
 import type { Store } from '../model'
 import styles from './StoreCard.module.css'
 
@@ -22,10 +22,11 @@ interface StoreCardProps {
 /** 매장 카드 — 대표 사진 1장, 이름, 카테고리와 주소, 웨이팅 가능 여부 */
 export function StoreCard({ store, to, footer, variant = 'default', meta }: StoreCardProps) {
   const photo = getStoreImageSrc(store)
+  const fallback = getStoreFallbackImage(store)
   if (variant === 'compact') {
     return (
-      <Link to={to} className={styles.compact}>
-        <ImagePlaceholder src={photo} className={styles.compactThumb} radius={16} />
+      <Link to={to} className={styles.compact} viewTransition>
+        <ImagePlaceholder src={photo} fallbackSrc={fallback} sizes="136px" className={styles.compactThumb} radius={16} />
         <span className={`${styles.name} t-label-15`}>{store.name}</span>
         <span className="t-caption-12 text-tertiary">{meta ?? store.categoryName}</span>
         <StoreTags store={store} />
@@ -34,8 +35,8 @@ export function StoreCard({ store, to, footer, variant = 'default', meta }: Stor
   }
   return (
     <article className={styles.card}>
-      <Link to={to} className={styles.link}>
-        <ImagePlaceholder src={photo} className={styles.thumb} radius={12} />
+      <Link to={to} className={styles.link} viewTransition>
+        <ImagePlaceholder src={photo} fallbackSrc={fallback} sizes="60px" className={styles.thumb} radius={12} />
         <span className={styles.text}>
           <span className={`${styles.name} t-headline-16`}>{store.name}</span>
           <span className={`${styles.meta} t-caption-13 text-tertiary`}>

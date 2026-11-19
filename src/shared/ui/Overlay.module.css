@@ -7,6 +7,11 @@
   background: var(--color-bg-overlay);
   animation: fadeIn 0.15s ease;
 }
+/* 닫히는 중 — useExitTransition 이 애니메이션 시간만큼 남겨 둔다. 뒤 화면은 바로 누를 수 있게 */
+.overlay[data-closing] {
+  pointer-events: none;
+  animation: fadeOut 0.18s ease forwards;
+}
 .center {
   align-items: center;
   padding: var(--space-24);
@@ -22,6 +27,10 @@
   border-radius: var(--radius-16);
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-floating);
+  animation: popIn 0.15s ease;
+}
+.dialog[data-closing] {
+  animation: popOut 0.15s ease forwards;
 }
 .dialogTitle {
   margin-bottom: var(--space-8);
@@ -48,6 +57,20 @@
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-floating);
   animation: slideUp 0.2s ease;
+  transition: transform 0.2s ease;
+}
+/* 끄는 동안은 손가락을 바로 따라오게 */
+.sheet[data-dragging] {
+  transition: none;
+}
+/* 끌어내린 자리에서 이어서 내려간다 (from 을 비워 현재 위치에서 시작) */
+.sheet[data-closing] {
+  animation: slideDown 0.18s ease-in forwards;
+}
+/* 손잡이 + 제목 줄 — 아래로 끌어서 닫는 영역 */
+.sheetGrip {
+  touch-action: none;
+  cursor: grab;
 }
 .handle {
   width: 2.5rem;
@@ -85,5 +108,35 @@
 @keyframes slideUp {
   from {
     transform: translateY(100%);
+  }
+}
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes slideDown {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes popOut {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .sheet,
+  .dialog {
+    animation: none;
+    transition: none;
   }
 }

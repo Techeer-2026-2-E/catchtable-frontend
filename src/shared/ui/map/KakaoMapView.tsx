@@ -77,23 +77,43 @@ export function KakaoMapView({
     }
   }, [maps, start])
 
-  // 핀 — 바뀔 때마다 다시 올린다 (최대 1000개라 단순하게)
+  // 핀 — 바뀐 것만 다시 올린다. 핀 하나를 고르면 전체(최대 1000개)가 아니라 이전·새 선택 핀 2개만 갱신
+  const rendered = useRef(new Map<number, { signature: string; overlay: KakaoCustomOverlay }>())
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const overlays: KakaoCustomOverlay[] = pins.map(
-      (pin) =>
-        new maps.CustomOverlay({
-          position: new maps.LatLng(pin.lat, pin.lng),
-          content: createPinElement(pin.label, !!pin.selected, () => handlers.current.onPinClick(pin.id)),
-          yAnchor: pin.selected ? 1 : 0.5,
-          zIndex: pin.selected ? 10 : 1,
-          clickable: true,
-        }),
-    )
-    overlays.forEach((o) => o.setMap(map))
-    return () => overlays.forEach((o) => o.setMap(null))
+    const current = rendered.current
+    const seen = new Set<number>()
+    for (const pin of pins) {
+      seen.add(pin.id)
+      const signature = `${pin.lat},${pin.lng},${pin.selected ? 1 : 0},${pin.label}`
+      const prev = current.get(pin.id)
+      if (prev?.signature === signature) continue
+      prev?.overlay.setMap(null)
+      const overlay = new maps.CustomOverlay({
+        position: new maps.LatLng(pin.lat, pin.lng),
+        content: createPinElement(pin.label, !!pin.selected, () => handlers.current.onPinClick(pin.id)),
+        yAnchor: pin.selected ? 1 : 0.5,
+        zIndex: pin.selected ? 10 : 1,
+        clickable: true,
+      })
+      overlay.setMap(map)
+      current.set(pin.id, { signature, overlay })
+    }
+    for (const [id, { overlay }] of current) {
+      if (seen.has(id)) continue
+      overlay.setMap(null)
+      current.delete(id)
+    }
   }, [maps, pins])
+  // 지도를 치울 때 남은 핀 정리
+  useEffect(() => {
+    const current = rendered.current
+    return () => {
+      current.forEach(({ overlay }) => overlay.setMap(null))
+      current.clear()
+    }
+  }, [maps])
 
   // 내 위치
   useEffect(() => {

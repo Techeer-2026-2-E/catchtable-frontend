@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { ChevronUp, List, LocateFixed, Map as MapIcon, RotateCw, Search, X } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
-import { getStoreImageSrc, type LatLng, type MapBounds } from '@/entities'
+import { getStoreFallbackImage, getStoreImageSrc, type LatLng, type MapBounds } from '@/entities'
 import { useStoreDetail } from '@/features/store-detail'
 import {
   DEFAULT_CENTER,
@@ -311,8 +311,8 @@ function SelectedFallback({ storeId }: { storeId: number }) {
   if (isPending) return <div className={styles.fallbackCard}><ListSkeleton rows={1} thumb="square" inset={false} /></div>
   if (isError || !data) return <div className={styles.fallbackCard}><p className="t-body-14 text-tertiary">매장 정보를 불러오지 못했어요</p></div>
   return (
-    <Link to={paths.storeDetail(storeId)} className={styles.fallbackCard}>
-      <ImagePlaceholder src={getStoreImageSrc(data)} className={styles.fallbackThumb} radius={8} />
+    <Link to={paths.storeDetail(storeId)} className={styles.fallbackCard} viewTransition>
+      <ImagePlaceholder src={getStoreImageSrc(data)} fallbackSrc={getStoreFallbackImage(data)} sizes="88px" className={styles.fallbackThumb} radius={8} />
       <span className={styles.fallbackText}>
         <span className="t-headline-16">{data.name}</span>
         <span className="t-caption-13 text-secondary">{data.categoryName}</span>
