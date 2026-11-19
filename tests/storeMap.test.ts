@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boundsSideKm, describeOpenStatus, formatDistance, isSearchable, nearlySameBounds } from '@/features/store-map'
+import { boundsSideKm, describeOpenStatus, formatDistance, isListable, nearlySameBounds } from '@/features/store-map'
 import { dayjs } from '@/shared/lib/dayjs'
 
 // 강남역 주변 약 1.8km × 1.1km
@@ -14,10 +14,10 @@ describe('지도 범위', () => {
     expect(height).toBeLessThan(1.12)
   })
 
-  it('한 변이 5km 를 넘으면 검색할 수 없다 (백엔드 store.map.max-side-km)', () => {
-    expect(isSearchable(gangnam)).toBe(true)
-    expect(isSearchable({ ...gangnam, neLng: gangnam.swLng + 0.06 })).toBe(false)
-    expect(isSearchable({ ...gangnam, neLat: gangnam.swLat + 0.05 })).toBe(false)
+  it('한 변이 5km 를 넘으면 목록을 볼 수 없다 (백엔드 store.map.max-side-km, 핀은 제한 없음)', () => {
+    expect(isListable(gangnam)).toBe(true)
+    expect(isListable({ ...gangnam, neLng: gangnam.swLng + 0.06 })).toBe(false)
+    expect(isListable({ ...gangnam, neLat: gangnam.swLat + 0.05 })).toBe(false)
   })
 
   it('조금만 움직이면 같은 범위로 본다', () => {

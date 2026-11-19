@@ -258,18 +258,25 @@ export interface MapStoreList {
   hasNext: boolean
 }
 
-/** 지도 핀 하나 — MapMarkerResponse */
+/** 지도 핀 하나 — MapMarkerResponse. 화면 안 별점 상위순으로 내려온다 */
 export interface MapMarker {
   id: number
   name: string
   latitude: number
   longitude: number
+  /** 소수 첫째 자리. 리뷰가 없으면 null */
+  ratingAverage: number | null
+  reviewCount: number
+  /** 화면 안 순위, 1부터. 1~3위는 핀 대신 이름과 별점 박스로 표시 */
+  rank: number
 }
 
-/** GET /api/user/stores/map/bounds/markers — truncated 면 화면 안 매장이 상한(1000)보다 많아 일부만 옴 */
+/**
+ * GET /api/user/stores/map/bounds/markers
+ * 화면 크기 제한 없이 화면 안 매장 중 별점 상위 15개만 (store.map.marker-limit). 순서가 곧 순위
+ */
 export interface MapMarkerList {
   stores: MapMarker[]
-  truncated: boolean
 }
 
 /* ---------- 매출 — 기능32 GET /api/owner/stores/{storeId}/sales?from=&to= ---------- */

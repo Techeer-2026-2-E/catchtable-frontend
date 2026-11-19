@@ -3,6 +3,7 @@ import { cn } from '@/shared/lib/cn'
 import { type KakaoCustomOverlay, type KakaoMap, type KakaoMaps } from './kakaoLoader'
 import styles from './MapView.module.css'
 import { createMyLocationElement, createPinElement } from './pinElement'
+import { pinLook } from './pinLook'
 import type { MapViewProps } from './types'
 
 /** 지점이 가운데보다 offsetY(px) 위에 보이게 하는 새 가운데 */
@@ -77,7 +78,7 @@ export function KakaoMapView({
     }
   }, [maps, start])
 
-  // 핀 — 바뀐 것만 다시 올린다. 핀 하나를 고르면 전체(최대 1000개)가 아니라 이전·새 선택 핀 2개만 갱신
+  // 핀 — 바뀐 것만 다시 올린다. 핀 하나를 고르면 전체가 아니라 이전·새 선택 핀 2개만 갱신
   const rendered = useRef(new Map<number, { signature: string; overlay: KakaoCustomOverlay }>())
   useEffect(() => {
     const map = mapRef.current
@@ -86,15 +87,16 @@ export function KakaoMapView({
     const seen = new Set<number>()
     for (const pin of pins) {
       seen.add(pin.id)
-      const signature = `${pin.lat},${pin.lng},${pin.selected ? 1 : 0},${pin.label}`
+      const signature = `${pin.lat},${pin.lng},${pin.selected ? 1 : 0},${pin.label},${pin.featured ? 1 : 0},${pin.rating ?? ''},${pin.rank ?? ''}`
       const prev = current.get(pin.id)
       if (prev?.signature === signature) continue
       prev?.overlay.setMap(null)
+      const look = pinLook(pin)
       const overlay = new maps.CustomOverlay({
         position: new maps.LatLng(pin.lat, pin.lng),
-        content: createPinElement(pin.label, !!pin.selected, () => handlers.current.onPinClick(pin.id)),
-        yAnchor: pin.selected ? 1 : 0.5,
-        zIndex: pin.selected ? 10 : 1,
+        content: createPinElement(pin, () => handlers.current.onPinClick(pin.id)),
+        yAnchor: look.anchorBottom ? 1 : 0.5,
+        zIndex: look.zIndex,
         clickable: true,
       })
       overlay.setMap(map)

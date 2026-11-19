@@ -9,8 +9,10 @@ import { API, badRequest, before } from '../utils'
 
 /** 백엔드 application.yml 기본값 */
 const NEARBY_RADIUS_METERS = 1000
+/** 지도 목록의 화면 한 변 상한 — 핀에는 적용하지 않는다 */
 const MAX_SIDE_KM = 5
-const MARKER_LIMIT = 1000
+/** 화면 안 별점 상위 몇 개를 핀으로 줄지 (store.map.marker-limit) */
+const MARKER_LIMIT = 15
 
 type Located = StoreRow & { latitude: number; longitude: number }
 
@@ -53,9 +55,15 @@ function openState(store: StoreRow): { openStatus: OpenStatus | null; nextChange
   return { openStatus: 'CLOSED', nextChangeAt: null }
 }
 
+/** 매장 리뷰 수와 평균 (평균은 반올림 전, 리뷰가 없으면 null) */
+function reviewStats(storeId: number) {
+  const reviews = db.reviews.filter((r) => r.storeId === storeId)
+  return { count: reviews.length, average: reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : null }
+}
+const round1 = (v: number | null) => (v == null ? null : Math.round(v * 10) / 10)
+
 function toMapStore(s: Located, from: { lat: number; lng: number } | null): MapStore {
-  const reviews = db.reviews.filter((r) => r.storeId === s.id)
-  const average = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : null
+  const stats = reviewStats(s.id)
   return {
     id: s.id,
     name: s.name,
@@ -68,8 +76,8 @@ function toMapStore(s: Located, from: { lat: number; lng: number } | null): MapS
     reservationEnabled: s.ownerId != null,
     waitingAvailable: s.waitingAvailable && s.waitingSettings.open,
     ...openState(s),
-    ratingAverage: average == null ? null : Math.round(average * 10) / 10,
-    reviewCount: reviews.length,
+    ratingAverage: round1(stats.average),
+    reviewCount: stats.count,
   }
 }
 
@@ -78,8 +86,8 @@ const num = (q: URLSearchParams, key: string) => {
   return v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v)
 }
 
-/** swLat, swLng, neLat, neLng 검증 — 백엔드 MapBoundsCondition */
-function readBounds(q: URLSearchParams) {
+/** swLat, swLng, neLat, neLng 검증 — 백엔드 MapBoundsCondition. limitSize 면 한 변 상한도 검사 (목록만) */
+function readBounds(q: URLSearchParams, limitSize = true) {
   const swLat = num(q, 'swLat')
   const swLng = num(q, 'swLng')
   const neLat = num(q, 'neLat')
@@ -89,7 +97,7 @@ function readBounds(q: URLSearchParams) {
   const midLat = (swLat + neLat) / 2
   const width = distanceMeters(midLat, swLng, midLat, neLng) / 1000
   const height = distanceMeters(swLat, swLng, neLat, swLng) / 1000
-  if (width > MAX_SIDE_KM || height > MAX_SIDE_KM) return { error: badRequest(`지도 범위는 한 변 ${MAX_SIDE_KM}km 이하여야 합니다.`) }
+  if (limitSize && (width > MAX_SIDE_KM || height > MAX_SIDE_KM)) return { error: badRequest(`지도 범위는 한 변 ${MAX_SIDE_KM}km 이하여야 합니다.`) }
   return { bounds: { swLat, swLng, neLat, neLng } }
 }
 
@@ -112,14 +120,36 @@ const publicStore = (id: number) => PUBLIC_STORES.find((s) => s.id === id)
 
 /** 지도 매장 API — 백엔드 feat/266-map-stores (UserStoreController). dev 에는 아직 없음 */
 export const mapHandlers = [
-  /** 화면 안 핀 — 최대 1000개, 넘으면 truncated */
+  /**
+   * 화면 안 핀 — 크기 제한 없이 별점 상위 15개 (MapBoundsRepository.FIND_MARKERS_SQL)
+   * 평균 높은 순, 같으면 리뷰 많은 순, 리뷰 없는 매장은 맨 뒤, 그다음 id 순. 순서가 곧 rank
+   */
   http.get(`${API}/user/stores/map/bounds/markers`, async ({ request }) => {
     await before()
-    const { bounds, error } = readBounds(new URL(request.url).searchParams)
+    const { bounds, error } = readBounds(new URL(request.url).searchParams, false)
     if (error) return error
-    const hits = locatedStores().filter((s) => inBounds(s, bounds))
-    const stores: MapMarker[] = hits.slice(0, MARKER_LIMIT).map(({ id, name, latitude, longitude }) => ({ id, name, latitude, longitude }))
-    return HttpResponse.json({ stores, truncated: hits.length > MARKER_LIMIT })
+    const ranked = locatedStores()
+      .filter((s) => inBounds(s, bounds))
+      .map((s) => ({ store: s, stats: reviewStats(s.id) }))
+      .sort((a, b) => {
+        const av = a.stats.average
+        const bv = b.stats.average
+        if (av == null || bv == null) {
+          if (av != null) return -1
+          if (bv != null) return 1
+        } else if (av !== bv) return bv - av
+        return b.stats.count - a.stats.count || a.store.id - b.store.id
+      })
+    const stores: MapMarker[] = ranked.slice(0, MARKER_LIMIT).map(({ store, stats }, i) => ({
+      id: store.id,
+      name: store.name,
+      latitude: store.latitude,
+      longitude: store.longitude,
+      ratingAverage: round1(stats.average),
+      reviewCount: stats.count,
+      rank: i + 1,
+    }))
+    return HttpResponse.json({ stores })
   }),
 
   /** 화면 안 매장 목록 — (lat, lng) 에서 가까운 순 */

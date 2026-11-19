@@ -18,9 +18,15 @@ export interface MapPin {
   id: number
   lat: number
   lng: number
-  /** 선택했을 때 핀 옆에 보이는 이름 */
+  /** 매장 이름 — 선택했거나 featured 면 화면에 보인다 */
   label: string
   selected?: boolean
+  /** 점 대신 이름과 별점이 든 작은 박스로 그린다 (지도 별점 상위 1~3위) */
+  featured?: boolean
+  /** featured 박스에 함께 보이는 별점. 없으면 이름만 */
+  rating?: number | null
+  /** 겹칠 때의 순서 — 작을수록 위 (1이 맨 위). 없으면 맨 아래 */
+  rank?: number
 }
 
 export interface PanOptions {
