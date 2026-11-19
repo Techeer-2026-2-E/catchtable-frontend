@@ -1,4 +1,4 @@
-import type { LatLng, MapBounds } from '@/entities'
+import type { LatLng, MapBounds, MapStore, Store } from '@/entities'
 
 /** 위치 권한이 없을 때 쓰는 기본 위치 — 강남역 */
 export const DEFAULT_CENTER: LatLng = { lat: 37.4979, lng: 127.0276 }
@@ -57,4 +57,28 @@ export function readMapFocus(params: URLSearchParams): { storeId: number | null;
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
   const storeId = Number(params.get('storeId'))
   return { storeId: Number.isInteger(storeId) && storeId > 0 ? storeId : null, point: { lat, lng } }
+}
+
+/**
+ * 검색 목록 매장(Store)을 지도 목록 한 칸(MapStoreItem) 모양으로 — 거리는 내 위치가 있을 때만 계산
+ * 예전 서버처럼 값이 없으면 그 줄을 숨기도록 null·false·0 으로 둔다
+ */
+export function toMapStore(store: Store, me: LatLng | null): MapStore {
+  const located = store.latitude != null && store.longitude != null
+  return {
+    id: store.id,
+    name: store.name,
+    categoryName: store.categoryName,
+    imageUrl: store.imageUrl,
+    latitude: store.latitude ?? 0,
+    longitude: store.longitude ?? 0,
+    area: store.area ?? null,
+    distanceMeters: me && located ? Math.round(distanceKm(me, { lat: store.latitude!, lng: store.longitude! }) * 1000) : null,
+    reservationEnabled: store.reservationEnabled ?? false,
+    waitingAvailable: store.waitingAvailable,
+    openStatus: store.openStatus ?? null,
+    nextChangeAt: store.nextChangeAt ?? null,
+    ratingAverage: store.ratingAverage ?? null,
+    reviewCount: store.reviewCount ?? 0,
+  }
 }

@@ -64,6 +64,22 @@ export interface Store {
   waitingAvailable: boolean
   /** 대표 사진 1장 (http(s) URL). 없으면 null */
   imageUrl: string | null
+  /*
+   * 아래는 검색 목록(StoreSummaryResponse)이 지도 목록과 같은 규칙으로 함께 주는 값
+   * 예전 서버 응답에는 없을 수 있어 선택 필드로 둔다
+   */
+  /** 주소의 구 이름 ("강남구"). 형식이 다르면 null */
+  area?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  /** 점주가 있는 입점 매장만 true */
+  reservationEnabled?: boolean
+  openStatus?: OpenStatus | null
+  /** 다음에 영업 상태가 바뀌는 한국 시각 (LocalDateTime) */
+  nextChangeAt?: string | null
+  /** 소수 첫째 자리, 리뷰가 없으면 null */
+  ratingAverage?: number | null
+  reviewCount?: number
 }
 
 /** GET /api/user/stores — StoreListResponse */

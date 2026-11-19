@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { CalendarDays, ChevronDown, Map as MapIcon, SearchX } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { STORE_CATEGORY_LABEL, StoreCard, type Store, type StoreCategory } from '@/entities'
+import { STORE_CATEGORY_LABEL, type Store, type StoreCategory } from '@/entities'
 import { useAvailability } from '@/features/reservation'
+import { MapStoreItem, toMapStore } from '@/features/store-map'
 import { useRecentSearches, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
 import { useDebounce } from '@/shared/hooks'
 import { dayjs } from '@/shared/lib/dayjs'
+import { useGeolocation } from '@/shared/lib/useGeolocation'
 import { formatTime } from '@/shared/lib/format'
 import { BottomSheet, Button, Calendar, Chip, ChipGroup, EmptyState, ErrorState, ListSkeleton, Page, SearchBar, Stepper, TopBar } from '@/shared/ui'
 import { SearchLanding } from './SearchLanding'
@@ -36,6 +38,8 @@ export function SearchPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [draft, setDraft] = useState<Condition>(() => condition ?? { date: dayjs().format('YYYY-MM-DD'), time: '19:00', partySize: 2 })
   const recent = useRecentSearches()
+  // 거리 표시용 — 목 위치(강남역)가 기본, 실제 위치 모드면 권한을 물었을 때만
+  const geo = useGeolocation()
 
   const setParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams)
@@ -165,20 +169,20 @@ export function SearchPage() {
             <ul className={styles.list}>
               {results.map((store) => (
                 <li key={store.id}>
-                  <StoreCard
-                    store={store}
-                    to={condition ? `${paths.storeDetail(store.id)}?${new URLSearchParams({ date: slotDate, time: condition.time, party: String(slotPartySize) })}` : paths.storeDetail(store.id)}
-                    footer={
-                      condition && (
-                        <AvailableTimes
-                          store={store}
-                          date={slotDate}
-                          partySize={slotPartySize}
-                          onSelect={(time) => navigate(`${paths.storeDetail(store.id)}?${new URLSearchParams({ date: slotDate, time, party: String(slotPartySize) })}`)}
-                        />
-                      )
-                    }
-                  />
+                  <article className={styles.resultCard}>
+                    <MapStoreItem
+                      store={toMapStore(store, geo.position)}
+                      to={condition ? `${paths.storeDetail(store.id)}?${new URLSearchParams({ date: slotDate, time: condition.time, party: String(slotPartySize) })}` : paths.storeDetail(store.id)}
+                    />
+                    {condition && (
+                      <AvailableTimes
+                        store={store}
+                        date={slotDate}
+                        partySize={slotPartySize}
+                        onSelect={(time) => navigate(`${paths.storeDetail(store.id)}?${new URLSearchParams({ date: slotDate, time, party: String(slotPartySize) })}`)}
+                      />
+                    )}
+                  </article>
                 </li>
               ))}
             </ul>

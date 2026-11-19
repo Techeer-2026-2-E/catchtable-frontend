@@ -1,4 +1,11 @@
 const mocking = import.meta.env.VITE_API_MOCKING
+
+/** "위도,경도" → 좌표. 'off' 나 잘못된 값이면 null */
+function parseLocation(raw: string): { lat: number; lng: number } | null {
+  if (raw.trim().toLowerCase() === 'off') return null
+  const [lat, lng] = raw.split(',').map((v) => Number(v.trim()))
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null
+}
 const apiMocking = mocking === 'true' || (import.meta.env.DEV && mocking !== 'false')
 
 export const env = {
@@ -26,6 +33,11 @@ export const env = {
    * [임시] 점주 "내 매장 목록" API 가 백엔드에 없어서 매장 id 를 지정 — 쉼표로 구분
    * 기본: 실제 백엔드는 scripts/local-seed.sql 의 매장 1, 목 API 는 점주(회원 2)의 매장 2·4
    */
+  /**
+   * [목 데이터] 내 위치 — 매장 데이터가 서울에만 있어서 기본으로 강남역을 내 위치로 쓴다
+   * VITE_MOCK_LOCATION="위도,경도" 로 바꾸고, 'off' 면 브라우저 실제 위치(GPS)를 묻는다
+   */
+  mockLocation: parseLocation(import.meta.env.VITE_MOCK_LOCATION ?? '37.4979,127.0276'),
   ownerStoreIds: (
     import.meta.env.VITE_OWNER_STORE_IDS ?? (mocking === 'true' || (import.meta.env.DEV && mocking !== 'false') ? '2,4' : '1')
   )
