@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, ScrollRestoration } from 'react-router'
 import { RequireAuth } from '@/features/auth'
 import { ToastViewport } from '@/shared/ui'
 import styles from './Layout.module.css'
@@ -11,9 +11,10 @@ export function OwnerLayout() {
     <RequireAuth userType="OWNER">
       <div className={styles.frame}>
         <Suspense fallback={<PageFallback />}>
-        <Outlet />
-      </Suspense>
+          <Outlet />
+        </Suspense>
         <ToastViewport />
+        <ScrollRestoration />
       </div>
     </RequireAuth>
   )

@@ -11,6 +11,17 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- 홈 첫 배너(가장 큰 요소) — JS 를 기다리지 않고 먼저 받는다. 홈으로 들어올 때만. HomePage 의 banners[0] 사진과 같아야 함 -->
+    <script>
+      if (location.pathname === '/') {
+        var l = document.createElement('link')
+        l.rel = 'preload'
+        l.as = 'image'
+        l.href = '/images/stores/photos/korean-02.webp'
+        l.fetchPriority = 'high'
+        document.head.appendChild(l)
+      }
+    </script>
     <title>캐치테이블</title>
   </head>
   <body>

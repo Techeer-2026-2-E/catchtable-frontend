@@ -37,6 +37,8 @@ export function StorePhotoCarousel({ store, className }: { store: StoreDetail; c
               src={src}
               alt={store.imageUrl && i === 0 ? store.name : ''}
               loading={i === 0 ? 'eager' : 'lazy'}
+              fetchPriority={i === 0 ? 'high' : 'auto'}
+              decoding={i === 0 ? 'sync' : 'async'}
               className={styles.photo}
             />
           </div>

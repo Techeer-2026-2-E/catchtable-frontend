@@ -15,7 +15,7 @@ export function BottomNav() {
   return (
     <nav className={styles.bottomNav} aria-label="주요 메뉴">
       {TABS.map(({ to, label, icon: Icon, end }) => (
-        <NavLink key={to} to={to} end={end} className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navActive : ''}`}>
+        <NavLink key={to} to={to} end={end} viewTransition className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navActive : ''}`}>
           <span className={styles.navIcon}>
             <Icon aria-hidden />
           </span>

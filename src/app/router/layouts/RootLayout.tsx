@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router'
+import { Navigate, Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { useAuthStore } from '@/features/auth'
 import { ROUTES } from '@/shared/config'
 import { ToastViewport } from '@/shared/ui'
@@ -28,6 +28,8 @@ export function RootLayout() {
       </Suspense>
       {showNav && <BottomNav />}
       <ToastViewport />
+      {/* 새 화면은 맨 위에서 시작, 뒤로 오면 보던 위치로 */}
+      <ScrollRestoration />
     </div>
   )
 }

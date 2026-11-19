@@ -1,24 +1,51 @@
-import type { InputHTMLAttributes, ReactNode } from 'react'
+import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import { ImageIcon, Search, Star } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from '@/shared/lib/cn'
+import { responsiveSrcSet } from '@/shared/lib/image'
 import styles from './Misc.module.css'
 
-/** 사진 자리. 크기는 사용하는 곳에서 조절 (src 가 있으면 이미지 표시) */
+/**
+ * 사진 자리. 크기는 사용하는 곳에서 조절 (src 가 있으면 이미지 표시)
+ * - sizes: 화면에 그려지는 폭 (예: "136px") — 작은 변형이 있는 사진은 이 폭에 맞는 파일만 받는다
+ * - fallbackSrc: 사진을 불러오지 못했을 때 대신 보여줄 그림. 없거나 그것도 실패하면 아이콘
+ */
 export function ImagePlaceholder({
   src,
   alt = '',
   className,
   radius = 12,
+  sizes,
+  fallbackSrc,
 }: {
   src?: string
   alt?: string
   className?: string
   radius?: 0 | 8 | 12 | 16
+  sizes?: string
+  fallbackSrc?: string
 }) {
+  // 실패한 주소를 기억 — src 가 바뀌면 다시 시도
+  const [failed, setFailed] = useState<{ src: string; fallback: boolean } | null>(null)
+  const srcFailed = !!src && failed?.src === src
+  const shown = !srcFailed ? src : fallbackSrc && fallbackSrc !== src && !failed?.fallback ? fallbackSrc : undefined
+  const srcSet = srcFailed ? undefined : responsiveSrcSet(src)
+
   return (
     <div className={cn(styles.image, className)} style={{ borderRadius: radius / 16 + 'rem' }}>
-      {src ? <img src={src} alt={alt} loading="lazy" /> : <ImageIcon aria-hidden />}
+      {shown ? (
+        <img
+          src={shown}
+          srcSet={srcSet}
+          sizes={srcSet ? sizes : undefined}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onError={() => src && setFailed({ src, fallback: srcFailed })}
+        />
+      ) : (
+        <ImageIcon aria-hidden />
+      )}
     </div>
   )
 }

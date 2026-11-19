@@ -54,6 +54,9 @@ function startIndex(id: number, count: number) {
   return (h >>> 0) % count
 }
 
+/** 사진을 불러오지 못했을 때 대신 보여줄 카테고리 기본 그림 */
+export const getStoreFallbackImage = (store: StoreImageSource): string => CATEGORY_IMAGE[categoryOf(store)]
+
 /** 매장 대표 사진. 없으면 카테고리 목 사진, id 도 모르면 카테고리 기본 그림 */
 export function getStoreImageSrc(store: StoreImageSource): string {
   if (store.imageUrl) return store.imageUrl

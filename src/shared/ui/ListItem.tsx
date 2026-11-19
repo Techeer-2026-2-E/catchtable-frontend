@@ -33,7 +33,7 @@ export function ListItem({ title, description, icon, value, trailing, to, onClic
 
   if (to) {
     return (
-      <Link to={to} className={cn(styles.item, styles.interactive, className)}>
+      <Link to={to} viewTransition className={cn(styles.item, styles.interactive, className)}>
         {body}
       </Link>
     )

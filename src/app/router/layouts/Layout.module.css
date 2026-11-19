@@ -25,6 +25,8 @@
   border-top: 1px solid var(--color-border-default);
   background: var(--color-bg-canvas);
   transform: translateX(-50%);
+  /* 화면 전환 중에도 탭바는 제자리에 */
+  view-transition-name: bottom-nav;
 }
 .navItem {
   display: flex;
@@ -41,6 +43,14 @@
 .navItem svg {
   width: 1.5rem;
   height: 1.5rem;
+  transition: transform 0.12s ease;
+}
+/* 눌림 — 아이콘이 살짝 줄어든다 (링크 공통 눌림의 투명도 대신) */
+.navItem:active {
+  opacity: 1;
+}
+.navItem:active svg {
+  transform: scale(0.88);
 }
 .navItem {
   position: relative;
