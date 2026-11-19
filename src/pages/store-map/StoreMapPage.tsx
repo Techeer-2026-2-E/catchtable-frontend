@@ -5,10 +5,9 @@ import { getStoreFallbackImage, getStoreImageSrc, type LatLng, type MapBounds } 
 import { useStoreDetail } from '@/features/store-detail'
 import {
   DEFAULT_CENTER,
-  isSearchable,
+  isListable,
   readMapFocus,
   MapStoreItem,
-  MAX_SIDE_KM,
   nearlySameBounds,
   useMapMarkers,
   useMapStores,
@@ -32,11 +31,15 @@ type SheetMode = 'peek' | 'half' | 'full'
 const HALF_RATIO = 0.5
 /** 손잡이를 이만큼(px) 끌면 단계를 바꾼다 */
 const DRAG_THRESHOLD = 30
+/** 핀 대신 이름과 별점 박스로 보여줄 순위 (1~3위) */
+const FEATURED_RANKS = 3
 
 /**
  * 지도로 매장 찾기 — 와이어프레임 "고객 화면 3 지도로 매장 찾기 (내 주변)"
  * - 처음: 내 위치(권한이 없으면 강남역)를 시트 위 보이는 영역 가운데 두고 바로 검색, 목록은 반쯤
- * - 지도를 옮기면 "이 지역에서 검색" 버튼. 누를 때만 다시 조회 (백엔드 화면 범위 한 변 5km 제한)
+ * - 지도를 옮기면 "이 지역에서 검색" 버튼. 누를 때만 다시 조회 (자동 조회 없음)
+ * - 핀은 화면 크기와 상관없이 별점 상위 15개. 1~3위는 이름과 별점 박스로 보여준다
+ * - 목록은 화면 한 변 5km 이하일 때만 (백엔드 store.map.max-side-km). 넓으면 핀만 보이고 목록 자리에 확대 안내
  * - 핀을 누르면 시트 대신 매장 카드. 바탕을 누르면 카드를 닫고, 카드가 없으면 시트를 요약으로 접는다
  * - 시트 손잡이: 위로 끌거나 누르면 펼치고, 아래로 끌면 접는다
  */
@@ -82,7 +85,7 @@ export function StoreMapPage() {
     const shift = ((bounds.neLat - bounds.swLat) * focusOffset()) / height
     const next = { bounds, center: { lat: mapCenter.lat + shift, lng: mapCenter.lng } }
     setView(next)
-    if ((autoSearch.current || !searched) && isSearchable(bounds)) {
+    if (autoSearch.current || !searched) {
       setSearched(next)
       if (geoSettled.current || focus) autoSearch.current = false
     }
@@ -113,7 +116,9 @@ export function StoreMapPage() {
   // 거리 기준 — 내 위치를 모르면 검색한 화면의 가운데
   const origin = geo.position ?? searched?.center ?? DEFAULT_CENTER
   const markers = useMapMarkers(searched?.bounds ?? null)
-  const list = useMapStores(searched?.bounds ?? null, origin)
+  // 목록 API 는 한 변 5km 까지라 넓은 화면에서는 부르지 않는다 (핀만)
+  const listable = !!searched && isListable(searched.bounds)
+  const list = useMapStores(listable && searched ? searched.bounds : null, origin)
   const stores = useMemo(() => list.data?.pages.flatMap((p) => p.stores) ?? [], [list.data])
 
   const pins = useMemo<MapPin[]>(
@@ -124,16 +129,19 @@ export function StoreMapPage() {
         lng: m.longitude,
         label: m.name,
         selected: m.id === selectedId,
+        featured: m.rank <= FEATURED_RANKS,
+        rating: m.ratingAverage,
+        rank: m.rank,
       })),
     [markers.data, selectedId],
   )
 
-  const tooWide = !!view && !isSearchable(view.bounds)
   const moved = !!view && !!searched && !nearlySameBounds(searched.bounds, view.bounds)
-  const showSearchButton = sheet !== 'full' && (tooWide || moved || (!searched && !!view))
+  const showSearchButton = sheet !== 'full' && (moved || (!searched && !!view))
 
+  // 핀은 별점 상위 몇 곳만 오므로 "이 지역 매장 N곳" 이 아니라 지도에 띄운 수
   const count = markers.data?.stores.length ?? 0
-  const countLabel = markers.data?.truncated ? `이 지역 매장 ${count.toLocaleString()}곳 이상` : `이 지역 매장 ${count}곳`
+  const countLabel = count === 0 ? '이 지역에는 매장이 없어요' : `별점 높은 매장 ${count}곳`
   const selected = selectedId == null ? null : stores.find((s) => s.id === selectedId) ?? null
   const showList = selectedId == null && sheet !== 'peek'
 
@@ -158,15 +166,9 @@ export function StoreMapPage() {
       </div>
 
       {showSearchButton && (
-        <button type="button" className={styles.research} disabled={tooWide} onClick={research}>
-          {tooWide ? (
-            `지도를 확대하면 검색할 수 있어요 (한 변 ${MAX_SIDE_KM}km 이하)`
-          ) : (
-            <>
-              <RotateCw aria-hidden />
-              이 지역에서 검색
-            </>
-          )}
+        <button type="button" className={styles.research} onClick={research}>
+          <RotateCw aria-hidden />
+          이 지역에서 검색
         </button>
       )}
 
@@ -202,13 +204,11 @@ export function StoreMapPage() {
             <span className={styles.handle} aria-hidden />
             <span className={styles.peekRow}>
               <span className="t-headline-16">
-                {!searched
-                  ? '지도를 확대해 검색해 주세요'
-                  : markers.isPending
-                    ? '매장을 찾는 중'
-                    : markers.isError
-                      ? '매장을 불러오지 못했어요'
-                      : countLabel}
+                {!searched || markers.isPending
+                  ? '매장을 찾는 중'
+                  : markers.isError
+                    ? '매장을 불러오지 못했어요'
+                    : countLabel}
               </span>
               {searched && (
                 <span className={`${styles.peekAction} t-label-13`}>
@@ -218,7 +218,6 @@ export function StoreMapPage() {
                 </span>
               )}
             </span>
-            {markers.data?.truncated && <span className="t-caption-12 text-tertiary">핀이 너무 많아 일부만 보여요. 지도를 확대해 보세요</span>}
           </button>
         </div>
       ) : (
@@ -226,11 +225,13 @@ export function StoreMapPage() {
           <SheetHandle mode={sheet} onChange={setSheet} />
           <div className={styles.sheetBody}>
             <header className={styles.sheetHead}>
-              <h2 className="t-title-18">{searched ? countLabel : '이 지역 매장'}</h2>
-              <span className="t-caption-13 text-tertiary">{geo.position ? '내 위치에서 가까운 순' : '지도 가운데에서 가까운 순'}</span>
+              <h2 className="t-title-18">이 지역 매장</h2>
+              {listable && <span className="t-caption-13 text-tertiary">{geo.position ? '내 위치에서 가까운 순' : '지도 가운데에서 가까운 순'}</span>}
             </header>
             {!searched ? (
-              <p className={cn(styles.empty, 't-body-14 text-tertiary')}>지도를 확대해 검색해 주세요</p>
+              <ListSkeleton rows={3} thumb="square" inset={false} />
+            ) : !listable ? (
+              <p className={cn(styles.empty, 't-body-14 text-tertiary')}>목록은 지도를 조금 더 확대하면 볼 수 있어요</p>
             ) : list.isPending ? (
               <ListSkeleton rows={3} thumb="square" inset={false} />
             ) : list.isError ? (

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import { Minus, Plus } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
 import styles from './MapView.module.css'
+import { pinLook } from './pinLook'
 import type { GeoPoint, MapViewProps } from './types'
 
 /* 웹 메르카토르 — zoom 단계에서 지구 전체가 256·2^zoom 픽셀 */
@@ -134,20 +135,27 @@ export function SchematicMapView({ initialCenter, initialOffsetY = 0, pins, myLo
       {pins.map((pin) => {
         const pos = toScreen(pin)
         if (!visible(pos)) return null
+        const look = pinLook(pin)
         return (
           <button
             key={pin.id}
             type="button"
-            className={cn(styles.pin, styles.placed, pin.selected && styles.pinSelected)}
-            style={{ left: pos.left, top: pos.top, zIndex: pin.selected ? 10 : 1 }}
-            aria-label={pin.label}
+            className={cn(look.className, styles.placed, look.anchorBottom && styles.anchorBottom)}
+            style={{ left: pos.left, top: pos.top, zIndex: look.zIndex }}
+            aria-label={look.ariaLabel}
             aria-pressed={!!pin.selected}
             onClick={(e) => {
               e.stopPropagation()
               onPinClick(pin.id)
             }}
           >
-            {pin.selected && <span className={styles.pinLabel}>{pin.label}</span>}
+            {look.showLabel && <span className={styles.pinLabel}>{pin.label}</span>}
+            {look.rating && (
+              <span className={styles.pinRating} aria-hidden>
+                <span className={styles.pinStar}>★</span>
+                {look.rating}
+              </span>
+            )}
           </button>
         )
       })}

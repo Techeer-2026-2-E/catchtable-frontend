@@ -26,7 +26,8 @@
   position: absolute;
   transform: translate(-50%, -50%);
 }
-.placed.pinSelected {
+/* 아래 끝을 지점에 — 선택 말풍선, 상위 매장 박스 */
+.placed.anchorBottom {
   transform: translate(-50%, -100%);
 }
 .zoom {
@@ -96,6 +97,47 @@
 .pinLabel {
   font-size: 0.8125rem;
   font-weight: 700;
+  color: var(--color-text-inverse);
+}
+
+/* 별점 상위 매장 — 점 대신 이름과 별점 박스 (선택하면 말풍선처럼 어둡게) */
+.pinFeatured {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: auto;
+  height: 1.75rem;
+  padding: 0 var(--space-8);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-canvas);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+  white-space: nowrap;
+}
+.pinFeatured .pinLabel {
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+}
+.pinRating {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.pinStar {
+  color: var(--color-primary-default);
+}
+.pinFeatured.pinSelected {
+  border-color: var(--color-bg-inverse);
+  background: var(--color-bg-inverse);
+}
+.pinFeatured.pinSelected .pinLabel,
+.pinFeatured.pinSelected .pinRating {
   color: var(--color-text-inverse);
 }
 .me {

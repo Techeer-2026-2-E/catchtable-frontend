@@ -2,7 +2,7 @@ import type { LatLng, MapBounds, MapStore, Store } from '@/entities'
 
 /** 위치 권한이 없을 때 쓰는 기본 위치 — 강남역 */
 export const DEFAULT_CENTER: LatLng = { lat: 37.4979, lng: 127.0276 }
-/** 백엔드 store.map.max-side-km */
+/** 백엔드 store.map.max-side-km — 지도 목록 API 의 화면 한 변 상한 (핀 API 는 제한 없음) */
 export const MAX_SIDE_KM = 5
 
 const R = 6371
@@ -23,8 +23,8 @@ export function boundsSideKm(b: MapBounds) {
   return { width, height }
 }
 
-/** 백엔드 한 변 상한 안에 들어오는지 */
-export function isSearchable(b: MapBounds) {
+/** 지도 목록을 조회할 수 있는 범위인지 — 한 변 상한 안 */
+export function isListable(b: MapBounds) {
   const { width, height } = boundsSideKm(b)
   return width <= MAX_SIDE_KM && height <= MAX_SIDE_KM
 }
