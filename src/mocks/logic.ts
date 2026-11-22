@@ -21,7 +21,7 @@ import type {
 import { ACTIVE_WAITING_STATUSES, STORE_CATEGORY_LABEL, toDayOfWeek } from '@/entities'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
 import { SEED_STORE_COORDS } from './mapData'
-import { db, persist, type ReservationRow, type ReviewRow, type StoreRow, type TableRow, type WaitingRow } from './db'
+import { db, nextId, persist, type ReservationRow, type ReviewRow, type StoreRow, type TableRow, type WaitingRow } from './db'
 
 export const now = () => dayjs()
 export const nowIso = () => toIso(now())
@@ -172,6 +172,20 @@ export function notify(
   payload: NotificationMessage['payload'] = null,
 ) {
   const event: NotificationMessage = { eventId: crypto.randomUUID(), type, targetId, message, payload, occurredAt: localNow() }
+  // 알림함 저장 — 접속 여부, 알림 설정과 상관없이 (백엔드 NotificationInboxRecorder). 순번 변경은 저장 안 함
+  if (type !== 'WAITING_CHANGED' && type !== 'WAITING_POSITION_CHANGED') {
+    db.notifications.push({
+      id: nextId('notification'),
+      memberId,
+      type,
+      targetId,
+      message,
+      readAt: null,
+      deletedAt: null,
+      createdAt: now().format('YYYY-MM-DDTHH:mm:ssZ'),
+    })
+    persist()
+  }
   listeners.get(memberId)?.forEach((fn) => fn(event))
 }
 

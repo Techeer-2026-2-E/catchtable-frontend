@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { Bell, ChevronRight, Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { getCategoryPhoto, StoreCard, type Store } from '@/entities'
+import { useAuthStore } from '@/features/auth'
+import { useHasUnreadNotification } from '@/features/notification'
 import { DEFAULT_CENTER, formatDistance, useNearbyStores } from '@/features/store-map'
 import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
@@ -32,6 +34,8 @@ const REGIONS: Region[] = [
  * 추천: 내 주변(GET /user/stores/map/radius, 1km), 오늘 저녁 빈자리, 웨이팅 가능
  */
 export function HomePage() {
+  const isCustomer = useAuthStore((s) => s.member?.userType === 'CUSTOMER')
+  const { data: hasUnread = false } = useHasUnreadNotification(isCustomer)
   const today = dayjs().format('YYYY-MM-DD')
   const { data: categories } = useCategories()
   const all = useStoreSearch({})
@@ -58,6 +62,12 @@ export function HomePage() {
         <Link to={ROUTES.NOTIFICATIONS} className={styles.mapLink}>
           <Bell aria-hidden />
           <span>알림</span>
+          {hasUnread && (
+            <>
+              <span className={styles.unreadDot} aria-hidden />
+              <span className="sr-only">, 안 읽은 알림 있음</span>
+            </>
+          )}
         </Link>
       </header>
 

@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { NotificationMessage } from '@/entities'
 import { useAuthStore } from '@/features/auth'
-import { useNotificationStream } from '@/features/notification'
+import { notificationKeys, useNotificationStream } from '@/features/notification'
 import { reservationKeys } from '@/features/reservation'
 import { waitingKeys } from '@/features/waiting'
 import { toast } from '@/shared/ui'
@@ -16,9 +16,11 @@ export function RealtimeNotifications() {
   const queryClient = useQueryClient()
 
   // 이용 내역(GET /api/user/reservations?type=…)은 예약·웨이팅을 함께 보여주므로 두 쪽을 모두 갱신
+  // 알림함과 빨간 점도 새 알림이 저장됐을 수 있어 함께 갱신
   const refreshAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: waitingKeys.all })
     queryClient.invalidateQueries({ queryKey: reservationKeys.all })
+    queryClient.invalidateQueries({ queryKey: notificationKeys.all })
   }, [queryClient])
 
   const onMessage = useCallback(

@@ -44,7 +44,35 @@ export interface NotificationMessage {
   occurredAt: string
 }
 
-/** 화면에 보여줄 실시간 알림 — NotificationMessage 를 받아 만든 값 (알림함 API 는 백엔드에 없음) */
+/** 알림함에 저장되는 종류 — 점주 화면 갱신(WAITING_CHANGED), 순번 변경(WAITING_POSITION_CHANGED)은 저장 안 됨 */
+export type InboxNotificationType = Exclude<NotificationType, 'WAITING_CHANGED' | 'WAITING_POSITION_CHANGED'>
+
+/** 알림함 알림 하나 — NotificationResponse (백엔드 feat/281-notification-list) */
+export interface InboxNotification {
+  id: number
+  type: InboxNotificationType
+  /** 예약 id 또는 웨이팅 id */
+  targetId: number
+  message: string
+  read: boolean
+  /** OffsetDateTime */
+  createdAt: string
+}
+
+/** GET /api/user/notifications — 최신순, lastId 커서 */
+export interface NotificationInbox {
+  notifications: InboxNotification[]
+  /** 다음 요청에 lastId 로 넘길 값 (더 없으면 null) */
+  nextLastId: number | null
+  hasNext: boolean
+}
+
+/** GET /api/user/notifications/unread — 종 아이콘 빨간 점 */
+export interface NotificationUnread {
+  hasUnread: boolean
+}
+
+/** 화면에 보여줄 실시간 알림 — SSE 로 받은 NotificationMessage 를 받아 만든 값 (토스트용) */
 export interface Notification {
   /** eventId */
   id: string

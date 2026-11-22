@@ -1,5 +1,6 @@
 import { mapHandlers } from './map'
 import { memberHandlers } from './members'
+import { notificationInboxHandlers } from './notificationInbox'
 import { notificationHandlers } from './notifications'
 import { ownerHandlers } from './owner'
 import { paymentHandlers } from './payments'
@@ -18,6 +19,7 @@ export const handlers = [
   ...reservationHandlers,
   ...waitingHandlers,
   ...notificationHandlers,
+  ...notificationInboxHandlers,
   ...reviewHandlers,
   ...ownerHandlers,
 ]

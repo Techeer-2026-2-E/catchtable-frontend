@@ -2,7 +2,7 @@ import { sse } from 'msw'
 import { subscribe } from '../logic'
 import { API } from '../utils'
 
-/** 실시간 알림 — 백엔드 NotificationController (알림함 API 는 없음) */
+/** 실시간 알림 — 백엔드 NotificationController. 알림함 목록, 읽음, 삭제는 notificationInbox.ts */
 export const notificationHandlers = [
   /**
    * GET /api/user/notifications/subscribe?memberId=
