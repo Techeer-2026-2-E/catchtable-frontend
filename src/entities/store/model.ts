@@ -251,6 +251,26 @@ export interface MapStore {
 }
 
 /** GET /api/user/stores/map/radius · /map/bounds — MapStoreListResponse */
+/** GET /api/user/stores/home 의 매장 하나 — NearbyStoreResponse */
+export interface NearbyStore {
+  id: number
+  name: string
+  category: StoreCategory
+  categoryName: string
+  address: string
+  waitingAvailable: boolean
+  imageUrl: string | null
+  distanceMeters: number
+}
+
+/** GET /api/user/stores/home — NearbyStoreListResponse */
+export interface NearbyStoreList {
+  stores: NearbyStore[]
+  page: number
+  size: number
+  hasNext: boolean
+}
+
 export interface MapStoreList {
   stores: MapStore[]
   page: number

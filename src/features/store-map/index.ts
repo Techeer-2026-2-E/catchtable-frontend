@@ -1,6 +1,6 @@
 export { storeMapApi } from './api/storeMapApi'
 export { storeMapKeys } from './api/queryKeys'
-export { useMapMarkers, useMapStores, useNearbyStores } from './hooks/useStoreMap'
+export { useMapMarkers, useMapStores, useNearbyStores, usePopularNearbyStores } from './hooks/useStoreMap'
 export { RECOMMEND_AREAS, RECOMMEND_FETCH_SIZE, byRating, useRecommendedStores } from './hooks/useRecommendedStores'
 export { DEFAULT_CENTER, MAX_SIDE_KM, boundsSideKm, distanceKm, formatDistance, isListable, nearlySameBounds, readMapFocus, toMapStore } from './lib/geo'
 export { describeOpenStatus } from './lib/openStatus'

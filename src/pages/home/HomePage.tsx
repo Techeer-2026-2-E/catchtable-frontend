@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { Bell, ChevronRight, Search } from 'lucide-react'
 import { Link } from 'react-router'
-import { getCategoryPhoto, StoreCard, type Store } from '@/entities'
+import { getCategoryPhoto, STORE_CATEGORY_LABEL, StoreCard, type Category, type LatLng, type Store, type StoreCategory } from '@/entities'
 import { useAuthStore } from '@/features/auth'
 import { useHasUnreadNotification } from '@/features/notification'
-import { DEFAULT_CENTER, formatDistance, useNearbyStores } from '@/features/store-map'
+import { DEFAULT_CENTER, formatDistance, useNearbyStores, usePopularNearbyStores } from '@/features/store-map'
 import { useCategories, useStoreSearch } from '@/features/store-search'
 import { paths, ROUTES } from '@/shared/config'
 import { dayjs } from '@/shared/lib/dayjs'
@@ -18,6 +18,9 @@ const TONIGHT = { time: '19:00', partySize: 2 }
 
 /** 내 주변 매장 줄에 보여줄 개수 */
 const NEARBY_SIZE = 10
+
+/** 음식 종류 API 가 오기 전에도 같은 칸을 그려 아래 섹션이 밀리지 않게 (CLS) — 백엔드 StoreCategory 와 같은 목록 */
+const FALLBACK_CATEGORIES: Category[] = Object.entries(STORE_CATEGORY_LABEL).map(([code, name]) => ({ code: code as StoreCategory, name }))
 
 /** 지역 바로가기 — 데모 입점 매장이 있는 곳 먼저 */
 const REGIONS: Region[] = [
@@ -37,7 +40,12 @@ export function HomePage() {
   const isCustomer = useAuthStore((s) => s.member?.userType === 'CUSTOMER')
   const { data: hasUnread = false } = useHasUnreadNotification(isCustomer)
   const today = dayjs().format('YYYY-MM-DD')
-  const { data: categories } = useCategories()
+  const { data: categoryData } = useCategories()
+  const categories = categoryData?.length ? categoryData : FALLBACK_CATEGORIES
+  // 내 주변, 인기 줄이 같은 기준 위치를 쓴다. 위치 권한이 없으면 강남역
+  const geo = useGeolocation()
+  const settled = geo.status !== 'idle' && geo.status !== 'pending'
+  const origin = geo.position ?? (settled ? DEFAULT_CENTER : null)
   const all = useStoreSearch({})
   const tonight = useStoreSearch({ date: today, time: TONIGHT.time, partySize: TONIGHT.partySize })
   const stores = all.data ?? []
@@ -72,13 +80,14 @@ export function HomePage() {
       </header>
 
       <BannerCarousel banners={banners} />
-      <CategoryGrid categories={categories ?? []} />
+      <CategoryGrid categories={categories} />
 
       <Divider thick />
 
       {all.isPending ? (
         <>
-          <NearbyShelf />
+          <NearbyShelf geo={geo} origin={origin} />
+          <PopularShelf origin={origin} />
           <section className={styles.section}>
             <div className={styles.sectionHead}>
               <Skeleton width="55%" height={22} />
@@ -97,7 +106,8 @@ export function HomePage() {
         <EmptyState title="등록된 매장이 없어요" />
       ) : (
         <>
-          <NearbyShelf />
+          <NearbyShelf geo={geo} origin={origin} />
+          <PopularShelf origin={origin} />
           <RegionSection regions={REGIONS} />
           <Divider thick />
           <Shelf
@@ -106,7 +116,7 @@ export function HomePage() {
             stores={tonight.data ?? []}
             more={tonightLink}
           />
-          <CategoryBest categories={categories ?? []} />
+          <CategoryBest categories={categories} />
           <Shelf title="지금 웨이팅 가능해요" description="원격으로 웨이팅하고 차례가 되면 알림을 받아요" stores={waitingNow} />
           <Divider thick />
           <section className={styles.section}>
@@ -136,10 +146,8 @@ export function HomePage() {
  * 내 주변 매장 — 내 위치 반경(백엔드 store.nearby.radius-meters, 기본 1km) 가까운 순
  * 위치 권한이 없으면 강남역 기준으로 보여주고 설명에서 알려줌
  */
-function NearbyShelf() {
-  const geo = useGeolocation()
+function NearbyShelf({ geo, origin }: { geo: ReturnType<typeof useGeolocation>; origin: LatLng | null }) {
   const settled = geo.status !== 'idle' && geo.status !== 'pending'
-  const origin = geo.position ?? (settled ? DEFAULT_CENTER : null)
   const { data, isPending, isError, refetch } = useNearbyStores(origin, NEARBY_SIZE)
   const stores = data?.stores ?? []
 
@@ -167,6 +175,42 @@ function NearbyShelf() {
         <ErrorState message="주변 매장을 불러오지 못했어요" onRetry={() => refetch()} />
       ) : stores.length === 0 ? (
         <p className={`${styles.shelfEmpty} t-body-14 text-tertiary`}>1km 안에 매장이 없어요. 지도에서 다른 곳을 찾아보세요</p>
+      ) : (
+        <ul className={styles.shelf}>
+          {stores.map((store) => (
+            <li key={store.id}>
+              <StoreCard
+                store={store}
+                to={paths.storeDetail(store.id)}
+                variant="compact"
+                meta={[store.categoryName, formatDistance(store.distanceMeters)].filter(Boolean).join(', ')}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+/**
+ * 요즘 인기 있는 곳 — 내 주변(1km) 매장을 최근 30일 예약(확정, 완료)과 웨이팅 입장 수가 많은 순으로
+ * GET /api/user/stores/home?sort=POPULAR (점수는 서버가 10분마다 갱신). 불러오는 동안은 자리를 잡아 두고, 매장이 없으면 숨김
+ */
+function PopularShelf({ origin }: { origin: LatLng | null }) {
+  const { data, isPending, isError } = usePopularNearbyStores(origin, NEARBY_SIZE)
+  const stores = data?.stores ?? []
+  if (isError || (!isPending && stores.length === 0)) return null
+  return (
+    <section className={styles.section} aria-busy={isPending || undefined}>
+      <div className={styles.sectionHead}>
+        <div>
+          <h2 className="t-title-18">요즘 인기 있는 곳</h2>
+          <p className="t-caption-13 text-tertiary">내 주변에서 최근 한 달 예약과 웨이팅이 많은 순서예요</p>
+        </div>
+      </div>
+      {isPending ? (
+        <ShelfSkeleton />
       ) : (
         <ul className={styles.shelf}>
           {stores.map((store) => (

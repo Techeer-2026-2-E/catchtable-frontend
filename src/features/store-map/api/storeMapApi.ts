@@ -1,4 +1,4 @@
-import type { LatLng, MapBounds, MapMarkerList, MapStoreList } from '@/entities'
+import type { LatLng, MapBounds, MapMarkerList, MapStoreList, NearbyStoreList } from '@/entities'
 import { apiClient } from '@/shared/lib'
 
 export interface MapPage {
@@ -23,6 +23,15 @@ export const storeMapApi = {
     const { data } = await apiClient.get<MapStoreList>('/user/stores/map/bounds', {
       params: { ...bounds, lat: me.lat, lng: me.lng, ...page },
     })
+    return data
+  },
+  /**
+   * 홈 주변 매장 — GET /api/user/stores/home (반경 store.nearby.radius-meters, 기본 1km)
+   * sort 가 POPULAR 면 최근 30일 예약(확정, 완료)과 웨이팅 입장 수가 많은 순 (10분마다 갱신). 없으면 가까운 순
+   * 응답은 지도 목록보다 단순해 별점, 영업 상태가 없다
+   */
+  getHomeStores: async (me: LatLng, params: MapPage & { sort?: 'POPULAR' } = {}) => {
+    const { data } = await apiClient.get<NearbyStoreList>('/user/stores/home', { params: { lat: me.lat, lng: me.lng, ...params } })
     return data
   },
   /** 내 위치 반경(기본 1km) 매장 목록 */

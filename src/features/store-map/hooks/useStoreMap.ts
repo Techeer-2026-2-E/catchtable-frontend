@@ -34,3 +34,12 @@ export function useNearbyStores(me: LatLng | null, size = PAGE_SIZE) {
     enabled: !!me,
   })
 }
+
+/** 홈 "요즘 인기 있는 곳" — 내 주변(1km) 매장을 최근 30일 예약, 웨이팅 입장 수가 많은 순으로 */
+export function usePopularNearbyStores(me: LatLng | null, size = PAGE_SIZE) {
+  return useQuery({
+    queryKey: [...storeMapKeys.popular(me ?? { lat: 0, lng: 0 }), size],
+    queryFn: () => storeMapApi.getHomeStores(me!, { size, sort: 'POPULAR' }),
+    enabled: !!me,
+  })
+}
