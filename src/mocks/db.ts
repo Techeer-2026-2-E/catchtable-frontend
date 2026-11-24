@@ -19,7 +19,7 @@ import type {
   UserType,
   WaitingEndReason,
   WaitingSettings,
-  WaitingStatus, PaymentDetail, PaymentStatus, UnconfirmedRefundRequest, PreparedPayment } from '@/entities'
+  WaitingStatus, PaymentDetail, PaymentStatus, UnconfirmedRefundRequest, PreparedPayment, InboxNotificationType } from '@/entities'
 import { dayjs, toStoreDateTime } from '@/shared/lib/dayjs'
 
 /* ------------------------------------------------------------------ */
@@ -139,6 +139,18 @@ export interface ReviewRow {
   updatedAt: string | null
 }
 
+/** 알림함 — 백엔드 notification 테이블 (읽음, 삭제는 시각으로 표시) */
+export interface NotificationRow {
+  id: number
+  memberId: number
+  type: InboxNotificationType
+  targetId: number
+  message: string
+  readAt: string | null
+  deletedAt: string | null
+  createdAt: string
+}
+
 export interface Db {
   seededOn: string
   seq: Record<string, number>
@@ -150,6 +162,7 @@ export interface Db {
   payments: PaymentRow[]
   waitings: WaitingRow[]
   reviews: ReviewRow[]
+  notifications: NotificationRow[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -696,6 +709,23 @@ function seed(): Db {
     updatedAt: null,
   })
 
+  // 김캐치 알림함 — 안 읽은 알림 2개, 읽은 알림 몇 개
+  const notifications: NotificationRow[] = []
+  const at = (d: dayjs.Dayjs) => d.format('YYYY-MM-DDTHH:mm:ssZ')
+  const storeName = (id: number) => stores.find((s) => s.id === id)?.name ?? '매장'
+  const pushNotification = (type: InboxNotificationType, targetId: number, message: string, when: dayjs.Dayjs, read: boolean) =>
+    notifications.push({ id: notifications.length + 1, memberId: 1, type, targetId, message, readAt: read ? at(when.add(5, 'minute')) : null, deletedAt: null, createdAt: at(when) })
+  const myRes = (storeId: number, status: ReservationStatus) => reservations.find((r) => r.memberId === 1 && r.storeId === storeId && r.status === status)
+  const monti = reservations.find((r) => r.memberId === 1 && r.storeId === 8)
+  if (monti) pushNotification('RESERVATION_CONFIRMED', monti.reservationId, `${storeName(8)} 예약이 확정되었어요`, now.subtract(21, 'day'), true)
+  const canceled = myRes(3, 'CANCELLED')
+  if (canceled) pushNotification('RESERVATION_CANCELED', canceled.reservationId, `${storeName(3)} 예약을 취소했어요`, now.subtract(3, 'day'), true)
+  const later = reservations.find((r) => r.memberId === 1 && r.storeId === 3 && r.status === 'CONFIRMED')
+  if (later) pushNotification('RESERVATION_CHANGED', later.reservationId, `${storeName(3)} 예약 시간이 바뀌었어요`, now.subtract(1, 'day'), true)
+  const tomorrow = myRes(1, 'CONFIRMED')
+  if (tomorrow) pushNotification('RESERVATION_CONFIRMED', tomorrow.reservationId, `${storeName(1)} 예약이 확정되었어요`, now.subtract(2, 'hour'), false)
+  if (later) pushNotification('RESERVATION_CONFIRMED', later.reservationId, `${storeName(3)} 예약이 확정되었어요`, now.subtract(12, 'minute'), false)
+
   return {
     seededOn: today,
     seq: {
@@ -708,6 +738,7 @@ function seed(): Db {
       review: reviewId,
       payment: paymentId,
       refund: refundId,
+      notification: notifications.length,
     },
     members,
     stores,
@@ -717,6 +748,7 @@ function seed(): Db {
     payments,
     waitings,
     reviews,
+    notifications,
   }
 }
 
@@ -727,14 +759,15 @@ function seed(): Db {
 // v4: 백엔드 응답에 없는 값(평점·지역·좌석 타입·알림함 등)을 뺌
 // v5: 특정일 영업, 예약금 정책
 // v6: 고객 예약금 결제 시드
-const STORAGE_KEY = 'catchtable-mock-db-v7'
+// v8: 알림함 (notifications)
+const STORAGE_KEY = 'catchtable-mock-db-v8'
 
 function load(): Db {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const saved = JSON.parse(raw) as Db
-      if (saved.seededOn === dayjs().format('YYYY-MM-DD')) return { ...saved, payments: saved.payments ?? [] }
+      if (saved.seededOn === dayjs().format('YYYY-MM-DD')) return { ...saved, payments: saved.payments ?? [], notifications: saved.notifications ?? [] }
     }
   } catch {
     /* 저장된 값이 없거나 깨짐 — 새로 시드 */

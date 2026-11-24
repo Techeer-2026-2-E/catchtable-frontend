@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { NOTIFICATION_TITLE, type Notification, type NotificationMessage } from '@/entities'
 
 /**
- * 이번 접속 중 SSE 로 받은 알림 — 백엔드에 알림함 목록 API 가 없어 화면에서만 보관
- * 새로고침하면 사라짐 (서버에 저장된 알림이 아님)
+ * 이번 접속 중 SSE 로 받은 알림 — 화면에서만 보관, 새로고침하면 사라짐
+ * 알림함 화면은 서버에 저장된 알림(GET /api/user/notifications)을 쓴다
  */
 interface LiveNotificationState {
   items: Notification[]
