@@ -30,6 +30,34 @@ export interface WaitingRegistration {
   teamsAhead: number
 }
 
+/**
+ * 대기표 상태 — 접수 정책이 켜진 매장의 신청 (백엔드 docs/frontend/waiting-receipt-lifecycle.md)
+ * PENDING 접수됨, PROCESSING 번호 발급 중, REGISTERED 번호 발급 완료, CANCEL_REQUESTED 취소 확인 중,
+ * WITHDRAWN 번호 발급 전 철회, CANCELED 번호 발급 후 취소
+ */
+export type WaitingReceiptStatus = 'PENDING' | 'PROCESSING' | 'REGISTERED' | 'CANCEL_REQUESTED' | 'WITHDRAWN' | 'CANCELED'
+
+/** 대기표 — WaitingReceiptResponse. 아직 정해지지 않은 값은 응답에서 빠진다 */
+export interface WaitingReceipt {
+  receiptId: string
+  storeId: number
+  /** 서울 기준 접수일 */
+  receivedDate: string
+  /** 매장, 접수일별 접수 순번 (대기번호와 다름) */
+  intakeSequence: number
+  partyCount: number
+  status: WaitingReceiptStatus
+  /** REGISTERED 부터 */
+  waitingId?: number
+  waitNumber?: number
+  teamsAhead?: number
+  waitingStatus?: WaitingStatus
+  cancelOutcome?: 'WITHDRAWN' | 'CANCELED' | 'REJECTED'
+}
+
+/** 서버가 결과를 내는 중이라 다시 조회해야 하는 대기표 상태 */
+export const UNFINISHED_RECEIPT_STATUSES: WaitingReceiptStatus[] = ['PENDING', 'PROCESSING', 'CANCEL_REQUESTED']
+
 /** GET /api/user/waitings/{waitingId} — WaitingPositionResponse */
 export interface Waiting {
   waitingId: number

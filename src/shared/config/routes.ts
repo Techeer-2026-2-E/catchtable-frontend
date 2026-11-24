@@ -10,6 +10,7 @@ export const ROUTES = {
   RESERVATION_DETAIL: '/reservations/:reservationId',
   WAITING_APPLY: '/stores/:storeId/waiting',
   WAITING: '/waitings/:waitingId',
+  WAITING_RECEIPT: '/waitings/receipts/:receiptId',
   /** 마이다이닝 — 예약·웨이팅 내역 */
   MY_DINING: '/my-dining',
   /** 진행 중·지난 웨이팅, 예약 표 모아보기 */
@@ -63,6 +64,7 @@ export const paths = {
   paymentRefund: (paymentId: Id) => `/payments/${paymentId}/refund`,
   waitingApply: (storeId: Id) => `/stores/${storeId}/waiting`,
   waiting: (waitingId: Id) => `/waitings/${waitingId}`,
+  waitingReceipt: (receiptId: string) => `/waitings/receipts/${receiptId}`,
   /** 이용 현황 — ticket 을 주면 그 표의 상세 팝업을 연다 */
   usageStatus: (ticket?: { type: 'WAITING' | 'RESERVATION'; id: Id }) =>
     ticket ? `/my-dining/status?ticket=${ticket.type === 'WAITING' ? 'waiting' : 'reservation'}-${ticket.id}` : '/my-dining/status',
