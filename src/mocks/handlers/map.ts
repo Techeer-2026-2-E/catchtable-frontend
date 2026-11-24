@@ -119,7 +119,54 @@ function pageOf(stores: MapStore[], { page, size }: { page: number; size: number
 const publicStore = (id: number) => PUBLIC_STORES.find((s) => s.id === id)
 
 /** 지도 매장 API — 백엔드 feat/266-map-stores (UserStoreController). dev 에는 아직 없음 */
+/** 최근 30일 예약(확정, 완료) + 웨이팅 입장 수 — 백엔드 StorePopularityService (가중치 1:1) */
+function popularityOf(storeId: number) {
+  const since = dayjs().subtract(30, 'day')
+  const reservations = db.reservations.filter(
+    (r) => r.storeId === storeId && (r.status === 'CONFIRMED' || r.status === 'COMPLETED') && dayjs(r.requestedAt).isAfter(since),
+  ).length
+  const waitings = db.waitings.filter((w) => w.storeId === storeId && w.status === 'SEATED' && dayjs(w.createdAt).isAfter(since)).length
+  return reservations + waitings
+}
+
 export const mapHandlers = [
+  /**
+   * 홈 주변 매장 — 반경 1km. sort=POPULAR 면 인기 점수 높은 순(없으면 0점), 같으면 id 순. 아니면 가까운 순
+   * 응답은 NearbyStoreResponse (별점, 영업 상태 없음)
+   */
+  http.get(`${API}/user/stores/home`, async ({ request }) => {
+    await before()
+    const q = new URL(request.url).searchParams
+    const lat = num(q, 'lat')
+    const lng = num(q, 'lng')
+    if (lat == null || lng == null) return badRequest('현재 위치는 필수입니다.')
+    const paging = readPage(q)
+    if (!paging) return badRequest('페이지와 조회 개수를 확인해주세요')
+    const sort = q.get('sort')
+    if (sort && sort !== 'POPULAR') return badRequest('정렬 값을 확인해주세요')
+    const nearby = locatedStores()
+      .map((s) => ({ s, m: toMapStore(s, { lat, lng }) }))
+      .filter(({ m }) => m.distanceMeters! <= NEARBY_RADIUS_METERS)
+    const scored = nearby.map((x) => ({ ...x, score: sort ? popularityOf(x.s.id) : 0 }))
+    scored.sort((a, b) => (sort ? b.score - a.score || a.s.id - b.s.id : a.m.distanceMeters! - b.m.distanceMeters! || a.s.id - b.s.id))
+    const { page, size } = paging
+    const slice = scored.slice(page * size, page * size + size)
+    return HttpResponse.json({
+      stores: slice.map(({ s, m }) => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        categoryName: m.categoryName,
+        address: s.address,
+        waitingAvailable: m.waitingAvailable,
+        imageUrl: m.imageUrl,
+        distanceMeters: m.distanceMeters,
+      })),
+      page,
+      size,
+      hasNext: scored.length > page * size + size,
+    })
+  }),
   /**
    * 화면 안 핀 — 크기 제한 없이 별점 상위 15개 (MapBoundsRepository.FIND_MARKERS_SQL)
    * 평균 높은 순, 같으면 리뷰 많은 순, 리뷰 없는 매장은 맨 뒤, 그다음 id 순. 순서가 곧 rank

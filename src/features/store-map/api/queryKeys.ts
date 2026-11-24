@@ -5,4 +5,5 @@ export const storeMapKeys = {
   markers: (bounds: MapBounds) => [...storeMapKeys.all, 'markers', bounds] as const,
   list: (bounds: MapBounds, me: LatLng) => [...storeMapKeys.all, 'list', bounds, me] as const,
   nearby: (me: LatLng) => [...storeMapKeys.all, 'nearby', me] as const,
+  popular: (me: LatLng) => [...storeMapKeys.all, 'popular', me] as const,
 }
