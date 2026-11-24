@@ -1,0 +1,1 @@
+export { WaitingReceiptPage } from './WaitingReceiptPage'

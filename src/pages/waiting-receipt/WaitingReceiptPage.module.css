@@ -1,0 +1,45 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-8) var(--page-gutter) var(--space-24);
+}
+.ticketHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.number {
+  margin-top: var(--space-12);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.number span {
+  margin: 0 var(--space-4);
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 3.5rem;
+  letter-spacing: -0.04em;
+}
+/* 처리 중 표시 — 움직임 줄이기 설정이면 멈춤 */
+.pulse {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: var(--space-8);
+  border-radius: 50%;
+  background: var(--color-primary-default);
+  vertical-align: middle;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}

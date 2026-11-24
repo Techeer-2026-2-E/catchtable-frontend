@@ -43,6 +43,7 @@ import {
   StoreMapPage,
   WaitingApplyPage,
   WaitingPage,
+  WaitingReceiptPage,
 } from './lazyPages'
 
 const auth = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
       { path: ROUTES.PAYMENT_REFUND, element: auth(<PaymentRefundPage />) },
       { path: ROUTES.WAITING_APPLY, element: auth(<WaitingApplyPage />) },
       { path: ROUTES.WAITING, element: auth(<WaitingPage />) },
+      { path: ROUTES.WAITING_RECEIPT, element: auth(<WaitingReceiptPage />) },
       { path: ROUTES.MY_DINING, element: auth(<MyDiningPage />) },
       { path: ROUTES.USAGE_STATUS, element: auth(<UsageStatusPage />) },
       { path: ROUTES.MYPAGE, element: auth(<MyPage />) },

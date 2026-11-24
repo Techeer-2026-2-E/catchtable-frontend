@@ -24,6 +24,7 @@ export const NotificationSettingsPage = lazy(() =>
 )
 export const WaitingApplyPage = lazy(() => import('@/pages/waiting-apply').then((m) => ({ default: m.WaitingApplyPage })))
 export const WaitingPage = lazy(() => import('@/pages/waiting').then((m) => ({ default: m.WaitingPage })))
+export const WaitingReceiptPage = lazy(() => import('@/pages/waiting-receipt').then((m) => ({ default: m.WaitingReceiptPage })))
 export const MyDiningPage = lazy(() => import('@/pages/my-dining').then((m) => ({ default: m.MyDiningPage })))
 export const UsageStatusPage = lazy(() => import('@/pages/usage-status').then((m) => ({ default: m.UsageStatusPage })))
 export const MyPage = lazy(() => import('@/pages/mypage').then((m) => ({ default: m.MyPage })))
